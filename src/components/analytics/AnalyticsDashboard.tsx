@@ -1,4 +1,11 @@
 import React, { useState } from "react";
+import {
+  Boxes,
+  LineChart,
+  HandCoins,
+  AlertTriangle,
+  FileText,
+} from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import InventoryAnalytics from "./InventoryAnalytics";
 import SalesAnalytics from "./SalesAnalytics";
@@ -64,9 +71,21 @@ const AnalyticsDashboard: React.FC = () => {
   };
 
   const tabs = [
-    { id: "inventory" as const, label: "Tồn kho", icon: "📦" },
-    { id: "sales" as const, label: "Bán hàng", icon: "💰" },
-    { id: "financial" as const, label: "Tài chính", icon: "📊" },
+    {
+      id: "inventory" as const,
+      label: "Tồn kho",
+      icon: <Boxes className="w-4 h-4" />,
+    },
+    {
+      id: "sales" as const,
+      label: "Bán hàng",
+      icon: <HandCoins className="w-4 h-4" />,
+    },
+    {
+      id: "financial" as const,
+      label: "Tài chính",
+      icon: <LineChart className="w-4 h-4" />,
+    },
   ];
 
   return (
@@ -90,16 +109,14 @@ const AnalyticsDashboard: React.FC = () => {
                 onClick={handleExportLowStock}
                 className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
               >
-                <span>⚠️</span>
-                Cảnh báo tồn kho
+                <AlertTriangle className="w-4 h-4" /> Cảnh báo tồn kho
               </button>
             )}
             <button
               onClick={handleExportPDF}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
             >
-              <span>📄</span>
-              Xuất PDF
+              <FileText className="w-4 h-4" /> Xuất PDF
             </button>
           </div>
         </div>

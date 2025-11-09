@@ -1,8 +1,25 @@
 import React, { useState, useMemo } from "react";
+import {
+  Users,
+  UserCheck,
+  DollarSign,
+  ClipboardList,
+  Clock,
+  History,
+  Search,
+  Plus,
+  Pencil,
+  Save,
+  X,
+  Trash2,
+  Phone,
+  Mail,
+} from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { Employee, AttendanceRecord } from "../../types";
 import { formatCurrency, formatDate } from "../../utils/format";
 import PayrollManager from "../payroll/PayrollManager";
+import { showToast } from "../../utils/toast";
 
 type Tab = "list" | "attendance" | "payroll" | "history";
 
@@ -53,7 +70,7 @@ const EmployeeManager: React.FC = () => {
 
     if (editingEmployee) {
       updateEmployee({ ...editingEmployee, ...formData } as Employee);
-      alert("✅ Cập nhật nhân viên thành công!");
+      showToast.success("Cập nhật nhân viên thành công!");
     } else {
       const newEmployee: Employee = {
         id: Math.random().toString(36).substr(2, 9),
@@ -72,7 +89,7 @@ const EmployeeManager: React.FC = () => {
         created_at: new Date().toISOString(),
       };
       addEmployee(newEmployee);
-      alert("✅ Thêm nhân viên thành công!");
+      showToast.success("Thêm nhân viên thành công!");
     }
 
     resetForm();
@@ -103,7 +120,7 @@ const EmployeeManager: React.FC = () => {
   const handleDelete = (emp: Employee) => {
     if (confirm(`Bạn có chắc muốn xóa nhân viên "${emp.name}" không?`)) {
       deleteEmployee(emp.id);
-      alert("✅ Đã xóa nhân viên!");
+      showToast.success("Đã xóa nhân viên!");
     }
   };
 
@@ -122,14 +139,14 @@ const EmployeeManager: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <span className="text-3xl">👔</span>
+          <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           Quản lý nhân viên
         </h2>
         <button
           onClick={() => setShowForm(true)}
-          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center gap-2"
         >
-          ➕ Thêm nhân viên
+          <Plus className="w-5 h-5" /> Thêm nhân viên
         </button>
       </div>
 
@@ -140,7 +157,7 @@ const EmployeeManager: React.FC = () => {
             <span className="text-white/80 text-sm font-medium">
               Tổng nhân viên
             </span>
-            <span className="text-3xl">👥</span>
+            <Users className="w-8 h-8" />
           </div>
           <div className="text-3xl font-bold">{stats.total}</div>
           <div className="text-white/70 text-sm mt-1">
@@ -153,7 +170,7 @@ const EmployeeManager: React.FC = () => {
             <span className="text-white/80 text-sm font-medium">
               Đang hoạt động
             </span>
-            <span className="text-3xl">✅</span>
+            <UserCheck className="w-8 h-8" />
           </div>
           <div className="text-3xl font-bold">{stats.active}</div>
           <div className="text-white/70 text-sm mt-1">Nhân viên active</div>
@@ -164,7 +181,7 @@ const EmployeeManager: React.FC = () => {
             <span className="text-white/80 text-sm font-medium">
               Tổng lương tháng
             </span>
-            <span className="text-3xl">💰</span>
+            <DollarSign className="w-8 h-8" />
           </div>
           <div className="text-2xl font-bold">
             {formatCurrency(stats.totalSalary)}
@@ -176,10 +193,26 @@ const EmployeeManager: React.FC = () => {
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
         {[
-          { key: "list", label: "📋 Danh sách" },
-          { key: "attendance", label: "⏰ Chấm công" },
-          { key: "payroll", label: "💰 Quản lý lương" },
-          { key: "history", label: "📜 Lịch sử" },
+          {
+            key: "list",
+            label: "Danh sách",
+            icon: <ClipboardList className="w-4 h-4" />,
+          },
+          {
+            key: "attendance",
+            label: "Chấm công",
+            icon: <Clock className="w-4 h-4" />,
+          },
+          {
+            key: "payroll",
+            label: "Quản lý lương",
+            icon: <DollarSign className="w-4 h-4" />,
+          },
+          {
+            key: "history",
+            label: "Lịch sử",
+            icon: <History className="w-4 h-4" />,
+          },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -190,7 +223,10 @@ const EmployeeManager: React.FC = () => {
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
-            {tab.label}
+            <span className="inline-flex items-center gap-1">
+              {tab.icon}
+              {tab.label}
+            </span>
           </button>
         ))}
       </div>
@@ -200,7 +236,7 @@ const EmployeeManager: React.FC = () => {
         <div className="flex gap-4">
           <input
             type="text"
-            placeholder="🔍 Tìm kiếm nhân viên (tên, SĐT, chức vụ)..."
+            placeholder="Tìm kiếm nhân viên (tên, SĐT, chức vụ)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -264,12 +300,16 @@ const EmployeeManager: React.FC = () => {
                           </div>
                           {emp.phone && (
                             <div className="text-sm text-slate-500 dark:text-slate-400">
-                              📞 {emp.phone}
+                              <span className="inline-flex items-center gap-1">
+                                <Phone className="w-3 h-3" /> {emp.phone}
+                              </span>
                             </div>
                           )}
                           {emp.email && (
                             <div className="text-sm text-slate-500 dark:text-slate-400">
-                              📧 {emp.email}
+                              <span className="inline-flex items-center gap-1">
+                                <Mail className="w-3 h-3" /> {emp.email}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -309,15 +349,15 @@ const EmployeeManager: React.FC = () => {
                       <td className="px-6 py-4 text-right space-x-2">
                         <button
                           onClick={() => handleEdit(emp)}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm"
+                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm"
                         >
-                          ✏️ Sửa
+                          <Pencil className="w-4 h-4" /> Sửa
                         </button>
                         <button
                           onClick={() => handleDelete(emp)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium text-sm"
+                          className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium text-sm"
                         >
-                          🗑️ Xóa
+                          <Trash2 className="w-4 h-4" /> Xóa
                         </button>
                       </td>
                     </tr>
@@ -331,7 +371,7 @@ const EmployeeManager: React.FC = () => {
 
       {activeTab === "attendance" && (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-8 text-center">
-          <div className="text-6xl mb-4">⏰</div>
+          <Clock className="w-16 h-16 mb-4 text-slate-400" />
           <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
             Chức năng chấm công
           </h3>
@@ -345,7 +385,7 @@ const EmployeeManager: React.FC = () => {
 
       {activeTab === "history" && (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-8 text-center">
-          <div className="text-6xl mb-4">📜</div>
+          <History className="w-16 h-16 mb-4 text-slate-400" />
           <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
             Lịch sử làm việc
           </h3>
@@ -361,7 +401,15 @@ const EmployeeManager: React.FC = () => {
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                {editingEmployee ? "✏️ Sửa nhân viên" : "➕ Thêm nhân viên mới"}
+                {editingEmployee ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Pencil className="w-5 h-5" /> Sửa nhân viên
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <Plus className="w-5 h-5" /> Thêm nhân viên mới
+                  </span>
+                )}
               </h3>
               <button
                 onClick={resetForm}
@@ -561,16 +609,24 @@ const EmployeeManager: React.FC = () => {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all inline-flex items-center justify-center gap-2"
                 >
-                  {editingEmployee ? "💾 Lưu thay đổi" : "➕ Thêm nhân viên"}
+                  {editingEmployee ? (
+                    <>
+                      <Save className="w-5 h-5" /> Lưu thay đổi
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5" /> Thêm nhân viên
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-6 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                  className="px-6 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors inline-flex items-center gap-2"
                 >
-                  ❌ Hủy
+                  <X className="w-5 h-5" /> Hủy
                 </button>
               </div>
             </form>

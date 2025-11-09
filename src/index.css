@@ -1,12 +1,86 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==================== THEME COLORS ==================== */
 :root {
+  /* Font */
   --font-sans: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial;
+
+  /* Light Mode Colors */
+  --color-bg-primary: 255 255 255; /* white */
+  --color-bg-secondary: 248 250 252; /* slate-50 */
+  --color-bg-tertiary: 241 245 249; /* slate-100 */
+
+  --color-text-primary: 15 23 42; /* slate-900 */
+  --color-text-secondary: 71 85 105; /* slate-600 */
+  --color-text-tertiary: 148 163 184; /* slate-400 */
+
+  --color-border-primary: 226 232 240; /* slate-200 */
+  --color-border-secondary: 203 213 225; /* slate-300 */
+
+  /* Accent Colors - Light Mode */
+  --color-accent-blue-bg: 239 246 255; /* blue-50 */
+  --color-accent-blue-text: 29 78 216; /* blue-700 */
+  --color-accent-blue-border: 191 219 254; /* blue-200 */
+
+  --color-accent-green-bg: 240 253 244; /* green-50 */
+  --color-accent-green-text: 21 128 61; /* green-700 */
+  --color-accent-green-border: 187 247 208; /* green-200 */
+
+  --color-accent-purple-bg: 250 245 255; /* purple-50 */
+  --color-accent-purple-text: 126 34 206; /* purple-700 */
+  --color-accent-purple-border: 233 213 255; /* purple-200 */
+
+  --color-accent-orange-bg: 255 247 237; /* orange-50 */
+  --color-accent-orange-text: 194 65 12; /* orange-700 */
+  --color-accent-orange-border: 254 215 170; /* orange-200 */
+
+  --color-accent-red-bg: 254 242 242; /* red-50 */
+  --color-accent-red-text: 185 28 28; /* red-700 */
+  --color-accent-red-border: 254 202 202; /* red-200 */
 }
+
+/* Dark Mode Colors */
+.dark {
+  --color-bg-primary: 30 41 59; /* slate-800 */
+  --color-bg-secondary: 15 23 42; /* slate-900 */
+  --color-bg-tertiary: 51 65 85; /* slate-700 */
+
+  --color-text-primary: 248 250 252; /* slate-50 */
+  --color-text-secondary: 226 232 240; /* slate-200 */
+  --color-text-tertiary: 148 163 184; /* slate-400 */
+
+  --color-border-primary: 51 65 85; /* slate-700 */
+  --color-border-secondary: 71 85 105; /* slate-600 */
+
+  /* Accent Colors - Dark Mode */
+  --color-accent-blue-bg: 30 58 138; /* blue-900 with opacity */
+  --color-accent-blue-text: 147 197 253; /* blue-300 */
+  --color-accent-blue-border: 30 64 175; /* blue-800 */
+
+  --color-accent-green-bg: 20 83 45; /* green-900 with opacity */
+  --color-accent-green-text: 134 239 172; /* green-300 */
+  --color-accent-green-border: 22 101 52; /* green-800 */
+
+  --color-accent-purple-bg: 88 28 135; /* purple-900 with opacity */
+  --color-accent-purple-text: 216 180 254; /* purple-300 */
+  --color-accent-purple-border: 107 33 168; /* purple-800 */
+
+  --color-accent-orange-bg: 124 45 18; /* orange-900 with opacity */
+  --color-accent-orange-text: 253 186 116; /* orange-300 */
+  --color-accent-orange-border: 154 52 18; /* orange-800 */
+
+  --color-accent-red-bg: 127 29 29; /* red-900 with opacity */
+  --color-accent-red-text: 252 165 165; /* red-300 */
+  --color-accent-red-border: 153 27 27; /* red-800 */
+}
+
 body {
   font-family: var(--font-sans);
+  background-color: rgb(var(--color-bg-secondary));
+  color: rgb(var(--color-text-primary));
 }
 
 /* Print Styles for A5 Invoice */
@@ -32,7 +106,7 @@ body {
   }
 }
 
-/* Toast Notifications - Dark Theme */
+/* ==================== TOAST NOTIFICATIONS ==================== */
 .Toastify__toast-container {
   z-index: 99999 !important;
 }
@@ -44,6 +118,7 @@ body {
   min-height: 64px;
 }
 
+/* Toast variants adapt to theme */
 .Toastify__toast--success {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
@@ -78,7 +153,7 @@ body {
   opacity: 1;
 }
 
-/* Custom Animations */
+/* ==================== CUSTOM ANIMATIONS ==================== */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -133,4 +208,30 @@ body {
 
 .animate-shimmer {
   animation: shimmer 2s ease-in-out infinite;
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+/* Scrollbar styling for dark mode */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(var(--color-bg-secondary));
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-border-secondary));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-text-tertiary));
+}
+
+/* Selection styling */
+::selection {
+  background: rgb(59 130 246 / 0.3);
+  color: rgb(var(--color-text-primary));
 }

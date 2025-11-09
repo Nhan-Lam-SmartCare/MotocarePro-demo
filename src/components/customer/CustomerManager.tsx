@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import { User, Bike } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { formatDate } from "../../utils/format";
 import { PlusIcon, TrashIcon, XMarkIcon, UsersIcon } from "../Icons";
@@ -445,7 +446,7 @@ const CustomerManager: React.FC = () => {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeFilter === "all"
                     ? "bg-blue-600 text-white"
-                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
                 }`}
               >
                 Tất cả khách hàng
@@ -455,7 +456,7 @@ const CustomerManager: React.FC = () => {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeFilter === "vip"
                     ? "bg-purple-600 text-white"
-                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
                 }`}
               >
                 <span className="inline-block w-2 h-2 rounded-full bg-purple-500 mr-2"></span>
@@ -466,7 +467,7 @@ const CustomerManager: React.FC = () => {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeFilter === "loyal"
                     ? "bg-blue-600 text-white"
-                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
                 }`}
               >
                 <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
@@ -477,7 +478,7 @@ const CustomerManager: React.FC = () => {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeFilter === "potential"
                     ? "bg-green-600 text-white"
-                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
                 }`}
               >
                 <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
@@ -488,7 +489,7 @@ const CustomerManager: React.FC = () => {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeFilter === "at-risk"
                     ? "bg-orange-600 text-white"
-                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
                 }`}
               >
                 <span className="inline-block w-2 h-2 rounded-full bg-orange-500 mr-2"></span>
@@ -499,7 +500,7 @@ const CustomerManager: React.FC = () => {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeFilter === "lost"
                     ? "bg-red-600 text-white"
-                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
                 }`}
               >
                 <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-2"></span>
@@ -510,7 +511,7 @@ const CustomerManager: React.FC = () => {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeFilter === "new"
                     ? "bg-cyan-600 text-white"
-                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
                 }`}
               >
                 <span className="inline-block w-2 h-2 rounded-full bg-cyan-500 mr-2"></span>
@@ -546,43 +547,133 @@ const CustomerManager: React.FC = () => {
               {filtered.map((customer) => {
                 const segmentConfig = {
                   VIP: {
-                    bg: "bg-gradient-to-br from-purple-500 to-purple-700",
+                    bg: "bg-gradient-to-br from-purple-400 to-purple-600 dark:from-purple-500 dark:to-purple-700",
                     text: "VIP",
-                    icon: "👑",
+                    icon: (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-6 h-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="m3 7 5 5-5 5 19-5L3 7Z"
+                        />
+                      </svg>
+                    ),
                   },
                   Loyal: {
-                    bg: "bg-gradient-to-br from-blue-500 to-blue-700",
+                    bg: "bg-gradient-to-br from-blue-400 to-blue-600 dark:from-blue-500 dark:to-blue-700",
                     text: "Trung thành",
-                    icon: "⭐",
+                    icon: (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-6 h-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 17.75 6.825 20.995l.99-5.766L3.63 11.255l5.807-.844L12 5l2.563 5.411 5.807.844-4.186 3.974.99 5.766L12 17.75Z"
+                        />
+                      </svg>
+                    ),
                   },
                   Potential: {
-                    bg: "bg-gradient-to-br from-green-500 to-green-700",
+                    bg: "bg-gradient-to-br from-green-400 to-green-600 dark:from-green-500 dark:to-green-700",
                     text: "Tiềm năng",
-                    icon: "🌱",
+                    icon: (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-6 h-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 2v5m0 0c1.886-1.257 4.63-1.034 6 1-1.886 1.257-1.886 3.743 0 5-1.37 2.034-4.114 2.257-6 1m0-12c-1.886-1.257-4.63-1.034-6 1 1.886 1.257 1.886 3.743 0 5 1.37 2.034 4.114 2.257 6 1m0 0v5"
+                        />
+                      </svg>
+                    ),
                   },
                   "At Risk": {
-                    bg: "bg-gradient-to-br from-orange-500 to-orange-700",
+                    bg: "bg-gradient-to-br from-orange-400 to-orange-600 dark:from-orange-500 dark:to-orange-700",
                     text: "Cần chăm sóc",
-                    icon: "⚠️",
+                    icon: (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-6 h-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+                        />
+                      </svg>
+                    ),
                   },
                   Lost: {
-                    bg: "bg-gradient-to-br from-red-500 to-red-700",
+                    bg: "bg-gradient-to-br from-red-400 to-red-600 dark:from-red-500 dark:to-red-700",
                     text: "Đã mất",
-                    icon: "❌",
+                    icon: (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-6 h-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="m15 9-6 6m0-6 6 6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                        />
+                      </svg>
+                    ),
                   },
                   New: {
-                    bg: "bg-gradient-to-br from-cyan-500 to-cyan-700",
+                    bg: "bg-gradient-to-br from-cyan-400 to-cyan-600 dark:from-cyan-500 dark:to-cyan-700",
                     text: "Khách mới",
-                    icon: "✨",
+                    icon: (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-6 h-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 2v2m0 4v2m0 4v2m0 4v2M4.93 4.93l1.414 1.414M7.757 12l-1.414 1.414M4.93 19.07l1.414-1.414M19.07 4.93l-1.414 1.414M16.243 12l1.414 1.414M19.07 19.07l-1.414-1.414M2 12h2m4 0h2m4 0h2m4 0h2"
+                        />
+                      </svg>
+                    ),
                   },
-                };
+                } as const;
 
                 const config = customer.segment
                   ? segmentConfig[customer.segment]
                   : {
-                      bg: "bg-gradient-to-br from-slate-500 to-slate-700",
+                      bg: "bg-gradient-to-br from-slate-400 to-slate-600 dark:from-slate-500 dark:to-slate-700",
                       text: "Khách hàng",
-                      icon: "👤",
+                      icon: <User className="w-6 h-6" />,
                     };
                 const points = customer.loyaltyPoints || 0;
                 const pointsPercent = Math.min((points / 10000) * 100, 100);
@@ -596,7 +687,9 @@ const CustomerManager: React.FC = () => {
                     <div className={`${config.bg} p-4 text-white relative`}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-2xl">{config.icon}</span>
+                          <span className="text-2xl flex items-center justify-center">
+                            {config.icon}
+                          </span>
                           <span className="text-xs font-semibold px-2 py-0.5 bg-white/20 rounded-full backdrop-blur">
                             {config.text}
                           </span>
@@ -636,7 +729,23 @@ const CustomerManager: React.FC = () => {
                           {customer.name}
                         </h3>
                         <div className="flex items-center gap-2 text-sm opacity-90">
-                          <span>📞 {customer.phone || "—"}</span>
+                          <span className="inline-flex items-center gap-1">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              className="w-4 h-4"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M2.25 6.75c0 8.284 6.716 15 15 15 .828 0 1.5-.672 1.5-1.5v-2.25a1.5 1.5 0 00-1.5-1.5h-1.158a1.5 1.5 0 00-1.092.468l-.936.996a1.5 1.5 0 01-1.392.444 12.035 12.035 0 01-7.29-7.29 1.5 1.5 0 01.444-1.392l.996-.936a1.5 1.5 0 00.468-1.092V6.75A1.5 1.5 0 006.75 5.25H4.5c-.828 0-1.5.672-1.5 1.5z"
+                              />
+                            </svg>
+                            {customer.phone || "—"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -647,7 +756,7 @@ const CustomerManager: React.FC = () => {
                       {customer.vehicleModel && (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-slate-400 dark:text-slate-500">
-                            🏍️
+                            <Bike className="w-4 h-4" />
                           </span>
                           <div>
                             <div className="font-medium text-slate-900 dark:text-slate-100">
@@ -867,7 +976,7 @@ const CustomerModal: React.FC<{
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Tên khách */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-secondary-text mb-2">
               Tên khách
             </label>
             <input
@@ -876,13 +985,13 @@ const CustomerModal: React.FC<{
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
 
           {/* Số điện thoại */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-secondary-text mb-2">
               Số điện thoại
             </label>
             <input
@@ -890,14 +999,14 @@ const CustomerModal: React.FC<{
               placeholder="VD: 09xxxx"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
 
           {/* Xe và Biển số */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-secondary-text mb-2">
                 Xe
               </label>
               <input
@@ -905,11 +1014,11 @@ const CustomerModal: React.FC<{
                 placeholder="Dòng xe"
                 value={vehicleModel}
                 onChange={(e) => setVehicleModel(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-secondary-text mb-2">
                 Biển số
               </label>
               <input
@@ -917,7 +1026,7 @@ const CustomerModal: React.FC<{
                 placeholder="VD: 59A1-123.45"
                 value={licensePlate}
                 onChange={(e) => setLicensePlate(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
@@ -927,7 +1036,7 @@ const CustomerModal: React.FC<{
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+              className="px-6 py-2.5 bg-primary-bg hover:bg-tertiary-bg text-primary-text border border-primary-border rounded-lg font-medium transition-colors"
             >
               Hủy
             </button>

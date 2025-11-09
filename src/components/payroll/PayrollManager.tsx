@@ -489,9 +489,20 @@ const PayrollTable: React.FC<{
                       setShowPaymentModal(false);
                       setSelectedRecord(null);
                     }}
-                    className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                    className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                   >
-                    💵 Tiền mặt
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="w-5 h-5"
+                    >
+                      <rect x="2" y="6" width="20" height="12" rx="2" ry="2" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Tiền mặt
                   </button>
                   <button
                     onClick={() => {
@@ -501,9 +512,23 @@ const PayrollTable: React.FC<{
                       setShowPaymentModal(false);
                       setSelectedRecord(null);
                     }}
-                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                   >
-                    🏦 Chuyển khoản
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 21h18M3 10h18M7 6h10l2 4H5l2-4Zm2 4v11m6-11v11"
+                      />
+                    </svg>
+                    Chuyển khoản
                   </button>
                 </div>
               </div>

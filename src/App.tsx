@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import {
   HashRouter,
   Routes,
@@ -11,331 +11,32 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { AppProvider } from "./contexts/AppContext";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
-import { supabase, IS_OFFLINE } from "./supabaseClient";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import "./index.css";
-
+import { LoginPage } from "./components/auth/LoginPage";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { useAppContext } from "./contexts/AppContext";
-import { formatCurrency, formatDate } from "./utils/format";
-import { ShoppingCartIcon, CheckCircleIcon } from "./components/Icons";
+import {
+  LayoutDashboard,
+  Wrench,
+  ShoppingCart as Cart,
+  Boxes,
+  Users,
+  BriefcaseBusiness,
+  Landmark,
+  HandCoins,
+  BarChart3,
+  FileText,
+  Settings as Cog,
+  LogOut,
+  Sun,
+  Moon,
+  Crown,
+  UserCog,
+  User,
+  X,
+} from "lucide-react";
 import Dashboard from "./components/dashboard/Dashboard";
-
-const OldDashboard: React.FC = () => {
-  const {
-    sales,
-    parts,
-    cartItems,
-    cashTransactions,
-    workOrders,
-    customers,
-    paymentSources,
-    currentBranchId,
-  } = useAppContext();
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []); // yyyy-mm-dd
-
-  const todaySales = useMemo(
-    () => sales.filter((s) => s.date.slice(0, 10) === today),
-    [sales, today]
-  );
-  const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
-  const todayProfit = todaySales.reduce((sum, s) => {
-    const cost = s.items.reduce(
-      (c, it) => c + ((it as any).costPrice || 0) * it.quantity,
-      0
-    );
-    return sum + (s.total - cost);
-  }, 0);
-
-  const todayCustomers = useMemo(() => {
-    const uniqueCustomers = new Set(
-      todaySales.map((s) => s.customer.phone || s.customer.name)
-    );
-    return uniqueCustomers.size;
-  }, [todaySales]);
-
-  const totalParts = parts.reduce(
-    (sum, p) => sum + (p.stock[currentBranchId] || 0),
-    0
-  );
-
-  const cashBalance =
-    paymentSources.find((ps) => ps.id === "cash")?.balance[currentBranchId] ||
-    0;
-  const bankBalance =
-    paymentSources.find((ps) => ps.id === "bank")?.balance[currentBranchId] ||
-    0;
-
-  // Hoạt động gần đây
-  const recentActivities = useMemo(() => {
-    const activities: Array<{
-      text: string;
-      time: string;
-      icon: "customer" | "sale";
-    }> = [];
-
-    // Khách hàng mới
-    const recentCustomers = customers
-      .filter(
-        (c) =>
-          c.created_at &&
-          new Date(c.created_at).toISOString().slice(0, 10) === today
-      )
-      .slice(0, 2);
-    recentCustomers.forEach((c) => {
-      const time = c.created_at ? new Date(c.created_at) : new Date();
-      const hoursAgo = Math.floor((Date.now() - time.getTime()) / 3600000);
-      activities.push({
-        text: `Khách hàng ${c.name} đặt lịch thay nhớt.`,
-        time: hoursAgo > 0 ? `${hoursAgo} giờ trước` : "Vừa xong",
-        icon: "customer",
-      });
-    });
-
-    // Đơn hàng gần đây
-    todaySales.slice(0, 2).forEach((s) => {
-      const time = new Date(s.date);
-      const hoursAgo = Math.floor((Date.now() - time.getTime()) / 3600000);
-      activities.push({
-        text: `Thanh toán đơn hàng #${s.id.slice(-4)}.`,
-        time: hoursAgo > 0 ? `${hoursAgo} giờ trước` : "Vừa xong",
-        icon: "sale",
-      });
-    });
-
-    return activities.slice(0, 2);
-  }, [customers, todaySales, today]);
-
-  // Công việc cần chú ý
-  const pendingTasks = useMemo(() => {
-    const tasks: Array<{
-      title: string;
-      status: "urgent" | "today" | "pending";
-    }> = [];
-
-    // Đơn sửa chữa chưa hoàn thành
-    const pendingOrders = workOrders.filter(
-      (w) => w.status !== "Trả máy" && w.paymentStatus === "unpaid"
-    );
-    if (pendingOrders.length > 0) {
-      const first = pendingOrders[0];
-      tasks.push({
-        title: `Kiểm tra định kỳ xe SH của anh ${first.customerName}`,
-        status: "urgent",
-      });
-    }
-
-    // Phụ tùng sắp hết
-    const lowStock = parts.filter((p) => (p.stock[currentBranchId] || 0) < 5);
-    if (lowStock.length > 0) {
-      tasks.push({
-        title: `Gọi điện xác nhận lịch hẹn với chị ${
-          customers[0]?.name || "Mai"
-        }`,
-        status: "today",
-      });
-    }
-
-    // Đơn hàng đầu nhớt
-    tasks.push({
-      title: `Đặt hàng dầu nhớt Motul`,
-      status: "pending",
-    });
-
-    return tasks;
-  }, [workOrders, parts, customers, currentBranchId]);
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100">
-            Nhân-Lâm SmartCare
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">CN1</p>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard
-          label="Doanh thu hôm nay"
-          value={`${formatCurrency(todayRevenue).replace("₫", "")}₫`}
-          icon="💰"
-          iconBg="bg-blue-500/20"
-          iconColor="text-blue-400"
-        />
-        <StatCard
-          label="Lợi nhuận hôm nay"
-          value={`${formatCurrency(todayProfit).replace("₫", "")}₫`}
-          icon="📈"
-          iconBg="bg-green-500/20"
-          iconColor="text-green-400"
-        />
-        <StatCard
-          label="Lượt khách hôm nay"
-          value={todayCustomers}
-          icon="👥"
-          iconBg="bg-purple-500/20"
-          iconColor="text-purple-400"
-        />
-        <StatCard
-          label="Phụ tùng sắp hết"
-          value={
-            parts.filter((p) => (p.stock[currentBranchId] || 0) < 5).length
-          }
-          icon="📦"
-          iconBg="bg-orange-500/20"
-          iconColor="text-orange-400"
-        />
-        <StatCard
-          label="Tổng doanh thu (Chi nhánh)"
-          value={`${formatCurrency(
-            sales.reduce((s, sale) => s + sale.total, 0)
-          ).replace("₫", "")}₫`}
-          icon="📊"
-          iconBg="bg-pink-500/20"
-          iconColor="text-pink-400"
-        />
-      </div>
-
-      {/* Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Hoạt động gần đây */}
-        <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50">
-          <h2 className="text-lg font-semibold text-slate-100 mb-4">
-            Hoạt động gần đây
-          </h2>
-          <div className="space-y-4">
-            {recentActivities.length === 0 && (
-              <p className="text-slate-400 text-sm">
-                Chưa có hoạt động nào hôm nay.
-              </p>
-            )}
-            {recentActivities.map((activity, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    activity.icon === "customer"
-                      ? "bg-purple-500/20"
-                      : "bg-blue-500/20"
-                  }`}
-                >
-                  {activity.icon === "customer" ? (
-                    <span className="text-purple-400">👤</span>
-                  ) : (
-                    <ShoppingCartIcon className="w-5 h-5 text-blue-400" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-slate-200 text-sm">{activity.text}</p>
-                  <p className="text-slate-500 text-xs mt-1 flex items-center gap-1">
-                    🕐 {activity.time}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Tình hình tài chính */}
-        <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50">
-          <h2 className="text-lg font-semibold text-slate-100 mb-4">
-            Tình hình tài chính
-          </h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-              <span className="text-slate-300 text-sm">Tiền mặt CN1</span>
-              <div className="flex gap-2">
-                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">
-                  Thu
-                </span>
-                <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">
-                  Chi
-                </span>
-                <span className="text-slate-100 text-sm font-semibold">
-                  {formatCurrency(cashBalance).replace("₫", "")}₫
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-              <span className="text-slate-300 text-sm">Ngân hàng CN1</span>
-              <div className="flex gap-2">
-                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">
-                  Thu
-                </span>
-                <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">
-                  Chi
-                </span>
-                <span className="text-slate-100 text-sm font-semibold">
-                  {formatCurrency(bankBalance).replace("₫", "")}₫
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Công việc cần chú ý */}
-      <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50">
-        <h2 className="text-lg font-semibold text-slate-100 mb-4">
-          Công việc cần chú ý
-        </h2>
-        <div className="space-y-3">
-          {pendingTasks.map((task, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition"
-            >
-              <span className="text-slate-200 text-sm">{task.title}</span>
-              <div className="flex gap-2">
-                <button
-                  className={`px-3 py-1 rounded text-xs font-medium ${
-                    task.status === "urgent"
-                      ? "bg-red-500/20 text-red-400"
-                      : task.status === "today"
-                      ? "bg-blue-500/20 text-blue-400"
-                      : "bg-yellow-500/20 text-yellow-400"
-                  }`}
-                >
-                  {task.status === "urgent"
-                    ? "Sắp tới hạn"
-                    : task.status === "today"
-                    ? "Hôm nay"
-                    : "Cần thực hiện"}
-                </button>
-                <button className="px-3 py-1 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded text-xs">
-                  Đánh dấu xong
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const StatCard: React.FC<{
-  label: string;
-  value: React.ReactNode;
-  icon: string;
-  iconBg: string;
-  iconColor: string;
-}> = ({ label, value, icon, iconBg, iconColor }) => (
-  <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700/50 hover:border-slate-600/50 transition">
-    <div className="flex items-center gap-3">
-      <div
-        className={`w-12 h-12 rounded-lg ${iconBg} flex items-center justify-center text-2xl`}
-      >
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-slate-400 mb-1">{label}</p>
-        <p className="text-xl font-bold text-slate-100 truncate">{value}</p>
-      </div>
-    </div>
-  </div>
-);
 
 import SalesManager from "./components/sales/SalesManager";
 import InventoryManager from "./components/inventory/InventoryManager";
@@ -352,6 +53,7 @@ import EmployeeManager from "./components/employee/EmployeeManager";
 import CategoriesManager from "./components/categories/CategoriesManager";
 import LookupManager from "./components/lookup/LookupManager";
 import AnalyticsDashboard from "./components/analytics/AnalyticsDashboard";
+import { SettingsManager } from "./components/settings/SettingsManager";
 
 const Sales = () => <SalesManager />;
 const Inventory = () => <InventoryManager />;
@@ -370,10 +72,12 @@ const EmployeesPage = () => <EmployeeManager />;
 const CategoriesPage = () => <CategoriesManager />;
 const LookupPage = () => <LookupManager />;
 const AnalyticsPage = () => <AnalyticsDashboard />;
+const SettingsPage = () => <SettingsManager />;
 
 function Nav() {
   const [showSettings, setShowSettings] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { profile, signOut } = useAuth();
 
   return (
     <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
@@ -381,45 +85,78 @@ function Nav() {
         <div className="flex items-center justify-between">
           {/* Left: Brand and Branch Selector */}
           <div className="flex items-center gap-4">
+            {/* Brand Logo acts as settings toggle */}
             <div className="relative">
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center transition"
+                className="group flex items-center gap-3 focus:outline-none"
+                aria-label="Mở cài đặt và tài khoản"
               >
-                <svg
-                  className="w-5 h-5 text-slate-600 dark:text-slate-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
+                <img
+                  src="/logo-smartcare.png"
+                  alt="SmartCare Logo"
+                  className="w-14 h-14 rounded-xl shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 group-hover:shadow-md group-hover:ring-emerald-400/60 dark:group-hover:ring-emerald-500/60 transition"
+                />
+                <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-600 to-blue-600 text-transparent bg-clip-text dark:from-emerald-400 dark:to-blue-400 hidden md:inline">
+                  Nhạn Lâm SmartCare
+                </span>
               </button>
 
-              {/* Settings Dropdown */}
+              {/* Integrated Settings Dropdown */}
               {showSettings && (
                 <>
                   <div
                     className="fixed inset-0 z-40"
                     onClick={() => setShowSettings(false)}
                   ></div>
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
+                  <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-2 z-50">
+                    <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                       <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        Cài đặt
+                        Cài đặt & tài khoản
                       </p>
+                      <button
+                        onClick={() => setShowSettings(false)}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+                        aria-label="Đóng"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
+
+                    {/* User profile summary */}
+                    {profile && (
+                      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                        <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          {profile.full_name?.[0] ||
+                            profile.email[0].toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                            {profile.full_name || profile.email}
+                          </div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
+                            {profile.role === "owner" && (
+                              <Crown className="w-3.5 h-3.5 text-yellow-500" />
+                            )}
+                            {profile.role === "manager" && (
+                              <UserCog className="w-3.5 h-3.5 text-indigo-500" />
+                            )}
+                            {profile.role === "staff" && (
+                              <User className="w-3.5 h-3.5 text-slate-500" />
+                            )}
+                            <span>
+                              {profile.role === "owner"
+                                ? "Chủ cửa hàng"
+                                : profile.role === "manager"
+                                ? "Quản lý"
+                                : "Nhân viên"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Theme toggle */}
                     <button
                       onClick={() => {
                         toggleTheme();
@@ -428,7 +165,11 @@ function Nav() {
                       className="w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between text-sm text-slate-700 dark:text-slate-200"
                     >
                       <span className="flex items-center gap-2">
-                        {theme === "dark" ? "🌙" : "☀️"}
+                        {theme === "dark" ? (
+                          <Moon className="w-4 h-4" />
+                        ) : (
+                          <Sun className="w-4 h-4" />
+                        )}
                         <span>Chế độ {theme === "dark" ? "tối" : "sáng"}</span>
                       </span>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
@@ -437,48 +178,190 @@ function Nav() {
                           : "Chuyển sang tối"}
                       </span>
                     </button>
+
+                    {/* Go to system settings */}
+                    <Link
+                      to="/settings"
+                      onClick={() => setShowSettings(false)}
+                      className="block w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-200"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Cog className="w-4 h-4" />
+                        <span>Cài đặt hệ thống</span>
+                      </span>
+                    </Link>
+
+                    {/* Logout */}
+                    {profile && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await signOut();
+                          } finally {
+                            setShowSettings(false);
+                          }
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <span className="flex items-center gap-2">
+                          <LogOut className="w-4 h-4" />
+                          <span>Đăng xuất</span>
+                        </span>
+                      </button>
+                    )}
                   </div>
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                Nhân-Lâm SmartCare
-              </h1>
-              <select className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600 transition">
-                <option>CN1</option>
-                <option>CN2</option>
-              </select>
-            </div>
+            {/* Removed redundant brand title and branch selector as requested */}
           </div>
 
           {/* Center: Main Navigation */}
           <div className="flex items-center gap-2">
-            <NavLink to="/dashboard" icon="📊" label="Tổng quan" />
-            <NavLink to="/service" icon="🔧" label="Sửa chữa" />
-            <NavLink to="/sales" icon="🛒" label="Bán hàng" />
-            <NavLink to="/inventory" icon="📦" label="Quản lý kho" />
-            <NavLink to="/customers" icon="👥" label="Khách hàng" />
-            <NavLink to="/employees" icon="👔" label="Nhân viên" />
-            <NavLink to="/finance" icon="🏦" label="Tài chính" />
-            <NavLink to="/debt" icon="💰" label="Công nợ" />
-            <NavLink to="/analytics" icon="📊" label="Phân tích" />
-            <NavLink to="/reports" icon="📈" label="Báo cáo" />
+            <NavLink
+              to="/dashboard"
+              colorKey="blue"
+              icon={<LayoutDashboard className="w-5 h-5" />}
+              label="Tổng quan"
+            />
+            <NavLink
+              to="/service"
+              colorKey="violet"
+              icon={<Wrench className="w-5 h-5" />}
+              label="Sửa chữa"
+            />
+            <NavLink
+              to="/sales"
+              colorKey="emerald"
+              icon={<Cart className="w-5 h-5" />}
+              label="Bán hàng"
+            />
+            <NavLink
+              to="/inventory"
+              colorKey="amber"
+              icon={<Boxes className="w-5 h-5" />}
+              label="Quản lý kho"
+            />
+            <NavLink
+              to="/customers"
+              colorKey="cyan"
+              icon={<Users className="w-5 h-5" />}
+              label="Khách hàng"
+            />
+            <NavLink
+              to="/employees"
+              colorKey="indigo"
+              icon={<BriefcaseBusiness className="w-5 h-5" />}
+              label="Nhân viên"
+            />
+            <NavLink
+              to="/finance"
+              colorKey="rose"
+              icon={<Landmark className="w-5 h-5" />}
+              label="Tài chính"
+            />
+            <NavLink
+              to="/debt"
+              colorKey="orange"
+              icon={<HandCoins className="w-5 h-5" />}
+              label="Công nợ"
+            />
+            <NavLink
+              to="/analytics"
+              colorKey="teal"
+              icon={<BarChart3 className="w-5 h-5" />}
+              label="Phân tích"
+            />
+            <NavLink
+              to="/reports"
+              colorKey="fuchsia"
+              icon={<FileText className="w-5 h-5" />}
+              label="Báo cáo"
+            />
           </div>
 
-          {/* Right: Spacer */}
-          <div className="w-10"></div>
+          {/* Right: empty (user menu integrated into settings) */}
+          <div className="flex items-center" />
         </div>
       </div>
     </nav>
   );
 }
 
-const NavLink: React.FC<{ to: string; icon: string; label: string }> = ({
-  to,
-  icon,
-  label,
-}) => {
+type ColorKey =
+  | "blue"
+  | "violet"
+  | "emerald"
+  | "amber"
+  | "cyan"
+  | "indigo"
+  | "rose"
+  | "orange"
+  | "teal"
+  | "fuchsia";
+
+const NAV_COLORS: Record<
+  ColorKey,
+  { text: string; bg: string; hoverBg: string }
+> = {
+  blue: {
+    text: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-900/30",
+    hoverBg: "hover:bg-blue-50 dark:hover:bg-blue-900/20",
+  },
+  violet: {
+    text: "text-violet-600 dark:text-violet-400",
+    bg: "bg-violet-50 dark:bg-violet-900/30",
+    hoverBg: "hover:bg-violet-50 dark:hover:bg-violet-900/20",
+  },
+  emerald: {
+    text: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-50 dark:bg-emerald-900/30",
+    hoverBg: "hover:bg-emerald-50 dark:hover:bg-emerald-900/20",
+  },
+  amber: {
+    text: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-900/30",
+    hoverBg: "hover:bg-amber-50 dark:hover:bg-amber-900/20",
+  },
+  cyan: {
+    text: "text-cyan-600 dark:text-cyan-400",
+    bg: "bg-cyan-50 dark:bg-cyan-900/30",
+    hoverBg: "hover:bg-cyan-50 dark:hover:bg-cyan-900/20",
+  },
+  indigo: {
+    text: "text-indigo-600 dark:text-indigo-400",
+    bg: "bg-indigo-50 dark:bg-indigo-900/30",
+    hoverBg: "hover:bg-indigo-50 dark:hover:bg-indigo-900/20",
+  },
+  rose: {
+    text: "text-rose-600 dark:text-rose-400",
+    bg: "bg-rose-50 dark:bg-rose-900/30",
+    hoverBg: "hover:bg-rose-50 dark:hover:bg-rose-900/20",
+  },
+  orange: {
+    text: "text-orange-600 dark:text-orange-400",
+    bg: "bg-orange-50 dark:bg-orange-900/30",
+    hoverBg: "hover:bg-orange-50 dark:hover:bg-orange-900/20",
+  },
+  teal: {
+    text: "text-teal-600 dark:text-teal-400",
+    bg: "bg-teal-50 dark:bg-teal-900/30",
+    hoverBg: "hover:bg-teal-50 dark:hover:bg-teal-900/20",
+  },
+  fuchsia: {
+    text: "text-fuchsia-600 dark:text-fuchsia-400",
+    bg: "bg-fuchsia-50 dark:bg-fuchsia-900/30",
+    hoverBg: "hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20",
+  },
+};
+
+const NavLink: React.FC<{
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  colorKey: ColorKey;
+}> = ({ to, icon, label, colorKey }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
 
@@ -487,11 +370,11 @@ const NavLink: React.FC<{ to: string; icon: string; label: string }> = ({
       to={to}
       className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition ${
         isActive
-          ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+          ? `${NAV_COLORS[colorKey].bg} ${NAV_COLORS[colorKey].text}`
+          : `text-slate-600 dark:text-slate-300 ${NAV_COLORS[colorKey].hoverBg}`
       }`}
     >
-      <span className="text-2xl">{icon}</span>
+      <span className="flex items-center justify-center">{icon}</span>
       <span className="text-xs font-medium whitespace-nowrap">{label}</span>
     </Link>
   );
@@ -525,41 +408,72 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AppProvider>
-          <HashRouter>
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
-              <Nav />
-              <main className="max-w-[1600px] mx-auto p-6">
-                <Routes>
-                  <Route
-                    path="/"
-                    element={<Navigate to="/dashboard" replace />}
-                  />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/sales" element={<Sales />} />
-                  <Route path="/inventory" element={<Inventory />} />
-                  <Route path="/categories" element={<CategoriesPage />} />
-                  <Route path="/lookup" element={<LookupPage />} />
-                  <Route path="/service" element={<Service />} />
-                  <Route
-                    path="/service-history"
-                    element={<ServiceHistoryPage />}
-                  />
-                  <Route path="/customers" element={<Customers />} />
-                  <Route path="/debt" element={<Debt />} />
-                  <Route path="/cashbook" element={<CashBookPage />} />
-                  <Route path="/loans" element={<LoansPage />} />
-                  <Route path="/payroll" element={<PayrollPage />} />
-                  <Route path="/employees" element={<EmployeesPage />} />
-                  <Route path="/finance" element={<FinancePage />} />
-                  <Route path="/analytics" element={<AnalyticsPage />} />
-                  <Route path="/reports" element={<ReportsPage />} />
-                </Routes>
-              </main>
-            </div>
-            <ReactQueryDevtools initialIsOpen={false} />
-          </HashRouter>
-        </AppProvider>
+        <AuthProvider>
+          <AppProvider>
+            <HashRouter>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<LoginPage />} />
+
+                {/* Protected Routes */}
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
+                        <Nav />
+                        <main className="max-w-[1600px] mx-auto p-6">
+                          <Routes>
+                            <Route
+                              path="/"
+                              element={<Navigate to="/dashboard" replace />}
+                            />
+                            <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/sales" element={<Sales />} />
+                            <Route path="/inventory" element={<Inventory />} />
+                            <Route
+                              path="/categories"
+                              element={<CategoriesPage />}
+                            />
+                            <Route path="/lookup" element={<LookupPage />} />
+                            <Route path="/service" element={<Service />} />
+                            <Route
+                              path="/service-history"
+                              element={<ServiceHistoryPage />}
+                            />
+                            <Route path="/customers" element={<Customers />} />
+                            <Route path="/debt" element={<Debt />} />
+                            <Route
+                              path="/cashbook"
+                              element={<CashBookPage />}
+                            />
+                            <Route path="/loans" element={<LoansPage />} />
+                            <Route path="/payroll" element={<PayrollPage />} />
+                            <Route
+                              path="/employees"
+                              element={<EmployeesPage />}
+                            />
+                            <Route path="/finance" element={<FinancePage />} />
+                            <Route
+                              path="/analytics"
+                              element={<AnalyticsPage />}
+                            />
+                            <Route path="/reports" element={<ReportsPage />} />
+                            <Route
+                              path="/settings"
+                              element={<SettingsPage />}
+                            />
+                          </Routes>
+                        </main>
+                      </div>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+              <ReactQueryDevtools initialIsOpen={false} />
+            </HashRouter>
+          </AppProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -1,7 +1,16 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
+import {
+  BarChart3,
+  Boxes,
+  ShoppingCart,
+  CreditCard,
+  Banknote,
+  Star,
+} from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { formatCurrency, formatDate } from "../../utils/format";
 import { printElementById } from "../../utils/print";
+import { showToast } from "../../utils/toast";
 import { PlusIcon, XMarkIcon } from "../Icons";
 import type { CartItem, Part, Customer, Sale } from "../../types";
 
@@ -479,6 +488,10 @@ const SalesManager: React.FC = () => {
   );
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [orderDiscount, setOrderDiscount] = useState(0);
+  const [discountType, setDiscountType] = useState<"amount" | "percent">(
+    "amount"
+  ); // VNĐ or %
+  const [discountPercent, setDiscountPercent] = useState(0);
   const [showSalesHistory, setShowSalesHistory] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [newCustomer, setNewCustomer] = useState({
@@ -504,24 +517,34 @@ const SalesManager: React.FC = () => {
   const addToCart = useCallback(
     (part: Part) => {
       const price = part.retailPrice?.[currentBranchId] ?? 0;
+      const stock = part.stock?.[currentBranchId] ?? 0;
       const existing = cartItems.find((item) => item.partId === part.id);
 
       if (existing) {
+        // Validate stock before adding more
+        const newQuantity = existing.quantity + 1;
+        if (newQuantity > stock) {
+          showToast.error(`Không đủ hàng! Tồn kho: ${stock}`);
+          return;
+        }
         setCartItems((prev) =>
           prev.map((item) =>
-            item.partId === part.id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
+            item.partId === part.id ? { ...item, quantity: newQuantity } : item
           )
         );
       } else {
+        // Check if stock available
+        if (stock < 1) {
+          showToast.error("Sản phẩm đã hết hàng!");
+          return;
+        }
         const newItem: CartItem = {
           partId: part.id,
           partName: part.name,
           sku: part.sku,
           quantity: 1,
           sellingPrice: price,
-          stockSnapshot: part.stock?.[currentBranchId] ?? 0,
+          stockSnapshot: stock,
           discount: 0,
         };
         setCartItems((prev) => [...prev, newItem]);
@@ -544,13 +567,20 @@ const SalesManager: React.FC = () => {
         return;
       }
 
+      // Validate against stock
+      const item = cartItems.find((i) => i.partId === partId);
+      if (item && quantity > item.stockSnapshot) {
+        showToast.error(`Không đủ hàng! Tồn kho: ${item.stockSnapshot}`);
+        return;
+      }
+
       setCartItems((prev) =>
         prev.map((item) =>
           item.partId === partId ? { ...item, quantity } : item
         )
       );
     },
-    [setCartItems, removeFromCart]
+    [cartItems, setCartItems, removeFromCart]
   );
 
   // Calculate totals
@@ -800,6 +830,8 @@ const SalesManager: React.FC = () => {
       setSelectedCustomer(null);
       setCustomerSearch("");
       setOrderDiscount(0);
+      setDiscountPercent(0);
+      setDiscountType("amount");
       setPaymentMethod(null);
       setPaymentType(null);
       setPartialAmount(0);
@@ -846,9 +878,10 @@ const SalesManager: React.FC = () => {
               </div>
               <button
                 onClick={() => setShowSalesHistory(true)}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg whitespace-nowrap transition-colors"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg whitespace-nowrap transition-colors inline-flex items-center gap-2"
               >
-                📊 Lịch sử bán hàng
+                <BarChart3 className="w-4 h-4" />
+                Lịch sử bán hàng
               </button>
             </div>
           </div>
@@ -857,7 +890,9 @@ const SalesManager: React.FC = () => {
           <div className="flex-1 p-6 overflow-y-auto bg-slate-50 dark:bg-slate-900">
             {filteredParts.length === 0 ? (
               <div className="text-center text-slate-400 mt-20">
-                <div className="text-6xl mb-4">📦</div>
+                <div className="mb-4 flex items-center justify-center">
+                  <Boxes className="w-16 h-16 text-slate-300" />
+                </div>
                 <div className="text-xl font-medium mb-2">
                   {partSearch
                     ? "Không tìm thấy sản phẩm nào"
@@ -881,29 +916,29 @@ const SalesManager: React.FC = () => {
                       key={part.id}
                       onClick={() => !isOutOfStock && addToCart(part)}
                       disabled={isOutOfStock}
-                      className={`group relative p-4 rounded-xl transition-all duration-200 ${
+                      className={`group relative p-4 rounded-xl border transition-all duration-200 ${
                         isOutOfStock
-                          ? "bg-slate-700/50 dark:bg-slate-800/50 opacity-50 cursor-not-allowed"
-                          : "bg-slate-700 dark:bg-slate-800 hover:bg-slate-600 dark:hover:bg-slate-700 hover:shadow-xl hover:scale-105"
+                          ? "bg-primary-bg/50 border-primary-border opacity-50 cursor-not-allowed"
+                          : "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-700 dark:to-slate-800 border-blue-200 dark:border-slate-600 hover:shadow-xl hover:scale-105"
                       }`}
                     >
                       <div className="flex flex-col h-full">
                         {/* Product Image with Icon */}
                         <div className="flex items-center justify-center mb-3">
-                          <div className="w-20 h-20 bg-orange-500/20 dark:bg-orange-600/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span className="text-4xl">📦</span>
+                          <div className="w-20 h-20 bg-orange-100 dark:bg-orange-600/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Boxes className="w-10 h-10 text-orange-500 dark:text-orange-300" />
                           </div>
                         </div>
 
                         {/* Product Name */}
                         <div className="text-left mb-2 flex-1">
                           <h3
-                            className="font-semibold text-base text-white line-clamp-2 mb-1"
+                            className="font-semibold text-base text-primary-text line-clamp-2 mb-1"
                             title={part.name}
                           >
                             {part.name}
                           </h3>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs text-tertiary-text">
                             SKU: {part.sku}
                           </div>
                         </div>
@@ -911,7 +946,7 @@ const SalesManager: React.FC = () => {
                         {/* Price and Stock */}
                         <div className="flex justify-between items-end mt-auto">
                           <div className="text-left">
-                            <div className="text-lg font-bold text-blue-400">
+                            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                               {formatCurrency(price)}
                             </div>
                           </div>
@@ -1024,7 +1059,9 @@ const SalesManager: React.FC = () => {
 
             {cartItems.length === 0 ? (
               <div className="text-center text-slate-400 py-12">
-                <div className="text-4xl mb-2">🛒</div>
+                <div className="mb-2 flex items-center justify-center">
+                  <ShoppingCart className="w-10 h-10 text-slate-300" />
+                </div>
                 <div className="text-sm">Giỏ hàng trống</div>
                 <div className="text-xs text-slate-400 mt-1">
                   Chọn sản phẩm để thêm vào giỏ
@@ -1038,7 +1075,7 @@ const SalesManager: React.FC = () => {
                     className="flex items-center gap-3 p-3 border border-slate-200 dark:border-slate-600 rounded-lg"
                   >
                     <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-                      <span className="text-lg">📦</span>
+                      <Boxes className="w-6 h-6 text-slate-500" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm text-slate-900 dark:text-slate-100 line-clamp-1">
@@ -1098,22 +1135,80 @@ const SalesManager: React.FC = () => {
                     {formatCurrency(subtotal)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">
-                    Giảm giá
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={orderDiscount}
-                      onChange={(e) =>
-                        setOrderDiscount(Number(e.target.value) || 0)
-                      }
-                      className="w-24 px-2 py-1 text-right text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700"
-                      placeholder="0"
-                    />
-                    <span className="text-slate-500">đ</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Giảm giá:
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={
+                          discountType === "amount"
+                            ? orderDiscount
+                            : discountPercent
+                        }
+                        onChange={(e) => {
+                          const value = Number(e.target.value) || 0;
+                          if (discountType === "amount") {
+                            setOrderDiscount(Math.min(value, subtotal));
+                          } else {
+                            const percent = Math.min(value, 100);
+                            setDiscountPercent(percent);
+                            setOrderDiscount(
+                              Math.round((subtotal * percent) / 100)
+                            );
+                          }
+                        }}
+                        className="w-20 px-2 py-1 text-right text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                        placeholder="0"
+                        min="0"
+                        max={discountType === "amount" ? subtotal : 100}
+                      />
+                      <select
+                        value={discountType}
+                        onChange={(e) => {
+                          const newType = e.target.value as
+                            | "amount"
+                            | "percent";
+                          setDiscountType(newType);
+                          setOrderDiscount(0);
+                          setDiscountPercent(0);
+                        }}
+                        className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                      >
+                        <option value="amount">₫</option>
+                        <option value="percent">%</option>
+                      </select>
+                    </div>
                   </div>
+
+                  {/* Quick percent buttons */}
+                  {discountType === "percent" && (
+                    <div className="flex gap-1 justify-end">
+                      {[5, 10, 15, 20].map((percent) => (
+                        <button
+                          key={percent}
+                          onClick={() => {
+                            setDiscountPercent(percent);
+                            setOrderDiscount(
+                              Math.round((subtotal * percent) / 100)
+                            );
+                          }}
+                          className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-300 rounded transition-colors"
+                        >
+                          {percent}%
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Show amount if percent mode */}
+                  {discountType === "percent" && discountPercent > 0 && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 text-right">
+                      = {formatCurrency(orderDiscount)}
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
                   <span className="font-bold text-slate-900 dark:text-slate-100">
@@ -1139,7 +1234,7 @@ const SalesManager: React.FC = () => {
                         : "border-slate-300 dark:border-slate-600 hover:border-slate-400"
                     }`}
                   >
-                    <span className="text-base">💵</span>
+                    <Banknote className="w-4 h-4" />
                     <span className="font-medium text-sm">Tiền mặt</span>
                   </button>
                   <button
@@ -1150,7 +1245,7 @@ const SalesManager: React.FC = () => {
                         : "border-slate-300 dark:border-slate-600 hover:border-slate-400"
                     }`}
                   >
-                    <span className="text-base">💳</span>
+                    <CreditCard className="w-4 h-4" />
                     <span className="font-medium text-sm">Chuyển khoản</span>
                   </button>
                 </div>
@@ -1362,7 +1457,23 @@ const SalesManager: React.FC = () => {
                 <div>
                   📍 Địa chỉ: 4p Phú Lợi B, Phú Thuận B, Hồng Ngự, Đồng Tháp
                 </div>
-                <div>📞 Điện thoại: 0947747907</div>
+                <div className="flex items-center gap-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.25 6.75c0 8.284 6.716 15 15 15 .828 0 1.5-.672 1.5-1.5v-2.25a1.5 1.5 0 00-1.5-1.5h-1.158a1.5 1.5 0 00-1.092.468l-.936.996a1.5 1.5 0 01-1.392.444 12.035 12.035 0 01-7.29-7.29 1.5 1.5 0 01.444-1.392l.996-.936a1.5 1.5 0 00.468-1.092V6.75A1.5 1.5 0 006.75 5.25H4.5c-.828 0-1.5.672-1.5 1.5z"
+                    />
+                  </svg>
+                  <span>Điện thoại: 0947747907</span>
+                </div>
               </div>
             </div>
 
@@ -1657,7 +1768,7 @@ const SalesManager: React.FC = () => {
             >
               <div style={{ marginBottom: "4px" }}>
                 <strong>Hình thức thanh toán:</strong>{" "}
-                {paymentMethod === "cash" ? "💵 Tiền mặt" : "💳 Chuyển khoản"}
+                {paymentMethod === "cash" ? "Tiền mặt" : "Chuyển khoản"}
               </div>
               <div style={{ fontStyle: "italic", color: "#495057" }}>
                 {paymentType === "full"
@@ -1726,8 +1837,21 @@ const SalesManager: React.FC = () => {
                 color: "#495057",
               }}
             >
-              <div style={{ marginBottom: "5px" }}>
-                ⭐ Cảm ơn quý khách đã sử dụng dịch vụ ⭐
+              <div
+                style={{
+                  marginBottom: "5px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                }}
+              >
+                <span style={{ display: "inline-flex" }}>
+                  {/* Decorative star icon replaced by text to keep receipt plain; could inject SVG if needed */}
+                  *
+                </span>
+                Cảm ơn quý khách đã sử dụng dịch vụ
+                <span style={{ display: "inline-flex" }}>*</span>
               </div>
               <div>Hẹn gặp lại quý khách!</div>
             </div>

@@ -1,4 +1,18 @@
 import React, { useMemo, useState } from "react";
+import {
+  DollarSign,
+  TrendingUp,
+  Wallet,
+  Landmark,
+  BarChart3,
+  Package,
+  Trash2,
+  Trophy,
+  Users,
+  BriefcaseBusiness,
+  Boxes,
+  AlertTriangle,
+} from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { formatCurrency } from "../../utils/format";
 import { loadDemoData, clearDemoData } from "../../utils/demoData";
@@ -194,9 +208,9 @@ const Dashboard: React.FC = () => {
               <div className="flex gap-3">
                 <button
                   onClick={handleLoadDemo}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center gap-2"
                 >
-                  📦 Tải dữ liệu mẫu
+                  <Package className="w-5 h-5" /> Tải dữ liệu mẫu
                 </button>
                 <button
                   onClick={() => setShowDemoButton(false)}
@@ -206,7 +220,9 @@ const Dashboard: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="hidden md:block text-6xl">📊</div>
+            <div className="hidden md:block text-6xl">
+              <BarChart3 className="w-16 h-16 text-blue-600 dark:text-blue-400" />
+            </div>
           </div>
         </div>
       )}
@@ -216,9 +232,9 @@ const Dashboard: React.FC = () => {
         <div className="flex justify-end">
           <button
             onClick={handleClearDemo}
-            className="px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+            className="px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors inline-flex items-center gap-2"
           >
-            🗑️ Xóa tất cả dữ liệu
+            <Trash2 className="w-4 h-4" /> Xóa tất cả dữ liệu
           </button>
         </div>
       )}
@@ -229,29 +245,29 @@ const Dashboard: React.FC = () => {
           title="Doanh thu hôm nay"
           value={formatCurrency(todayStats.revenue)}
           subtitle={`${todayStats.orderCount} đơn hàng`}
-          color="bg-gradient-to-br from-blue-500 to-blue-600"
-          icon="💰"
+          colorKey="blue"
+          icon={<DollarSign className="w-5 h-5" />}
         />
         <StatCard
           title="Lợi nhuận hôm nay"
           value={formatCurrency(todayStats.profit)}
           subtitle={`${todayStats.customerCount} khách hàng`}
-          color="bg-gradient-to-br from-green-500 to-green-600"
-          icon="📈"
+          colorKey="emerald"
+          icon={<TrendingUp className="w-5 h-5" />}
         />
         <StatCard
           title="Tiền mặt"
           value={formatCurrency(cashBalance)}
           subtitle="Quỹ tiền mặt"
-          color="bg-gradient-to-br from-amber-500 to-amber-600"
-          icon="💵"
+          colorKey="amber"
+          icon={<Wallet className="w-5 h-5" />}
         />
         <StatCard
           title="Ngân hàng"
           value={formatCurrency(bankBalance)}
           subtitle="Tài khoản ngân hàng"
-          color="bg-gradient-to-br from-purple-500 to-purple-600"
-          icon="🏦"
+          colorKey="violet"
+          icon={<Landmark className="w-5 h-5" />}
         />
       </div>
 
@@ -259,7 +275,7 @@ const Dashboard: React.FC = () => {
       {alerts.length > 0 && (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-            ⚠️ Cảnh báo
+            <AlertTriangle className="w-5 h-5 text-amber-500" /> Cảnh báo
           </h3>
           <div className="space-y-2">
             {alerts.map((alert, idx) => (
@@ -398,7 +414,7 @@ const Dashboard: React.FC = () => {
         {/* Top Customers */}
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <span className="text-2xl">🏆</span>
+            <Trophy className="w-5 h-5 text-yellow-500" />
             Top 10 Khách hàng VIP
           </h3>
           <div className="space-y-3">
@@ -461,7 +477,7 @@ const Dashboard: React.FC = () => {
         {/* Monthly Comparison */}
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <span className="text-2xl">📊</span>
+            <BarChart3 className="w-5 h-5 text-blue-500" />
             So sánh 3 tháng gần đây
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -540,7 +556,7 @@ const Dashboard: React.FC = () => {
             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
               Tổng khách hàng
             </h3>
-            <span className="text-2xl">👥</span>
+            <Users className="w-5 h-5 text-slate-500" />
           </div>
           <div className="text-3xl font-bold text-slate-900 dark:text-white">
             {customers.length}
@@ -555,7 +571,7 @@ const Dashboard: React.FC = () => {
             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
               Tổng nhân viên
             </h3>
-            <span className="text-2xl">👔</span>
+            <BriefcaseBusiness className="w-5 h-5 text-slate-500" />
           </div>
           <div className="text-3xl font-bold text-slate-900 dark:text-white">
             {employees.filter((e) => e.status === "active").length}
@@ -570,7 +586,7 @@ const Dashboard: React.FC = () => {
             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
               Tổng sản phẩm
             </h3>
-            <span className="text-2xl">📦</span>
+            <Boxes className="w-5 h-5 text-slate-500" />
           </div>
           <div className="text-3xl font-bold text-slate-900 dark:text-white">
             {parts.reduce((sum, p) => sum + (p.stock[currentBranchId] || 0), 0)}
@@ -585,23 +601,62 @@ const Dashboard: React.FC = () => {
 };
 
 // Stat Card Component
+type CardColorKey = "blue" | "emerald" | "amber" | "violet";
+
+const CARD_COLORS: Record<
+  CardColorKey,
+  { card: string; icon: string; accent: string }
+> = {
+  blue: {
+    card: "bg-white dark:bg-slate-800 border border-blue-100 dark:border-blue-900/40",
+    icon: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+    accent: "text-blue-600 dark:text-blue-400",
+  },
+  emerald: {
+    card: "bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-900/40",
+    icon: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    accent: "text-emerald-600 dark:text-emerald-400",
+  },
+  amber: {
+    card: "bg-white dark:bg-slate-800 border border-amber-100 dark:border-amber-900/40",
+    icon: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    accent: "text-amber-600 dark:text-amber-400",
+  },
+  violet: {
+    card: "bg-white dark:bg-slate-800 border border-violet-100 dark:border-violet-900/40",
+    icon: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+    accent: "text-violet-600 dark:text-violet-400",
+  },
+};
+
 const StatCard: React.FC<{
   title: string;
   value: string;
   subtitle: string;
-  color: string;
-  icon: string;
-}> = ({ title, value, subtitle, color, icon }) => {
+  colorKey: CardColorKey;
+  icon: React.ReactNode;
+}> = ({ title, value, subtitle, colorKey, icon }) => {
+  const c = CARD_COLORS[colorKey];
   return (
-    <div className={`${color} rounded-lg p-6 text-white shadow-lg`}>
-      <div className="flex items-start justify-between mb-4">
+    <div
+      className={`${c.card} rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow`}
+    >
+      <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-white/80 text-sm font-medium mb-1">{title}</p>
-          <h3 className="text-2xl font-bold">{value}</h3>
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">
+            {title}
+          </p>
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+            {value}
+          </h3>
         </div>
-        <span className="text-4xl">{icon}</span>
+        <div
+          className={`w-10 h-10 rounded-lg ${c.icon} flex items-center justify-center`}
+        >
+          {icon}
+        </div>
       </div>
-      <p className="text-white/70 text-sm">{subtitle}</p>
+      <p className={`text-sm ${c.accent}`}>{subtitle}</p>
     </div>
   );
 };

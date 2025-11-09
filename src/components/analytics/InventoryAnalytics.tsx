@@ -302,8 +302,24 @@ const InventoryAnalytics: React.FC = () => {
 
         {/* Low Stock Alerts */}
         <div className="bg-white dark:bg-[#1e293b] p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
-            ⚠️ Cảnh báo tồn kho thấp
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+            <span className="inline-flex">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-5 text-amber-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+                />
+              </svg>
+            </span>
+            Cảnh báo tồn kho thấp
           </h3>
           <div className="space-y-3">
             {lowStockItems.map((item) => {
@@ -347,8 +363,22 @@ const InventoryAnalytics: React.FC = () => {
               );
             })}
             {lowStockItems.length === 0 && (
-              <div className="text-center py-8 text-slate-600 dark:text-slate-400">
-                ✅ Tất cả sản phẩm đều còn đủ hàng
+              <div className="text-center py-8 text-slate-600 dark:text-slate-400 flex items-center justify-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 text-green-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Tất cả sản phẩm đều còn đủ hàng
               </div>
             )}
           </div>

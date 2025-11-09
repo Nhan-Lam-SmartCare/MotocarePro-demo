@@ -314,8 +314,32 @@ const LookupManager: React.FC = () => {
 
                     {part.category && (
                       <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                        <span className="text-xs text-slate-600 dark:text-slate-400">
-                          📦 {part.category}
+                        <span className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="w-3.5 h-3.5"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M3 7.5l9-4.5 9 4.5v9l-9 4.5-9-4.5v-9z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M3 7.5l9 4.5 9-4.5"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M12 12v9"
+                            />
+                          </svg>
+                          {part.category}
                         </span>
                       </div>
                     )}
@@ -328,7 +352,19 @@ const LookupManager: React.FC = () => {
           {/* Empty State */}
           {filteredParts.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="text-6xl mb-4">🔍</div>
+              <div className="mb-4 text-slate-400 dark:text-slate-500">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="w-16 h-16"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
               <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
                 Không tìm thấy sản phẩm
               </h3>

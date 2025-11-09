@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
+import { Boxes, Package, Search, FileText } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { formatCurrency, formatDate } from "../../utils/format";
 import {
@@ -267,6 +268,11 @@ const GoodsReceiptModal: React.FC<{
     "full" | "partial" | "note" | null
   >(null);
   const [partialAmount, setPartialAmount] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [discountType, setDiscountType] = useState<"amount" | "percent">(
+    "amount"
+  );
+  const [discountPercent, setDiscountPercent] = useState(0);
 
   const filteredParts = useMemo(() => {
     const q = searchTerm.toLowerCase();
@@ -318,12 +324,16 @@ const GoodsReceiptModal: React.FC<{
     setReceiptItems((items) => items.filter((item) => item.partId !== partId));
   };
 
-  const totalAmount = useMemo(() => {
+  const subtotal = useMemo(() => {
     return receiptItems.reduce(
       (sum, item) => sum + item.importPrice * item.quantity,
       0
     );
   }, [receiptItems]);
+
+  const totalAmount = useMemo(() => {
+    return Math.max(0, subtotal - discount);
+  }, [subtotal, discount]);
 
   const handleSave = () => {
     if (receiptItems.length === 0) {
@@ -334,6 +344,9 @@ const GoodsReceiptModal: React.FC<{
     setReceiptItems([]);
     setSelectedSupplier("");
     setSearchTerm("");
+    setDiscount(0);
+    setDiscountPercent(0);
+    setDiscountType("amount");
   };
 
   const handleAddNewProduct = (productData: any) => {
@@ -454,7 +467,9 @@ const GoodsReceiptModal: React.FC<{
 
               {receiptItems.length === 0 ? (
                 <div className="text-center text-slate-400 py-12">
-                  <div className="text-4xl mb-2">📦</div>
+                  <div className="text-4xl mb-2">
+                    <Boxes className="w-10 h-10 mx-auto text-slate-300" />
+                  </div>
                   <div className="text-sm">Giỏ hàng trống</div>
                   <div className="text-xs text-slate-400 mt-1">
                     Chọn sản phẩm để thêm vào giỏ
@@ -470,7 +485,7 @@ const GoodsReceiptModal: React.FC<{
                       {/* Header: Product Info + Delete */}
                       <div className="flex items-start gap-3 mb-3">
                         <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-lg">📦</span>
+                          <Boxes className="w-6 h-6 text-slate-500" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm text-slate-900 dark:text-slate-100 line-clamp-1">
@@ -594,16 +609,81 @@ const GoodsReceiptModal: React.FC<{
               </div>
 
               {/* Discount - Optional */}
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Giảm giá
-                </span>
-                <input
-                  type="number"
-                  defaultValue={0}
-                  className="flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-right"
-                />
-                <span className="text-slate-600 dark:text-slate-400">₫</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Giảm giá:
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={
+                        discountType === "amount"
+                          ? discount || ""
+                          : discountPercent
+                      }
+                      onChange={(e) => {
+                        const value = Number(e.target.value) || 0;
+                        if (discountType === "amount") {
+                          if (value > subtotal) {
+                            showToast.warning(
+                              "Giảm giá không được lớn hơn tổng tiền!"
+                            );
+                            setDiscount(subtotal);
+                          } else {
+                            setDiscount(value);
+                          }
+                        } else {
+                          const percent = Math.min(value, 100);
+                          setDiscountPercent(percent);
+                          setDiscount(Math.round((subtotal * percent) / 100));
+                        }
+                      }}
+                      placeholder="0"
+                      className="w-20 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                      min="0"
+                      max={discountType === "amount" ? subtotal : 100}
+                    />
+                    <select
+                      value={discountType}
+                      onChange={(e) => {
+                        const newType = e.target.value as "amount" | "percent";
+                        setDiscountType(newType);
+                        setDiscount(0);
+                        setDiscountPercent(0);
+                      }}
+                      className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                    >
+                      <option value="amount">₫</option>
+                      <option value="percent">%</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Quick percent buttons */}
+                {discountType === "percent" && (
+                  <div className="flex gap-1 justify-end">
+                    {[5, 10, 15, 20].map((percent) => (
+                      <button
+                        key={percent}
+                        onClick={() => {
+                          setDiscountPercent(percent);
+                          setDiscount(Math.round((subtotal * percent) / 100));
+                        }}
+                        className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-300 rounded transition-colors"
+                      >
+                        {percent}%
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Show amount if percent mode */}
+                {discountType === "percent" && discountPercent > 0 && (
+                  <div className="text-xs text-slate-500 dark:text-slate-400 text-right">
+                    = {formatCurrency(discount)}
+                  </div>
+                )}
               </div>
 
               {/* Amount to Pay */}
@@ -630,7 +710,17 @@ const GoodsReceiptModal: React.FC<{
                         : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-slate-400"
                     }`}
                   >
-                    <span className="text-xl">💵</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="w-6 h-6"
+                    >
+                      <rect x="2" y="6" width="20" height="12" rx="2" ry="2" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
                     <span className="font-medium">Tiền mặt</span>
                   </button>
                   <button
@@ -641,7 +731,18 @@ const GoodsReceiptModal: React.FC<{
                         : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-slate-400"
                     }`}
                   >
-                    <span className="text-xl">💳</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="w-6 h-6"
+                    >
+                      <rect x="2" y="6" width="20" height="12" rx="2" ry="2" />
+                      <path d="M2 10h20" />
+                      <path d="M6 14h4" />
+                    </svg>
                     <span className="font-medium">Chuyển khoản</span>
                   </button>
                 </div>
@@ -1464,18 +1565,34 @@ const InventoryManager: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#0f172a]">
+    <div className="h-full flex flex-col bg-secondary-bg">
       {/* Header */}
-      <div className="bg-[#1e293b] border-b border-slate-700/50 px-6 py-4">
+      <div className="bg-primary-bg border-b border-primary-border px-6 py-4">
         {/* Tabs and Buttons Row */}
         <div className="flex items-center justify-between gap-4">
           {/* Tabs */}
           <div className="flex gap-2">
             {[
-              { key: "stock", label: "📦 Tồn kho", icon: "📦" },
-              { key: "categories", label: "📑 Danh mục sản phẩm", icon: "📑" },
-              { key: "lookup", label: "🔍 Tra cứu Phụ tùng", icon: "🔍" },
-              { key: "history", label: "📋 Lịch sử", icon: "📋" },
+              {
+                key: "stock",
+                label: "Tồn kho",
+                icon: <Boxes className="w-4 h-4" />,
+              },
+              {
+                key: "categories",
+                label: "Danh mục",
+                icon: <Package className="w-4 h-4" />,
+              },
+              {
+                key: "lookup",
+                label: "Tra cứu",
+                icon: <Search className="w-4 h-4" />,
+              },
+              {
+                key: "history",
+                label: "Lịch sử",
+                icon: <FileText className="w-4 h-4" />,
+              },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -1483,10 +1600,13 @@ const InventoryManager: React.FC = () => {
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   activeTab === tab.key
                     ? "bg-blue-600 text-white"
-                    : "text-slate-300 hover:bg-slate-700/50"
+                    : "text-secondary-text hover:bg-tertiary-bg"
                 }`}
               >
-                {tab.label}
+                <span className="inline-flex items-center gap-1">
+                  {tab.icon}
+                  {tab.label}
+                </span>
               </button>
             ))}
           </div>
@@ -1530,16 +1650,20 @@ const InventoryManager: React.FC = () => {
             <div className="flex gap-4 items-center">
               {/* Stats Cards */}
               <div className="flex gap-3">
-                <div className="bg-[#1e293b] rounded-lg px-5 py-3 border border-slate-700/50 min-w-[140px]">
-                  <div className="text-xs text-slate-400 mb-1">Tổng SL tồn</div>
-                  <div className="text-xl font-bold text-slate-100">
+                <div className="bg-accent-blue-bg rounded-lg px-5 py-3 border border-accent-blue-border min-w-[140px]">
+                  <div className="text-xs text-accent-blue-text mb-1">
+                    Tổng SL tồn
+                  </div>
+                  <div className="text-xl font-bold text-primary-text">
                     {totalStockQuantity}
                   </div>
                 </div>
 
-                <div className="bg-[#1e293b] rounded-lg px-5 py-3 border border-slate-700/50 min-w-[180px]">
-                  <div className="text-xs text-slate-400 mb-1">Giá trị tồn</div>
-                  <div className="text-xl font-bold text-green-400">
+                <div className="bg-accent-green-bg rounded-lg px-5 py-3 border border-accent-green-border min-w-[180px]">
+                  <div className="text-xs text-accent-green-text mb-1">
+                    Giá trị tồn
+                  </div>
+                  <div className="text-xl font-bold text-accent-green-text">
                     {formatCurrency(totalStockValue)}
                   </div>
                 </div>
@@ -1552,30 +1676,30 @@ const InventoryManager: React.FC = () => {
                   placeholder="Tìm kiếm theo tên hoặc SKU..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="flex-1 px-4 py-2.5 border border-slate-700/50 rounded-lg bg-[#1e293b] text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                  className="flex-1 px-4 py-2.5 border border-secondary-border rounded-lg bg-primary-bg text-primary-text placeholder-tertiary-text focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                 />
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-4 py-2.5 border border-slate-700/50 rounded-lg bg-[#1e293b] text-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                  className="px-4 py-2.5 border border-secondary-border rounded-lg bg-primary-bg text-secondary-text focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                 >
                   <option value="all">Còn hàng</option>
                   <option value="lowStock">Sắp hết</option>
                   <option value="outOfStock">Hết hàng</option>
                 </select>
 
-                <select className="px-4 py-2.5 border border-slate-700/50 rounded-lg bg-[#1e293b] text-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors">
+                <select className="px-4 py-2.5 border border-secondary-border rounded-lg bg-primary-bg text-secondary-text focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors">
                   <option>Tất cả danh mục</option>
                 </select>
               </div>
             </div>
 
             {/* Stock Table */}
-            <div className="rounded-lg overflow-hidden border border-slate-700/50">
+            <div className="rounded-lg overflow-hidden border border-primary-border">
               {/* Bulk Actions Bar */}
               {selectedItems.length > 0 && (
-                <div className="px-6 py-3 bg-blue-900/30 border-b border-slate-700/50 flex items-center justify-between">
-                  <div className="text-sm font-medium text-blue-100">
+                <div className="px-6 py-3 bg-blue-100 dark:bg-blue-900/30 border-b border-primary-border flex items-center justify-between">
+                  <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
                     Đã chọn {selectedItems.length} sản phẩm
                   </div>
                   <button
@@ -1602,8 +1726,8 @@ const InventoryManager: React.FC = () => {
 
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-[#1e293b]">
-                    <tr className="border-b border-slate-700/50">
+                  <thead className="bg-tertiary-bg">
+                    <tr className="border-b border-primary-border">
                       <th className="px-6 py-4 text-center w-12">
                         <input
                           type="checkbox"
@@ -1612,38 +1736,38 @@ const InventoryManager: React.FC = () => {
                             filteredParts.length > 0
                           }
                           onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 rounded border-slate-600 focus:ring-blue-500 bg-slate-700"
+                          className="w-4 h-4 text-blue-600 rounded border-secondary-border focus:ring-blue-500"
                         />
                       </th>
-                      <th className="text-left px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
                         STT
                       </th>
-                      <th className="text-left px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
                         Tên sản phẩm
                       </th>
-                      <th className="text-left px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      <th className="text-left px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
                         Danh mục
                       </th>
-                      <th className="text-center px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
                         Tồn kho
                       </th>
-                      <th className="text-right px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      <th className="text-right px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
                         Giá bán
                       </th>
-                      <th className="text-right px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      <th className="text-right px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
                         Giá trị
                       </th>
-                      <th className="text-center px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      <th className="text-center px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
                         Thao tác
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-[#0f172a] divide-y divide-slate-700/30">
+                  <tbody className="bg-primary-bg divide-y divide-primary-border">
                     {filteredParts.length === 0 ? (
                       <tr>
                         <td
                           colSpan={8}
-                          className="px-6 py-8 text-center text-slate-400"
+                          className="px-6 py-8 text-center text-tertiary-text"
                         >
                           <div className="text-6xl mb-4">🗂️</div>
                           <div className="text-lg">Không có sản phẩm nào</div>
@@ -1662,8 +1786,10 @@ const InventoryManager: React.FC = () => {
                         return (
                           <tr
                             key={part.id}
-                            className={`border-b border-slate-700/30 hover:bg-slate-800/50 transition-colors ${
-                              isSelected ? "bg-blue-900/20" : ""
+                            className={`border-b border-primary-border hover:bg-tertiary-bg transition-colors ${
+                              isSelected
+                                ? "bg-blue-900/20 dark:bg-blue-900/20"
+                                : ""
                             }`}
                           >
                             <td className="px-6 py-4 text-center">
@@ -1673,40 +1799,40 @@ const InventoryManager: React.FC = () => {
                                 onChange={(e) =>
                                   handleSelectItem(part.id, e.target.checked)
                                 }
-                                className="w-4 h-4 text-blue-600 rounded border-slate-600 focus:ring-blue-500 bg-slate-700"
+                                className="w-4 h-4 text-blue-600 rounded border-secondary-border focus:ring-blue-500"
                               />
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-text">
                               {index + 1}
                             </td>
                             <td className="px-6 py-4">
-                              <div className="text-sm font-medium text-slate-100">
+                              <div className="text-sm font-medium text-primary-text">
                                 {part.name}
                               </div>
-                              <div className="text-xs text-slate-400">
+                              <div className="text-xs text-tertiary-text">
                                 SKU: {part.sku}
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-text">
                               {part.category}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center">
                               <span
                                 className={`inline-flex px-3 py-1 text-sm font-bold rounded ${
                                   stock === 0
-                                    ? "text-red-400"
+                                    ? "text-red-600 dark:text-red-400"
                                     : stock < 10
-                                    ? "text-yellow-400"
-                                    : "text-emerald-400"
+                                    ? "text-yellow-600 dark:text-yellow-400"
+                                    : "text-emerald-600 dark:text-emerald-400"
                                 }`}
                               >
                                 {stock}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-300">
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-primary-text">
                               {formatCurrency(price)}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-slate-100">
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-primary-text">
                               {formatCurrency(value)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center">

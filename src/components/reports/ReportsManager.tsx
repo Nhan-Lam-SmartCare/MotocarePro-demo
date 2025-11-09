@@ -1,5 +1,19 @@
 import React, { useState, useMemo } from "react";
+import {
+  DollarSign,
+  Wallet,
+  Boxes,
+  BadgePercent,
+  ClipboardList,
+  Users,
+  FileSpreadsheet,
+  TrendingUp,
+  Tag,
+  Check,
+  BriefcaseBusiness,
+} from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
+import { showToast } from "../../utils/toast";
 import { formatCurrency, formatDate } from "../../utils/format";
 import {
   exportRevenueReport,
@@ -232,10 +246,10 @@ const ReportsManager: React.FC = () => {
           );
           break;
       }
-      alert("✅ Xuất Excel thành công! File đã được tải xuống.");
+      showToast.success("Xuất Excel thành công! File đã được tải xuống.");
     } catch (error) {
       console.error("Export error:", error);
-      alert("❌ Có lỗi khi xuất Excel. Vui lòng thử lại.");
+      showToast.error("Có lỗi khi xuất Excel. Vui lòng thử lại.");
     }
   };
 
@@ -249,11 +263,31 @@ const ReportsManager: React.FC = () => {
       <div className="flex items-center gap-3 flex-wrap">
         {/* Report Tabs */}
         {[
-          { key: "revenue", label: "💰 Doanh thu" },
-          { key: "cashflow", label: "💵 Thu chi" },
-          { key: "inventory", label: "📦 Tồn kho" },
-          { key: "payroll", label: "👔 Lương" },
-          { key: "debt", label: "📋 Công nợ" },
+          {
+            key: "revenue",
+            label: "Doanh thu",
+            icon: <DollarSign className="w-4 h-4" />,
+          },
+          {
+            key: "cashflow",
+            label: "Thu chi",
+            icon: <Wallet className="w-4 h-4" />,
+          },
+          {
+            key: "inventory",
+            label: "Tồn kho",
+            icon: <Boxes className="w-4 h-4" />,
+          },
+          {
+            key: "payroll",
+            label: "Lương",
+            icon: <BriefcaseBusiness className="w-4 h-4" />,
+          },
+          {
+            key: "debt",
+            label: "Công nợ",
+            icon: <ClipboardList className="w-4 h-4" />,
+          },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -264,7 +298,10 @@ const ReportsManager: React.FC = () => {
                 : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
             }`}
           >
-            {tab.label}
+            <span className="inline-flex items-center gap-1">
+              {tab.icon}
+              {tab.label}
+            </span>
           </button>
         ))}
 
@@ -322,7 +359,7 @@ const ReportsManager: React.FC = () => {
             onClick={exportToExcel}
             className="px-5 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center gap-2"
           >
-            📊 Xuất Excel
+            <FileSpreadsheet className="w-4 h-4" /> Xuất Excel
           </button>
         </div>
       </div>
@@ -334,8 +371,8 @@ const ReportsManager: React.FC = () => {
             {/* Thống kê cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
-                <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">
-                  Tổng doanh thu
+                <div className="flex items-center gap-1 text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">
+                  <DollarSign className="w-4 h-4" /> Tổng doanh thu
                 </div>
                 <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                   {formatCurrency(revenueReport.totalRevenue).replace("₫", "")}
@@ -346,8 +383,8 @@ const ReportsManager: React.FC = () => {
               </div>
 
               <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-lg p-6 border border-red-200 dark:border-red-800">
-                <div className="text-sm font-medium text-red-700 dark:text-red-400 mb-2">
-                  Tổng chi phí
+                <div className="flex items-center gap-1 text-sm font-medium text-red-700 dark:text-red-400 mb-2">
+                  <Wallet className="w-4 h-4" /> Tổng chi phí
                 </div>
                 <div className="text-3xl font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(revenueReport.totalCost).replace("₫", "")}
@@ -358,8 +395,8 @@ const ReportsManager: React.FC = () => {
               </div>
 
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-6 border border-green-200 dark:border-green-800">
-                <div className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
-                  Lợi nhuận
+                <div className="flex items-center gap-1 text-sm font-medium text-green-700 dark:text-green-400 mb-2">
+                  <TrendingUp className="w-4 h-4" /> Lợi nhuận
                 </div>
                 <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(revenueReport.totalProfit).replace("₫", "")}
@@ -370,8 +407,8 @@ const ReportsManager: React.FC = () => {
               </div>
 
               <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-800">
-                <div className="text-sm font-medium text-purple-700 dark:text-purple-400 mb-2">
-                  Tỷ suất lợi nhuận
+                <div className="flex items-center gap-1 text-sm font-medium text-purple-700 dark:text-purple-400 mb-2">
+                  <BadgePercent className="w-4 h-4" /> Tỷ suất lợi nhuận
                 </div>
                 <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
                   {revenueReport.profitMargin}
@@ -450,7 +487,9 @@ const ReportsManager: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-6 border border-green-200 dark:border-green-800">
                 <div className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
-                  💵 Tổng thu
+                  <span className="inline-flex items-center gap-1">
+                    <Wallet className="w-4 h-4" /> Tổng thu
+                  </span>
                 </div>
                 <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(cashflowReport.totalIncome).replace("₫", "")}
@@ -461,8 +500,20 @@ const ReportsManager: React.FC = () => {
               </div>
 
               <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-lg p-6 border border-red-200 dark:border-red-800">
-                <div className="text-sm font-medium text-red-700 dark:text-red-400 mb-2">
-                  💸 Tổng chi
+                <div className="text-sm font-medium text-red-700 dark:text-red-400 mb-2 inline-flex items-center gap-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="w-4 h-4"
+                  >
+                    <rect x="2" y="6" width="20" height="12" rx="2" ry="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <path d="M6 12h.01M18 12h.01" />
+                  </svg>
+                  Tổng chi
                 </div>
                 <div className="text-3xl font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(cashflowReport.totalExpense).replace("₫", "")}
@@ -486,7 +537,9 @@ const ReportsManager: React.FC = () => {
                       : "text-orange-700 dark:text-orange-400"
                   }`}
                 >
-                  💰 Dòng tiền ròng
+                  <span className="inline-flex items-center gap-1">
+                    <DollarSign className="w-4 h-4" /> Dòng tiền ròng
+                  </span>
                 </div>
                 <div
                   className={`text-3xl font-bold ${
@@ -556,7 +609,9 @@ const ReportsManager: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
                 <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">
-                  📦 Tổng giá trị tồn kho
+                  <span className="inline-flex items-center gap-1">
+                    <Boxes className="w-4 h-4" /> Tổng giá trị tồn kho
+                  </span>
                 </div>
                 <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                   {formatCurrency(inventoryReport.totalValue).replace("₫", "")}
@@ -568,7 +623,9 @@ const ReportsManager: React.FC = () => {
 
               <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-800">
                 <div className="text-sm font-medium text-purple-700 dark:text-purple-400 mb-2">
-                  🏷️ Tổng sản phẩm
+                  <span className="inline-flex items-center gap-1">
+                    <Tag className="w-4 h-4" /> Tổng sản phẩm
+                  </span>
                 </div>
                 <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
                   {inventoryReport.parts.length}
@@ -580,7 +637,28 @@ const ReportsManager: React.FC = () => {
 
               <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-lg p-6 border border-red-200 dark:border-red-800">
                 <div className="text-sm font-medium text-red-700 dark:text-red-400 mb-2">
-                  ⚠️ Sản phẩm sắp hết
+                  <span className="inline-flex items-center gap-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="w-4 h-4 text-amber-500"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v4m0 4h.01"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+                      />
+                    </svg>
+                    Sản phẩm sắp hết
+                  </span>
                 </div>
                 <div className="text-3xl font-bold text-red-600 dark:text-red-400">
                   {inventoryReport.lowStockCount}
@@ -594,7 +672,28 @@ const ReportsManager: React.FC = () => {
             {inventoryReport.lowStockCount > 0 && (
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-                  ⚠️ Cảnh báo hàng sắp hết
+                  <span className="inline-flex items-center gap-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="w-4 h-4 text-amber-500"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v4m0 4h.01"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+                      />
+                    </svg>
+                    Cảnh báo hàng sắp hết
+                  </span>
                 </h3>
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -645,7 +744,9 @@ const ReportsManager: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
                 <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">
-                  💰 Tổng lương
+                  <span className="inline-flex items-center gap-1">
+                    <DollarSign className="w-4 h-4" /> Tổng lương
+                  </span>
                 </div>
                 <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                   {formatCurrency(payrollReport.totalSalary).replace("₫", "")}
@@ -657,7 +758,9 @@ const ReportsManager: React.FC = () => {
 
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-6 border border-green-200 dark:border-green-800">
                 <div className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
-                  ✅ Đã thanh toán
+                  <span className="inline-flex items-center gap-1">
+                    <Check className="w-4 h-4" /> Đã thanh toán
+                  </span>
                 </div>
                 <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(payrollReport.paidSalary).replace("₫", "")}
@@ -681,7 +784,9 @@ const ReportsManager: React.FC = () => {
 
               <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-800">
                 <div className="text-sm font-medium text-purple-700 dark:text-purple-400 mb-2">
-                  👔 Số nhân viên
+                  <span className="inline-flex items-center gap-1">
+                    <BriefcaseBusiness className="w-4 h-4" /> Số nhân viên
+                  </span>
                 </div>
                 <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
                   {payrollReport.employeeCount}
@@ -802,7 +907,7 @@ const ReportsManager: React.FC = () => {
               {/* Công nợ khách hàng */}
               <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <span className="text-green-600 dark:text-green-400">👥</span>
+                  <Users className="w-4 h-4 text-green-600 dark:text-green-400" />
                   Công nợ khách hàng
                 </h3>
                 <div className="space-y-2 max-h-96 overflow-y-auto">

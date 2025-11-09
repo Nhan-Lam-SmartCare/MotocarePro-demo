@@ -324,8 +324,22 @@ const FinancialAnalytics: React.FC = () => {
                   </div>
                 ))}
                 {topDebtors.length === 0 && (
-                  <div className="text-center py-4 text-slate-600 dark:text-slate-400">
-                    ✅ Không có công nợ
+                  <div className="text-center py-4 text-slate-600 dark:text-slate-400 inline-flex items-center justify-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4 text-green-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Không có công nợ
                   </div>
                 )}
               </div>
@@ -359,8 +373,17 @@ const FinancialAnalytics: React.FC = () => {
             </div>
 
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-              <div className="text-sm text-blue-600 dark:text-blue-400 mb-2">
-                💡 Mẹo quản lý tài chính
+              <div className="text-sm text-blue-600 dark:text-blue-400 mb-2 inline-flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M11 2a1 1 0 011 1v1.07A7.002 7.002 0 0119 11a6.97 6.97 0 01-2.05 4.95A3.5 3.5 0 0014 19.5V20a1 1 0 11-2 0v-.5a3.5 3.5 0 00-2.95-3.45A6.97 6.97 0 017 11a7.002 7.002 0 016-6.93V3a1 1 0 011-1z" />
+                  <path d="M13 22a1 1 0 11-2 0 1 1 0 012 0z" />
+                </svg>
+                Mẹo quản lý tài chính
               </div>
               <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
                 <li>• Theo dõi biên lợi nhuận hàng tháng</li>

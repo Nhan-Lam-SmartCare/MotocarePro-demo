@@ -113,17 +113,17 @@ const DebtManager: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="h-full flex flex-col bg-secondary-bg">
       {/* Header with Tabs */}
-      <div className="bg-slate-800 border-b border-slate-700">
+      <div className="bg-primary-bg border-b border-primary-border">
         <div className="flex items-center justify-between px-6">
           <div className="flex items-center">
             <button
               onClick={() => setActiveTab("customer")}
               className={`px-6 py-4 font-medium text-sm transition-all ${
                 activeTab === "customer"
-                  ? "text-cyan-400 border-b-2 border-cyan-400"
-                  : "text-slate-400 hover:text-slate-300"
+                  ? "text-cyan-600 dark:text-cyan-400 border-b-2 border-cyan-600 dark:border-cyan-400"
+                  : "text-secondary-text hover:text-primary-text"
               }`}
             >
               Công nợ khách hàng
@@ -132,8 +132,8 @@ const DebtManager: React.FC = () => {
               onClick={() => setActiveTab("supplier")}
               className={`px-6 py-4 font-medium text-sm transition-all ${
                 activeTab === "supplier"
-                  ? "text-cyan-400 border-b-2 border-cyan-400"
-                  : "text-slate-400 hover:text-slate-300"
+                  ? "text-cyan-600 dark:text-cyan-400 border-b-2 border-cyan-600 dark:border-cyan-400"
+                  : "text-secondary-text hover:text-primary-text"
               }`}
             >
               Công nợ nhà cung cấp
@@ -143,11 +143,11 @@ const DebtManager: React.FC = () => {
       </div>
 
       {/* Search and Actions Bar */}
-      <div className="bg-slate-800 px-6 py-4 border-b border-slate-700">
+      <div className="bg-primary-bg px-6 py-4 border-b border-primary-border">
         <div className="flex items-center gap-4">
           <div className="flex-1 relative">
             <svg
-              className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-tertiary-text"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -168,12 +168,12 @@ const DebtManager: React.FC = () => {
               }
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 bg-primary-bg border border-secondary-border rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             />
           </div>
-          <div className="text-slate-300 text-sm">
+          <div className="text-secondary-text text-sm">
             Tổng công nợ:{" "}
-            <span className="font-bold text-red-400">
+            <span className="font-bold text-red-600 dark:text-red-400">
               {formatCurrency(
                 activeTab === "customer" ? customerTotal : supplierTotal
               )}
@@ -190,7 +190,7 @@ const DebtManager: React.FC = () => {
             <PlusIcon className="w-5 h-5" />
             <span>{activeTab === "customer" ? "Thư nợ" : "Chi trả nợ"}</span>
           </button>
-          <button className="p-2.5 text-slate-400 hover:text-white transition-colors">
+          <button className="p-2.5 text-secondary-text hover:text-primary-text transition-colors">
             <svg
               className="w-6 h-6"
               fill="none"
@@ -213,7 +213,7 @@ const DebtManager: React.FC = () => {
         {activeTab === "customer" ? (
           <div className="p-6">
             {filteredCustomerDebts.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">
+              <div className="text-center py-12 text-tertiary-text">
                 Không có công nợ.
               </div>
             ) : (
@@ -221,7 +221,7 @@ const DebtManager: React.FC = () => {
                 {filteredCustomerDebts.map((debt) => (
                   <div
                     key={debt.customerId}
-                    className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:border-slate-600 transition-colors"
+                    className="bg-primary-bg border border-primary-border rounded-lg p-4 hover:border-secondary-border transition-colors shadow-sm"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 flex-1">
@@ -236,22 +236,22 @@ const DebtManager: React.FC = () => {
                               e.target.checked
                             )
                           }
-                          className="mt-1 w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-600 focus:ring-cyan-500 focus:ring-offset-slate-800"
+                          className="mt-1 w-4 h-4 rounded border-secondary-border text-cyan-600 focus:ring-cyan-500"
                         />
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-white font-semibold text-lg">
+                            <h3 className="text-primary-text font-semibold text-lg">
                               {debt.customerName}
                             </h3>
                           </div>
                           <div className="space-y-1 text-sm">
-                            <div className="text-cyan-400">
+                            <div className="text-cyan-600 dark:text-cyan-400">
                               Phone: {debt.phone || "--"}
                             </div>
-                            <div className="text-cyan-400">
+                            <div className="text-cyan-600 dark:text-cyan-400">
                               Đơn Hàng: {debt.licensePlate || "--"}
                             </div>
-                            <div className="text-slate-400">
+                            <div className="text-tertiary-text">
                               Ngày tạo đơn:{" "}
                               {formatDate(new Date(debt.createdDate))}
                             </div>
@@ -261,10 +261,10 @@ const DebtManager: React.FC = () => {
 
                       <div className="text-right">
                         <div className="mb-2">
-                          <div className="text-slate-400 text-xs mb-1">
+                          <div className="text-tertiary-text text-xs mb-1">
                             NỘI DUNG
                           </div>
-                          <div className="text-white text-sm">
+                          <div className="text-primary-text text-sm">
                             {debt.description}
                           </div>
                         </div>
@@ -272,10 +272,10 @@ const DebtManager: React.FC = () => {
 
                       <div className="text-right ml-8">
                         <div className="mb-2">
-                          <div className="text-slate-400 text-xs mb-1">
+                          <div className="text-tertiary-text text-xs mb-1">
                             SỐ TIỀN
                           </div>
-                          <div className="text-white font-semibold">
+                          <div className="text-primary-text font-semibold">
                             {formatCurrency(debt.totalAmount)}
                           </div>
                         </div>
@@ -283,10 +283,10 @@ const DebtManager: React.FC = () => {
 
                       <div className="text-right ml-8">
                         <div className="mb-2">
-                          <div className="text-slate-400 text-xs mb-1">
+                          <div className="text-tertiary-text text-xs mb-1">
                             ĐÃ TRẢ
                           </div>
-                          <div className="text-white font-semibold">
+                          <div className="text-primary-text font-semibold">
                             {formatCurrency(debt.paidAmount)}
                           </div>
                         </div>
@@ -294,16 +294,16 @@ const DebtManager: React.FC = () => {
 
                       <div className="text-right ml-8">
                         <div className="mb-2">
-                          <div className="text-slate-400 text-xs mb-1">
+                          <div className="text-tertiary-text text-xs mb-1">
                             CÒN NỢ
                           </div>
-                          <div className="text-red-400 font-bold text-lg">
+                          <div className="text-red-600 dark:text-red-400 font-bold text-lg">
                             {formatCurrency(debt.remainingAmount)}
                           </div>
                         </div>
                       </div>
 
-                      <button className="ml-4 p-2 text-slate-400 hover:text-white transition-colors">
+                      <button className="ml-4 p-2 text-secondary-text hover:text-primary-text transition-colors">
                         <svg
                           className="w-5 h-5"
                           fill="none"
@@ -327,7 +327,7 @@ const DebtManager: React.FC = () => {
         ) : (
           <div className="p-6">
             {filteredSupplierDebts.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">
+              <div className="text-center py-12 text-tertiary-text">
                 Không có công nợ.
               </div>
             ) : (
@@ -335,7 +335,7 @@ const DebtManager: React.FC = () => {
                 {filteredSupplierDebts.map((debt) => (
                   <div
                     key={debt.supplierId}
-                    className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:border-slate-600 transition-colors"
+                    className="bg-primary-bg border border-primary-border rounded-lg p-4 hover:border-secondary-border transition-colors"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 flex-1">
@@ -350,11 +350,11 @@ const DebtManager: React.FC = () => {
                               e.target.checked
                             )
                           }
-                          className="mt-1 w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-600 focus:ring-cyan-500 focus:ring-offset-slate-800"
+                          className="mt-1 w-4 h-4 rounded border-secondary-border bg-primary-bg text-cyan-600 focus:ring-cyan-500 focus:ring-offset-0"
                         />
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-white font-semibold text-lg">
+                            <h3 className="text-primary-text font-semibold text-lg">
                               {debt.supplierName}
                             </h3>
                           </div>
@@ -363,10 +363,10 @@ const DebtManager: React.FC = () => {
 
                       <div className="text-right">
                         <div className="mb-2">
-                          <div className="text-slate-400 text-xs mb-1">
+                          <div className="text-tertiary-text text-xs mb-1">
                             NỘI DUNG
                           </div>
-                          <div className="text-white text-sm">
+                          <div className="text-primary-text text-sm">
                             {debt.description}
                           </div>
                         </div>
@@ -374,10 +374,10 @@ const DebtManager: React.FC = () => {
 
                       <div className="text-right ml-8">
                         <div className="mb-2">
-                          <div className="text-slate-400 text-xs mb-1">
+                          <div className="text-tertiary-text text-xs mb-1">
                             SỐ TIỀN
                           </div>
-                          <div className="text-white font-semibold">
+                          <div className="text-primary-text font-semibold">
                             {formatCurrency(debt.totalAmount)}
                           </div>
                         </div>
@@ -385,10 +385,10 @@ const DebtManager: React.FC = () => {
 
                       <div className="text-right ml-8">
                         <div className="mb-2">
-                          <div className="text-slate-400 text-xs mb-1">
+                          <div className="text-tertiary-text text-xs mb-1">
                             ĐÃ TRẢ
                           </div>
-                          <div className="text-white font-semibold">
+                          <div className="text-primary-text font-semibold">
                             {formatCurrency(debt.paidAmount)}
                           </div>
                         </div>
@@ -396,16 +396,16 @@ const DebtManager: React.FC = () => {
 
                       <div className="text-right ml-8">
                         <div className="mb-2">
-                          <div className="text-slate-400 text-xs mb-1">
+                          <div className="text-tertiary-text text-xs mb-1">
                             CÒN NỢ
                           </div>
-                          <div className="text-red-400 font-bold text-lg">
+                          <div className="text-red-600 dark:text-red-400 font-bold text-lg">
                             {formatCurrency(debt.remainingAmount)}
                           </div>
                         </div>
                       </div>
 
-                      <button className="ml-4 p-2 text-slate-400 hover:text-white transition-colors">
+                      <button className="ml-4 p-2 text-secondary-text hover:text-primary-text transition-colors">
                         <svg
                           className="w-5 h-5"
                           fill="none"
@@ -659,9 +659,9 @@ const CollectDebtModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 rounded-xl shadow-2xl max-w-lg w-full border border-slate-700">
-        <div className="px-6 py-4 border-b border-slate-700">
-          <h2 className="text-xl font-semibold text-white">
+      <div className="bg-secondary-bg rounded-xl shadow-2xl max-w-lg w-full border border-primary-border">
+        <div className="px-6 py-4 border-b border-primary-border">
+          <h2 className="text-xl font-semibold text-primary-text">
             Thu nợ khách hàng
           </h2>
         </div>
@@ -669,13 +669,13 @@ const CollectDebtModal: React.FC<{
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Customer Selection */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-secondary-text mb-2">
               Tìm kiếm và chọn một khách hàng đang nợ
             </label>
             <select
               value={selectedCustomerId}
               onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             >
               <option value="">Chọn khách hàng...</option>
               {customerDebts.map((debt) => (
@@ -689,10 +689,10 @@ const CollectDebtModal: React.FC<{
           {/* Payment Amount */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-slate-300">
+              <label className="block text-sm font-medium text-secondary-text">
                 Nhập số tiền thanh toán
               </label>
-              <span className="text-cyan-400 text-sm">
+              <span className="text-cyan-600 dark:text-cyan-400 text-sm">
                 {formatCurrency(parseFloat(paymentAmount) || 0)}
               </span>
             </div>
@@ -700,22 +700,22 @@ const CollectDebtModal: React.FC<{
               type="number"
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             />
           </div>
 
           {/* Remaining Amount */}
           <div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Còn nợ:</span>
-              <span className="text-red-400 font-bold text-base">
+              <span className="text-tertiary-text">Còn nợ:</span>
+              <span className="text-red-600 dark:text-red-400 font-bold text-base">
                 {formatCurrency(remainingAmount)}
               </span>
             </div>
             <button
               type="button"
               onClick={() => setPaymentAmount(remainingAmount.toString())}
-              className="text-cyan-400 hover:text-cyan-300 text-sm mt-1"
+              className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 text-sm mt-1"
             >
               Điền số còn nợ
             </button>
@@ -723,7 +723,7 @@ const CollectDebtModal: React.FC<{
 
           {/* Payment Method */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-3">
+            <label className="block text-sm font-medium text-secondary-text mb-3">
               Hình thức thanh toán:
             </label>
             <div className="flex gap-6">
@@ -734,9 +734,9 @@ const CollectDebtModal: React.FC<{
                   value="cash"
                   checked={paymentMethod === "cash"}
                   onChange={(e) => setPaymentMethod(e.target.value as "cash")}
-                  className="w-4 h-4 text-cyan-600 bg-slate-700 border-slate-600 focus:ring-cyan-500"
+                  className="w-4 h-4 text-cyan-600 bg-primary-bg border-secondary-border focus:ring-cyan-500"
                 />
-                <span className="text-white">Tiền mặt</span>
+                <span className="text-primary-text">Tiền mặt</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -745,23 +745,23 @@ const CollectDebtModal: React.FC<{
                   value="bank"
                   checked={paymentMethod === "bank"}
                   onChange={(e) => setPaymentMethod(e.target.value as "bank")}
-                  className="w-4 h-4 text-cyan-600 bg-slate-700 border-slate-600 focus:ring-cyan-500"
+                  className="w-4 h-4 text-cyan-600 bg-primary-bg border-secondary-border focus:ring-cyan-500"
                 />
-                <span className="text-white">Chuyển khoản</span>
+                <span className="text-primary-text">Chuyển khoản</span>
               </label>
             </div>
           </div>
 
           {/* Create Time */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-secondary-text mb-2">
               Thời gian tạo phiếu thu
             </label>
             <input
               type="text"
               value={createTime}
               onChange={(e) => setCreateTime(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             />
           </div>
 
@@ -769,17 +769,17 @@ const CollectDebtModal: React.FC<{
           <button
             type="submit"
             disabled={!selectedCustomerId || parseFloat(paymentAmount) <= 0}
-            className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-primary-bg hover:bg-tertiary-bg text-primary-text rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Tạo phiếu thu
           </button>
         </form>
 
         {/* Close Button */}
-        <div className="px-6 py-4 border-t border-slate-700 flex justify-end">
+        <div className="px-6 py-4 border-t border-primary-border flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 text-slate-300 hover:text-white transition-colors"
+            className="px-6 py-2 text-secondary-text hover:text-primary-text transition-colors"
           >
             Đóng
           </button>
@@ -841,9 +841,9 @@ const PaySupplierModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 rounded-xl shadow-2xl max-w-lg w-full border border-slate-700">
-        <div className="px-6 py-4 border-b border-slate-700">
-          <h2 className="text-xl font-semibold text-white">
+      <div className="bg-secondary-bg rounded-xl shadow-2xl max-w-lg w-full border border-primary-border">
+        <div className="px-6 py-4 border-b border-primary-border">
+          <h2 className="text-xl font-semibold text-primary-text">
             Chi trả nợ nhà cung cấp
           </h2>
         </div>
@@ -851,13 +851,13 @@ const PaySupplierModal: React.FC<{
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Supplier Selection */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-secondary-text mb-2">
               Tìm kiếm và chọn một nhà cung cấp đang nợ
             </label>
             <select
               value={selectedSupplierId}
               onChange={(e) => setSelectedSupplierId(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             >
               <option value="">Chọn nhà cung cấp...</option>
               {supplierDebts.map((debt) => (
@@ -871,10 +871,10 @@ const PaySupplierModal: React.FC<{
           {/* Payment Amount */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-slate-300">
+              <label className="block text-sm font-medium text-secondary-text">
                 Nhập số tiền thanh toán
               </label>
-              <span className="text-cyan-400 text-sm">
+              <span className="text-cyan-600 dark:text-cyan-400 text-sm">
                 {formatCurrency(parseFloat(paymentAmount) || 0)}
               </span>
             </div>
@@ -882,22 +882,22 @@ const PaySupplierModal: React.FC<{
               type="number"
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             />
           </div>
 
           {/* Remaining Amount */}
           <div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Còn nợ:</span>
-              <span className="text-red-400 font-bold text-base">
+              <span className="text-tertiary-text">Còn nợ:</span>
+              <span className="text-red-600 dark:text-red-400 font-bold text-base">
                 {formatCurrency(remainingAmount)}
               </span>
             </div>
             <button
               type="button"
               onClick={() => setPaymentAmount(remainingAmount.toString())}
-              className="text-cyan-400 hover:text-cyan-300 text-sm mt-1"
+              className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 text-sm mt-1"
             >
               Điền số còn nợ
             </button>
@@ -905,7 +905,7 @@ const PaySupplierModal: React.FC<{
 
           {/* Payment Method */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-3">
+            <label className="block text-sm font-medium text-secondary-text mb-3">
               Hình thức thanh toán:
             </label>
             <div className="flex gap-6">
@@ -916,9 +916,9 @@ const PaySupplierModal: React.FC<{
                   value="cash"
                   checked={paymentMethod === "cash"}
                   onChange={(e) => setPaymentMethod(e.target.value as "cash")}
-                  className="w-4 h-4 text-cyan-600 bg-slate-700 border-slate-600 focus:ring-cyan-500"
+                  className="w-4 h-4 text-cyan-600 bg-primary-bg border-secondary-border focus:ring-cyan-500"
                 />
-                <span className="text-white">Tiền mặt</span>
+                <span className="text-primary-text">Tiền mặt</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -927,23 +927,23 @@ const PaySupplierModal: React.FC<{
                   value="bank"
                   checked={paymentMethod === "bank"}
                   onChange={(e) => setPaymentMethod(e.target.value as "bank")}
-                  className="w-4 h-4 text-cyan-600 bg-slate-700 border-slate-600 focus:ring-cyan-500"
+                  className="w-4 h-4 text-cyan-600 bg-primary-bg border-secondary-border focus:ring-cyan-500"
                 />
-                <span className="text-white">Chuyển khoản</span>
+                <span className="text-primary-text">Chuyển khoản</span>
               </label>
             </div>
           </div>
 
           {/* Create Time */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-secondary-text mb-2">
               Thời gian tạo phiếu chi
             </label>
             <input
               type="text"
               value={createTime}
               onChange={(e) => setCreateTime(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             />
           </div>
 
@@ -951,17 +951,17 @@ const PaySupplierModal: React.FC<{
           <button
             type="submit"
             disabled={!selectedSupplierId || parseFloat(paymentAmount) <= 0}
-            className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-primary-bg hover:bg-tertiary-bg text-primary-text rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Tạo phiếu chi
           </button>
         </form>
 
         {/* Close Button */}
-        <div className="px-6 py-4 border-t border-slate-700 flex justify-end">
+        <div className="px-6 py-4 border-t border-primary-border flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 text-slate-300 hover:text-white transition-colors"
+            className="px-6 py-2 text-secondary-text hover:text-primary-text transition-colors"
           >
             Đóng
           </button>
@@ -1028,9 +1028,9 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-secondary-bg rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-primary-border">
           <div className="flex items-center gap-2">
             <svg
               className="w-6 h-6 text-red-500"
@@ -1045,7 +1045,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+            <h2 className="text-xl font-semibold text-primary-text">
               Trả hết nợ (
               {debtType === "customer"
                 ? "nhiều đơn hàng"
@@ -1055,7 +1055,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            className="text-secondary-text hover:text-primary-text transition-colors"
           >
             <svg
               className="w-6 h-6"
@@ -1078,13 +1078,11 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
           {/* Selected Debts List */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                -
-              </span>
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <span className="text-sm font-medium text-secondary-text">-</span>
+              <span className="text-sm font-medium text-secondary-text">
                 Chi tiết
               </span>
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              <span className="text-sm font-medium text-secondary-text">
                 Số tiền
               </span>
             </div>
@@ -1102,20 +1100,18 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
                 return (
                   <div
                     key={index}
-                    className="flex items-center justify-between py-2 px-3 bg-slate-50 dark:bg-slate-700/50 rounded"
+                    className="flex items-center justify-between py-2 px-3 bg-tertiary-bg rounded"
                   >
-                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                    <span className="text-sm text-tertiary-text">
                       {index + 1}
                     </span>
                     <div className="flex-1 mx-3">
-                      <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                      <div className="text-sm font-medium text-primary-text">
                         {detail}
                       </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        {name}
-                      </div>
+                      <div className="text-xs text-tertiary-text">{name}</div>
                     </div>
-                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <span className="text-sm font-semibold text-primary-text">
                       {formatCurrency(debt.remainingAmount)}
                     </span>
                   </div>
@@ -1124,10 +1120,8 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
             </div>
 
             {/* Total */}
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-              <span className="font-semibold text-slate-900 dark:text-slate-100">
-                TỔNG
-              </span>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-primary-border">
+              <span className="font-semibold text-primary-text">TỔNG</span>
               <span className="text-lg font-bold text-red-500">
                 {formatCurrency(totalAmount)}
               </span>
@@ -1136,7 +1130,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
 
           {/* Payment Method */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+            <label className="block text-sm font-medium text-secondary-text mb-3">
               Hình thức thanh toán:
             </label>
             <div className="flex gap-6">
@@ -1151,9 +1145,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
                   }
                   className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-slate-900 dark:text-slate-100">
-                  Tiền mặt
-                </span>
+                <span className="text-primary-text">Tiền mặt</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -1166,27 +1158,25 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
                   }
                   className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-slate-900 dark:text-slate-100">
-                  Chuyển khoản
-                </span>
+                <span className="text-primary-text">Chuyển khoản</span>
               </label>
             </div>
           </div>
 
           {/* Payment Time */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-secondary-text mb-2">
               Thời gian tạo phiếu thu
             </label>
-            <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg">
+            <div className="flex items-center gap-2 px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg">
               <input
                 type="text"
                 value={paymentTime}
                 onChange={(e) => setPaymentTime(e.target.value)}
-                className="flex-1 bg-transparent text-slate-900 dark:text-slate-100 outline-none"
+                className="flex-1 bg-transparent text-primary-text outline-none"
               />
               <svg
-                className="w-5 h-5 text-slate-400"
+                className="w-5 h-5 text-tertiary-text"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1199,7 +1189,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
                 />
               </svg>
               <svg
-                className="w-5 h-5 text-slate-400"
+                className="w-5 h-5 text-tertiary-text"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1219,7 +1209,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium"
+              className="flex-1 px-4 py-3 border border-secondary-border text-secondary-text rounded-lg hover:bg-primary-bg transition-colors font-medium"
             >
               ĐÓNG
             </button>

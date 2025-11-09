@@ -1,7 +1,8 @@
 import React from "react";
+import { Boxes, Search, ClipboardList, AlertTriangle } from "lucide-react";
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: React.ReactNode;
   title: string;
   description?: string;
   action?: {
@@ -11,14 +12,14 @@ interface EmptyStateProps {
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = "📦",
+  icon = <Boxes className="w-16 h-16 opacity-50" />,
   title,
   description,
   action,
 }) => {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center animate-fadeIn">
-      <div className="text-7xl mb-4 opacity-50">{icon}</div>
+      <div className="mb-4">{icon}</div>
       <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
         {title}
       </h3>
@@ -44,7 +45,7 @@ export default EmptyState;
 // Pre-built empty states
 export const NoResultsFound: React.FC = () => (
   <EmptyState
-    icon="🔍"
+    icon={<Search className="w-16 h-16 opacity-50" />}
     title="Không tìm thấy kết quả"
     description="Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"
   />
@@ -55,7 +56,7 @@ export const NoDataYet: React.FC<{
   onAdd?: () => void;
 }> = ({ entityName, onAdd }) => (
   <EmptyState
-    icon="📋"
+    icon={<ClipboardList className="w-16 h-16 opacity-50" />}
     title={`Chưa có ${entityName} nào`}
     description={`Thêm ${entityName} đầu tiên để bắt đầu`}
     action={
@@ -71,7 +72,7 @@ export const NoDataYet: React.FC<{
 
 export const ErrorState: React.FC<{ onRetry?: () => void }> = ({ onRetry }) => (
   <EmptyState
-    icon="⚠️"
+    icon={<AlertTriangle className="w-16 h-16 opacity-50" />}
     title="Đã xảy ra lỗi"
     description="Không thể tải dữ liệu. Vui lòng thử lại."
     action={

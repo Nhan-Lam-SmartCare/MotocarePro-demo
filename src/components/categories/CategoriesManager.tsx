@@ -4,6 +4,20 @@ import { showToast } from "../../utils/toast";
 import { useConfirm } from "../../hooks/useConfirm";
 import ConfirmModal from "../common/ConfirmModal";
 import { PlusIcon } from "../Icons";
+import {
+  Boxes,
+  Wrench,
+  Settings,
+  Hammer,
+  Cog,
+  Bolt,
+  Bike,
+  Car,
+  Disc,
+  Battery,
+  Lightbulb,
+  Palette,
+} from "lucide-react";
 
 const CategoriesManager: React.FC = () => {
   const { parts, upsertPart } = useAppContext();
@@ -11,7 +25,7 @@ const CategoriesManager: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedColor, setSelectedColor] = useState("#3b82f6");
-  const [selectedIcon, setSelectedIcon] = useState("📦");
+  const [selectedIcon, setSelectedIcon] = useState("package");
 
   // Confirm dialog hook
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
@@ -31,7 +45,7 @@ const CategoriesManager: React.FC = () => {
         } else {
           categoryMap.set(part.category, {
             count: 1,
-            icon: "📦", // Default icon
+            icon: "package", // Default icon key
             color: "#3b82f6", // Default color
           });
         }
@@ -120,20 +134,21 @@ const CategoriesManager: React.FC = () => {
     { value: "#f97316", label: "Cam" },
   ];
 
-  const icons = [
-    "📦",
-    "🔧",
-    "⚙️",
-    "🛠️",
-    "🔩",
-    "⚡",
-    "🏍️",
-    "🚗",
-    "🛞",
-    "🔋",
-    "💡",
-    "🎨",
-  ];
+  const iconMap: Record<string, React.ReactNode> = {
+    package: <Boxes className="w-5 h-5" />,
+    wrench: <Wrench className="w-5 h-5" />,
+    settings: <Settings className="w-5 h-5" />,
+    hammer: <Hammer className="w-5 h-5" />,
+    cog: <Cog className="w-5 h-5" />,
+    bolt: <Bolt className="w-5 h-5" />,
+    bike: <Bike className="w-5 h-5" />,
+    car: <Car className="w-5 h-5" />,
+    disc: <Disc className="w-5 h-5" />,
+    battery: <Battery className="w-5 h-5" />,
+    lightbulb: <Lightbulb className="w-5 h-5" />,
+    palette: <Palette className="w-5 h-5" />,
+  };
+  const icons = Object.keys(iconMap);
 
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-[#0f172a]">
@@ -252,7 +267,32 @@ const CategoriesManager: React.FC = () => {
           {/* Empty State */}
           {categories.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-              <div className="text-6xl mb-4">📦</div>
+              <div className="mb-4 text-slate-400 dark:text-slate-500">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="w-16 h-16"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 7.5l9-4.5 9 4.5v9l-9 4.5-9-4.5v-9z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 7.5l9 4.5 9-4.5"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 12v9"
+                  />
+                </svg>
+              </div>
               <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
                 Chưa có danh mục nào
               </h3>
@@ -322,13 +362,13 @@ const CategoriesManager: React.FC = () => {
                     <button
                       key={icon}
                       onClick={() => setSelectedIcon(icon)}
-                      className={`p-3 text-2xl border rounded-lg transition-colors ${
+                      className={`p-3 border rounded-lg transition-colors flex items-center justify-center ${
                         selectedIcon === icon
                           ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
                           : "border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
                       }`}
                     >
-                      {icon}
+                      {iconMap[icon]}
                     </button>
                   ))}
                 </div>
