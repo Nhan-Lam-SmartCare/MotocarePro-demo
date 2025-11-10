@@ -3,6 +3,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { canDo } from "../../utils/permissions";
 import { Boxes, Package, Search, FileText } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
+import { safeAudit } from "../../lib/repository/auditLogsRepository";
 import {
   usePartsRepo,
   useCreatePartRepo,
@@ -1444,6 +1445,7 @@ const InventoryManager: React.FC = () => {
   const createPartMutation = useCreatePartRepo();
   const deletePartMutation = useDeletePartRepo();
 
+  const { profile } = useAuth();
   const handleSaveGoodsReceipt = useCallback(
     (
       items: Array<{
@@ -1488,13 +1490,46 @@ const InventoryManager: React.FC = () => {
             branchId: currentBranchId,
             notes: `NCC: ${supplier}`,
           });
+
+          // Audit price update if price changed
+          if (part.retailPrice[currentBranchId] !== item.sellingPrice) {
+            void safeAudit(profile?.id || null, {
+              action: "part.update_price",
+              tableName: "parts",
+              recordId: part.id,
+              oldData: { retailPrice: part.retailPrice[currentBranchId] },
+              newData: { retailPrice: item.sellingPrice },
+            });
+          }
         }
       });
 
       setShowGoodsReceipt(false);
       showToast.success("Nhập kho thành công!");
+      // High-level audit of goods receipt batch
+      void safeAudit(profile?.id || null, {
+        action: "inventory.receipt",
+        tableName: "inventory_transactions",
+        oldData: null,
+        newData: {
+          supplier,
+          items: items.map((i) => ({
+            partId: i.partId,
+            quantity: i.quantity,
+            importPrice: i.importPrice,
+            sellingPrice: i.sellingPrice,
+          })),
+          totalAmount,
+        },
+      });
     },
-    [repoParts, currentBranchId, updatePartMutation, createInventoryTxAsync]
+    [
+      repoParts,
+      currentBranchId,
+      updatePartMutation,
+      createInventoryTxAsync,
+      profile?.id,
+    ]
   );
 
   // Handle select all

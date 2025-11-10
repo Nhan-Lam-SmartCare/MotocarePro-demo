@@ -1,6 +1,7 @@
 import { supabase } from "../../supabaseClient";
 import type { CashTransaction } from "../../types";
 import { RepoResult, success, failure } from "./types";
+import { safeAudit } from "./auditLogsRepository";
 
 const TABLE = "cash_transactions";
 
@@ -101,7 +102,28 @@ export async function createCashTransaction(
         message: "Ghi sổ quỹ thất bại",
         cause: error,
       });
-    return success(data as CashTransaction);
+    const created = data as CashTransaction;
+    // Best-effort audit: manual cash entry (exclude those tied to sale/debt if category already specific?)
+    try {
+      // Determine if this is manual: no saleId/workOrderId/payrollRecordId/loanPaymentId
+      const isManual =
+        !payload.saleId &&
+        !payload.workOrderId &&
+        !payload.payrollRecordId &&
+        !payload.loanPaymentId;
+      if (isManual) {
+        const { data: userRes } = await supabase.auth.getUser();
+        const userId = userRes?.user?.id || null;
+        void safeAudit(userId, {
+          action: "cash.manual",
+          tableName: TABLE,
+          recordId: created.id,
+          oldData: null,
+          newData: created,
+        });
+      }
+    } catch {}
+    return success(created);
   } catch (e: any) {
     return failure({
       code: "network",

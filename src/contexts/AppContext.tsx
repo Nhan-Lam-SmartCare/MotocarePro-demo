@@ -26,6 +26,8 @@ import { createCashTransaction } from "../lib/repository/cashTransactionsReposit
 import { updatePaymentSourceBalance } from "../lib/repository/paymentSourcesRepository";
 import { showToast } from "../utils/toast";
 import { mapRepoErrorForUser } from "../utils/errorMapping";
+import { safeAudit } from "../lib/repository/auditLogsRepository";
+import { supabase } from "../supabaseClient";
 
 interface AppContextType {
   parts: Part[];
@@ -555,6 +557,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       // Ghi sổ quỹ và cập nhật số dư nguồn tiền trên Supabase
       if (totalPaid > 0) {
         void (async () => {
+          const { data: userData } = await supabase.auth.getUser();
+          const userId = userData?.user?.id || null;
           const cashRes = await createCashTransaction({
             type: "income",
             amount: totalPaid,
@@ -577,6 +581,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!balRes.ok) {
             showToast.error(mapRepoErrorForUser(balRes.error));
           }
+          // Audit: thu nợ khách hàng
+          void safeAudit(userId, {
+            action: "debt.customer_pay",
+            tableName: "customer_debts",
+            oldData: null,
+            newData: { customerIds, totalPaid, paymentMethod, timestamp },
+          });
         })();
       }
     },
@@ -619,6 +630,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       // Ghi sổ quỹ và cập nhật số dư nguồn tiền trên Supabase
       if (totalPaid > 0) {
         void (async () => {
+          const { data: userData } = await supabase.auth.getUser();
+          const userId = userData?.user?.id || null;
           const cashRes = await createCashTransaction({
             type: "expense",
             amount: totalPaid,
@@ -641,6 +654,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!balRes.ok) {
             showToast.error(mapRepoErrorForUser(balRes.error));
           }
+          // Audit: trả nợ nhà cung cấp
+          void safeAudit(userId, {
+            action: "debt.supplier_pay",
+            tableName: "supplier_debts",
+            oldData: null,
+            newData: { supplierIds, totalPaid, paymentMethod, timestamp },
+          });
         })();
       }
     },

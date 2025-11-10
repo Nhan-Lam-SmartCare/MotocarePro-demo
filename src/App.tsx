@@ -56,6 +56,7 @@ import EmployeeManager from "./components/employee/EmployeeManager";
 import CategoriesManager from "./components/categories/CategoriesManager";
 import LookupManager from "./components/lookup/LookupManager";
 import AnalyticsDashboard from "./components/analytics/AnalyticsDashboard";
+import AuditLogsViewer from "./components/admin/AuditLogsViewer";
 import { SettingsManager } from "./components/settings/SettingsManager";
 import RepoErrorPanel from "./components/common/RepoErrorPanel";
 
@@ -461,6 +462,14 @@ export default function App() {
                                 element={<Dashboard />}
                               />
                               <Route path="/sales" element={<Sales />} />
+                              <Route
+                                path="/audit-logs"
+                                element={
+                                  <ProtectedRoute requiredRoles={["owner"]}>
+                                    <AuditLogsViewer />
+                                  </ProtectedRoute>
+                                }
+                              />
                               <Route
                                 path="/inventory"
                                 element={<Inventory />}

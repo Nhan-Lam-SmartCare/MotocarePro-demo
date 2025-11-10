@@ -1,8 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { useAppContext } from "../../contexts/AppContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { showToast } from "../../utils/toast";
 import { formatCurrency, formatDate } from "../../utils/format";
 import type { CashTransaction } from "../../types";
 import { PlusIcon } from "../Icons";
+import { useCreateCashTxRepo } from "../../hooks/useCashTransactionsRepository";
+import { useUpdatePaymentSourceBalanceRepo } from "../../hooks/usePaymentSourcesRepository";
 
 const CashBook: React.FC = () => {
   const {
@@ -12,6 +16,9 @@ const CashBook: React.FC = () => {
     setCashTransactions,
     setPaymentSources,
   } = useAppContext();
+  const authCtx = useAuth();
+  const createCashTxRepo = useCreateCashTxRepo();
+  const updatePaymentSourceBalanceRepo = useUpdatePaymentSourceBalanceRepo();
   const [filterType, setFilterType] = useState<"all" | "income" | "expense">(
     "all"
   );
@@ -399,10 +406,60 @@ const CashBook: React.FC = () => {
       {showAddModal && (
         <AddTransactionModal
           onClose={() => setShowAddModal(false)}
-          onSave={(transaction) => {
-            // Add transaction logic will be implemented
-            console.log("New transaction:", transaction);
-            setShowAddModal(false);
+          onSave={async (transaction) => {
+            // Basic validation
+            if (!transaction.amount || transaction.amount <= 0) {
+              showToast.warning("Số tiền phải > 0");
+              return;
+            }
+            try {
+              const res = await createCashTxRepo.mutateAsync({
+                type: transaction.type,
+                amount: transaction.amount,
+                branchId: currentBranchId,
+                paymentSourceId: transaction.paymentSourceId,
+                date: transaction.date,
+                notes: transaction.notes,
+                category: transaction.category,
+                recipient: transaction.recipient,
+              });
+              if (res?.ok) {
+                // Optimistically update local state for immediate UI feedback
+                setCashTransactions((prev) => [
+                  res.data as CashTransaction,
+                  ...prev,
+                ]);
+                const delta =
+                  transaction.type === "income"
+                    ? transaction.amount
+                    : -transaction.amount;
+                await updatePaymentSourceBalanceRepo.mutateAsync({
+                  id: transaction.paymentSourceId,
+                  branchId: currentBranchId,
+                  delta,
+                });
+                setPaymentSources((prev) =>
+                  prev.map((ps) =>
+                    ps.id === transaction.paymentSourceId
+                      ? {
+                          ...ps,
+                          balance: {
+                            ...ps.balance,
+                            [currentBranchId]:
+                              (ps.balance[currentBranchId] || 0) + delta,
+                          },
+                        }
+                      : ps
+                  )
+                );
+                showToast.success("Đã thêm giao dịch sổ quỹ");
+                setShowAddModal(false);
+              } else if (res?.error) {
+                showToast.error(res.error.message || "Ghi giao dịch thất bại");
+              }
+            } catch (e: any) {
+              showToast.error(e?.message || "Lỗi không xác định");
+            }
           }}
         />
       )}

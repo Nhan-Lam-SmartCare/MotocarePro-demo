@@ -26,6 +26,7 @@ import { showToast } from "../../utils/toast";
 import { PlusIcon, XMarkIcon } from "../Icons";
 import type { CartItem, Part, Customer, Sale } from "../../types";
 import { useCreateCashTxRepo } from "../../hooks/useCashTransactionsRepository";
+import { safeAudit } from "../../lib/repository/auditLogsRepository";
 import { useUpdatePaymentSourceBalanceRepo } from "../../hooks/usePaymentSourcesRepository";
 
 // Sales History Modal Component
@@ -749,8 +750,18 @@ const SalesManager: React.FC = () => {
     ) {
       return;
     }
+    // Try to capture old sale data for audit (best effort)
+    const oldSale = repoSales.find((s) => s.id === saleId) || null;
     deleteSale(saleId);
     showToast.success("Đã xóa hóa đơn thành công!");
+    // Best-effort audit log (non-blocking)
+    void safeAudit(profile?.id || null, {
+      action: "sale.delete",
+      tableName: "sales",
+      recordId: saleId,
+      oldData: oldSale,
+      newData: null,
+    });
   };
 
   // Handle edit sale (reopen in cart)
@@ -888,6 +899,23 @@ const SalesManager: React.FC = () => {
         userId: "local-user",
         userName: "Local User",
         branchId: currentBranchId,
+      });
+
+      // Audit: tạo hóa đơn
+      void safeAudit(profile?.id || null, {
+        action: "sale.create",
+        tableName: "sales",
+        recordId: saleId,
+        oldData: null,
+        newData: {
+          items: cartItems,
+          subtotal: lineSubtotal,
+          discount: orderDiscount + lineDiscounts,
+          total,
+          customer: customerObj,
+          paymentMethod,
+          branchId: currentBranchId,
+        },
       });
 
       // Giảm tồn kho cho từng sản phẩm & ghi giao dịch kho

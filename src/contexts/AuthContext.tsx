@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 // Use a single Supabase client app-wide to avoid multiple GoTrue instances
 import { supabase } from "../supabaseClient";
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
+import { safeAudit } from "../lib/repository/auditLogsRepository";
 
 export type UserRole = "owner" | "manager" | "staff";
 
@@ -114,18 +115,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     if (error) throw error;
     setError(null);
+    // Audit login (best-effort)
+    const userId = data?.user?.id || null;
+    void safeAudit(userId, { action: "auth.login" });
   };
 
   const signOut = async () => {
+    const currentUserId = user?.id || null;
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     setError(null);
+    // Audit logout (best-effort)
+    void safeAudit(currentUserId, { action: "auth.logout" });
   };
 
   const hasRole = (roles: UserRole[]): boolean => {

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { showToast } from "../../utils/toast";
+import { safeAudit } from "../../lib/repository/auditLogsRepository";
 import LoadingSpinner from "../common/LoadingSpinner";
 import {
   Lock,
@@ -78,6 +79,7 @@ export const SettingsManager = () => {
 
     setSaving(true);
     try {
+      const previous = { ...settings };
       const { error } = await supabase
         .from("store_settings")
         .update(settings)
@@ -85,6 +87,13 @@ export const SettingsManager = () => {
 
       if (error) throw error;
       showToast.success("Đã lưu cài đặt thành công!");
+      void safeAudit(profile?.id || null, {
+        action: "settings.update",
+        tableName: "store_settings",
+        recordId: settings.id,
+        oldData: previous,
+        newData: settings,
+      });
     } catch (error: any) {
       console.error("Error saving settings:", error);
       showToast.error(error.message || "Không thể lưu cài đặt");
