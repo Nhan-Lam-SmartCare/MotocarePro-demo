@@ -59,7 +59,6 @@ CREATE TABLE IF NOT EXISTS work_orders (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Sales table
 CREATE TABLE IF NOT EXISTS sales (
   id TEXT PRIMARY KEY,
   date TIMESTAMPTZ NOT NULL,
@@ -70,17 +69,29 @@ CREATE TABLE IF NOT EXISTS sales (
   customer JSONB NOT NULL DEFAULT '{}',
   paymentMethod TEXT NOT NULL,
   userId TEXT NOT NULL,
-  userName TEXT NOT NULL,
-  branchId TEXT NOT NULL,
-  cashTransactionId TEXT,
+  costPrice JSONB DEFAULT '{}',
+  vatRate NUMERIC,
   created_at TIMESTAMPTZ DEFAULT NOW()
-);
+  branchId TEXT NOT NULL,
 
--- Cash Transactions table
-CREATE TABLE IF NOT EXISTS cash_transactions (
+-- Categories table (normalized)
+CREATE TABLE IF NOT EXISTS categories (
   id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,
+  name TEXT NOT NULL UNIQUE,
+  icon TEXT,
+  color TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+  cashTransactionId TEXT,
+);
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS cash_transactions (
+CREATE POLICY "Allow all operations on categories" ON categories FOR ALL USING (true);
+  id TEXT PRIMARY KEY,
   category TEXT NOT NULL,
+CREATE INDEX IF NOT EXISTS idx_categories_name ON categories(name);
   amount NUMERIC NOT NULL,
   date TIMESTAMPTZ NOT NULL,
   description TEXT,

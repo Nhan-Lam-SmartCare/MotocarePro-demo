@@ -1,0 +1,32 @@
+{
+  "ts": "2025-11-10T07:41:34.323Z",
+  "results": [
+    {
+      "email": "truongcuongya123@gmail.com",
+      "role": "manager",
+      "create": {
+        "success": false,
+        "error": "Could not find the 'branchId' column of 'inventory_transactions' in the schema cache"
+      },
+      "delete": null
+    },
+    {
+      "email": "nguyenthanhloc28052007@gmail.com",
+      "role": "staff",
+      "create": {
+        "success": false,
+        "error": "Could not find the 'branchId' column of 'inventory_transactions' in the schema cache"
+      },
+      "delete": null
+    },
+    {
+      "email": "lam.tcag@gmail.com",
+      "role": "owner",
+      "create": {
+        "success": false,
+        "error": "Could not find the 'branchId' column of 'inventory_transactions' in the schema cache"
+      },
+      "delete": null
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+// Dùng supabaseClient thống nhất để tránh nhiều phiên GoTrue
+import { supabase } from "../../supabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { showToast } from "../../utils/toast";
 import LoadingSpinner from "../common/LoadingSpinner";

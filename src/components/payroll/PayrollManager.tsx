@@ -3,6 +3,8 @@ import { useAppContext } from "../../contexts/AppContext";
 import { formatCurrency, formatDate } from "../../utils/format";
 import type { Employee, PayrollRecord } from "../../types";
 import { PlusIcon } from "../Icons";
+import { useCreateCashTxRepo } from "../../hooks/useCashTransactionsRepository";
+import { useUpdatePaymentSourceBalanceRepo } from "../../hooks/usePaymentSourcesRepository";
 
 const PayrollManager: React.FC = () => {
   const {
@@ -11,11 +13,10 @@ const PayrollManager: React.FC = () => {
     upsertEmployee,
     upsertPayrollRecord,
     currentBranchId,
-    setCashTransactions,
-    cashTransactions,
-    setPaymentSources,
-    paymentSources,
   } = useAppContext();
+  const { mutateAsync: createCashTxAsync } = useCreateCashTxRepo();
+  const { mutateAsync: updatePaymentSourceBalanceAsync } =
+    useUpdatePaymentSourceBalanceRepo();
   const [selectedMonth, setSelectedMonth] = useState(
     new Date().toISOString().slice(0, 7) // YYYY-MM
   );
@@ -191,50 +192,37 @@ const PayrollManager: React.FC = () => {
             {/* Payroll Table */}
             <PayrollTable
               payroll={monthlyPayroll}
-              onMarkAsPaid={(recordId, paymentMethod) => {
+              onMarkAsPaid={async (recordId, paymentMethod) => {
                 const record = payrollRecords.find((p) => p.id === recordId);
-                if (record) {
-                  // Cập nhật trạng thái bảng lương
-                  upsertPayrollRecord({
-                    ...record,
-                    paymentStatus: "paid",
-                    paymentDate: new Date().toISOString(),
-                    paymentMethod,
-                  });
+                if (!record) return;
 
-                  // Tự động tạo giao dịch chi trong Sổ quỹ
-                  const cashTxId = `CT-${Date.now()}`;
-                  const cashTransaction = {
-                    id: cashTxId,
-                    type: "expense" as const,
-                    date: new Date().toISOString(),
-                    amount: record.netSalary,
-                    recipient: record.employeeName,
-                    notes: `Trả lương tháng ${selectedMonth} - ${record.employeeName}`,
-                    paymentSourceId: paymentMethod,
-                    branchId: currentBranchId,
-                    category: "salary" as const,
-                  };
+                // 1) Cập nhật trạng thái bảng lương (local for now)
+                upsertPayrollRecord({
+                  ...record,
+                  paymentStatus: "paid",
+                  paymentDate: new Date().toISOString(),
+                  paymentMethod,
+                });
 
-                  setCashTransactions([cashTransaction, ...cashTransactions]);
+                // 2) Ghi giao dịch chi trong sổ quỹ (Supabase)
+                await createCashTxAsync({
+                  type: "expense",
+                  amount: record.netSalary,
+                  branchId: currentBranchId,
+                  paymentSourceId: paymentMethod,
+                  category: "salary",
+                  payrollRecordId: record.id,
+                  recipient: record.employeeName,
+                  notes: `Trả lương tháng ${selectedMonth} - ${record.employeeName}`,
+                  date: new Date().toISOString(),
+                });
 
-                  // Cập nhật số dư nguồn tiền
-                  setPaymentSources(
-                    paymentSources.map((ps) =>
-                      ps.id === paymentMethod
-                        ? {
-                            ...ps,
-                            balance: {
-                              ...ps.balance,
-                              [currentBranchId]:
-                                (ps.balance[currentBranchId] || 0) -
-                                record.netSalary,
-                            },
-                          }
-                        : ps
-                    )
-                  );
-                }
+                // 3) Cập nhật số dư nguồn tiền (Supabase)
+                await updatePaymentSourceBalanceAsync({
+                  id: paymentMethod,
+                  branchId: currentBranchId,
+                  delta: -record.netSalary,
+                });
               }}
             />
           </>

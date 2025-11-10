@@ -9,11 +9,22 @@ import {
   MapPin,
 } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
+import {
+  usePartsRepo,
+  useUpdatePartRepo,
+} from "../../hooks/usePartsRepository";
+import {
+  useSalesRepo,
+  useCreateSaleRepo,
+} from "../../hooks/useSalesRepository";
+import { useCreateInventoryTxRepo } from "../../hooks/useInventoryTransactionsRepository";
 import { formatCurrency, formatDate } from "../../utils/format";
 import { printElementById } from "../../utils/print";
 import { showToast } from "../../utils/toast";
 import { PlusIcon, XMarkIcon } from "../Icons";
 import type { CartItem, Part, Customer, Sale } from "../../types";
+import { useCreateCashTxRepo } from "../../hooks/useCashTransactionsRepository";
+import { useUpdatePaymentSourceBalanceRepo } from "../../hooks/usePaymentSourcesRepository";
 
 // Sales History Modal Component
 const SalesHistoryModal: React.FC<{
@@ -469,17 +480,35 @@ const SalesHistoryModal: React.FC<{
 
 const SalesManager: React.FC = () => {
   const {
-    parts,
     customers,
     upsertCustomer,
-    sales,
     cartItems,
     setCartItems,
     clearCart,
     deleteSale,
     currentBranchId,
     finalizeSale,
+    setCashTransactions,
+    setPaymentSources,
   } = useAppContext();
+
+  // Repository (read-only step 1)
+  const {
+    data: repoParts = [],
+    isLoading: loadingParts,
+    error: partsError,
+  } = usePartsRepo();
+  const {
+    data: repoSales = [],
+    isLoading: loadingSales,
+    error: salesError,
+  } = useSalesRepo();
+  const { mutateAsync: createSaleAsync } = useCreateSaleRepo();
+  const { mutateAsync: updatePartAsync } = useUpdatePartRepo();
+  const { mutateAsync: createInventoryTxAsync } = useCreateInventoryTxRepo();
+  const { mutateAsync: createCashTxAsync } = useCreateCashTxRepo();
+  const { mutateAsync: updatePaymentSourceBalanceAsync } =
+    useUpdatePaymentSourceBalanceRepo();
 
   // States
   const [partSearch, setPartSearch] = useState("");
@@ -621,13 +650,14 @@ const SalesManager: React.FC = () => {
 
   // Filter parts by search
   const filteredParts = useMemo(() => {
-    if (!partSearch) return parts;
-    return parts.filter(
+    if (loadingParts || partsError) return [];
+    if (!partSearch) return repoParts;
+    return repoParts.filter(
       (part) =>
         part.name.toLowerCase().includes(partSearch.toLowerCase()) ||
         part.sku.toLowerCase().includes(partSearch.toLowerCase())
     );
-  }, [parts, partSearch]);
+  }, [repoParts, partSearch, loadingParts, partsError]);
 
   // Filter customers by search
   const filteredCustomers = useMemo(() => {
@@ -732,7 +762,7 @@ const SalesManager: React.FC = () => {
     // Load sale items into cart
     sale.items.forEach((item) => {
       // Find the part to add to cart
-      const part = parts.find((p) => p.id === item.partId);
+      const part = repoParts.find((p) => p.id === item.partId);
       if (part) {
         for (let i = 0; i < item.quantity; i++) {
           addToCart(part);
@@ -784,26 +814,43 @@ const SalesManager: React.FC = () => {
     }
 
     try {
-      const saleData = {
-        items: cartItems,
-        customer: {
-          id: selectedCustomer?.id,
-          name: selectedCustomer?.name || customerName || "Khách lẻ",
-          phone: selectedCustomer?.phone || customerPhone,
-        },
-        discount: orderDiscount,
-        paymentMethod: paymentMethod,
-        note: "",
+      // Kiểm tra tồn kho mới nhất trước khi tạo đơn
+      for (const item of cartItems) {
+        const part = repoParts.find((p) => p.id === item.partId);
+        if (!part) {
+          showToast.error(`Không tìm thấy sản phẩm: ${item.partName}`);
+          return;
+        }
+        const stock = part.stock?.[currentBranchId] ?? 0;
+        if (item.quantity > stock) {
+          showToast.error(`Không đủ hàng cho ${part.name}. Tồn kho: ${stock}`);
+          return;
+        }
+      }
+      const saleId = `SALE-${Date.now()}`;
+      const lineSubtotal = cartItems.reduce(
+        (sum, it) => sum + it.sellingPrice * it.quantity,
+        0
+      );
+      const lineDiscounts = cartItems.reduce(
+        (sum, it) => sum + (it.discount || 0),
+        0
+      );
+      const total = Math.max(0, lineSubtotal - lineDiscounts - orderDiscount);
+      const customerObj = {
+        id: selectedCustomer?.id,
+        name: selectedCustomer?.name || customerName || "Khách lẻ",
+        phone: selectedCustomer?.phone || customerPhone,
       };
 
       // Set receipt info for printing BEFORE clearing cart
-      setReceiptId(`INV-${Date.now()}`);
-      setCustomerName(saleData.customer.name);
-      setCustomerPhone(saleData.customer.phone || "");
-      setReceiptItems([...cartItems]); // Copy cart items for receipt
-      setReceiptDiscount(orderDiscount); // Copy discount for receipt
+      setReceiptId(saleId);
+      setCustomerName(customerObj.name);
+      setCustomerPhone(customerObj.phone || "");
+      setReceiptItems([...cartItems]);
+      setReceiptDiscount(orderDiscount + lineDiscounts);
 
-      // Create customer if new (has phone but not selected from list)
+      // Create customer if new (has phone nhưng chưa chọn từ danh sách)
       if (!selectedCustomer && customerPhone && customerName) {
         const existingCustomer = customers.find(
           (c) => c.phone === customerPhone
@@ -823,9 +870,67 @@ const SalesManager: React.FC = () => {
           });
         }
       }
+      // Ghi hóa đơn lên Supabase
+      await createSaleAsync({
+        id: saleId,
+        date: new Date().toISOString(),
+        items: cartItems,
+        subtotal: lineSubtotal,
+        discount: orderDiscount + lineDiscounts,
+        total,
+        customer: customerObj,
+        paymentMethod: paymentMethod!,
+        userId: "local-user",
+        userName: "Local User",
+        branchId: currentBranchId,
+      });
 
-      // Now finalize sale (this will clear the cart)
-      finalizeSale(saleData);
+      // Giảm tồn kho cho từng sản phẩm & ghi giao dịch kho
+      for (const item of cartItems) {
+        const part = repoParts.find((p) => p.id === item.partId);
+        if (!part) continue;
+        const current = part.stock?.[currentBranchId] ?? 0;
+        const next = Math.max(0, current - item.quantity);
+        try {
+          await updatePartAsync({
+            id: part.id,
+            updates: { stock: { ...part.stock, [currentBranchId]: next } },
+          });
+          // Ghi lịch sử xuất kho lên Supabase
+          await createInventoryTxAsync({
+            type: "Xuất kho",
+            partId: part.id,
+            partName: part.name,
+            quantity: item.quantity,
+            date: new Date().toISOString(),
+            unitPrice: item.sellingPrice,
+            totalPrice: item.sellingPrice * item.quantity,
+            branchId: currentBranchId,
+            notes: "Bán hàng",
+            saleId,
+          });
+        } catch (e) {
+          console.error("Lỗi cập nhật tồn kho", part.id, e);
+          showToast.error(`Cập nhật tồn kho thất bại cho ${part.name}`);
+        }
+      }
+
+      // Ghi sổ quỹ lên Supabase & cập nhật số dư nguồn thanh toán
+      await createCashTxAsync({
+        type: "income",
+        amount: total,
+        branchId: currentBranchId,
+        paymentSourceId: paymentMethod!,
+        notes: "Thu tiền bán hàng",
+        category: "sale_income",
+        saleId,
+        recipient: customerObj.name,
+      });
+      await updatePaymentSourceBalanceAsync({
+        id: paymentMethod!,
+        branchId: currentBranchId,
+        delta: total,
+      });
 
       // Clear form
       setSelectedCustomer(null);
@@ -836,6 +941,7 @@ const SalesManager: React.FC = () => {
       setPaymentMethod(null);
       setPaymentType(null);
       setPartialAmount(0);
+      clearCart();
 
       // Print receipt after state updates
       setTimeout(() => {
@@ -843,7 +949,7 @@ const SalesManager: React.FC = () => {
       }, 100);
     } catch (error) {
       console.error("Error finalizing sale:", error);
-      alert("Có lỗi xảy ra khi hoàn tất giao dịch");
+      showToast.error("Có lỗi khi tạo hóa đơn. Vui lòng thử lại.");
     }
   };
 
@@ -1399,7 +1505,7 @@ const SalesManager: React.FC = () => {
       <SalesHistoryModal
         isOpen={showSalesHistory}
         onClose={() => setShowSalesHistory(false)}
-        sales={sales}
+        sales={repoSales}
         currentBranchId={currentBranchId}
         onPrintReceipt={handlePrintReceipt}
         onEditSale={handleEditSale}

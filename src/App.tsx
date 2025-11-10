@@ -54,6 +54,7 @@ import CategoriesManager from "./components/categories/CategoriesManager";
 import LookupManager from "./components/lookup/LookupManager";
 import AnalyticsDashboard from "./components/analytics/AnalyticsDashboard";
 import { SettingsManager } from "./components/settings/SettingsManager";
+import RepoErrorPanel from "./components/common/RepoErrorPanel";
 
 const Sales = () => <SalesManager />;
 const Inventory = () => <InventoryManager />;
@@ -471,6 +472,8 @@ export default function App() {
                 />
               </Routes>
               <ReactQueryDevtools initialIsOpen={false} />
+              {/* Dev-only repository error panel */}
+              {import.meta.env.DEV && <RepoErrorPanel />}
             </HashRouter>
           </AppProvider>
         </AuthProvider>

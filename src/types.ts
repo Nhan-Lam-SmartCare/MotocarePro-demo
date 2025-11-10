@@ -42,7 +42,20 @@ export interface Part {
   category?: string;
   description?: string;
   warrantyPeriod?: string;
+  // Tax & costing extensions (for future real data integration)
+  costPrice?: { [branchId: string]: number };
+  vatRate?: number; // e.g. 0.1 for 10%
   created_at?: string;
+}
+
+// Product Category entity (normalized instead of deriving from parts)
+export interface Category {
+  id: string;
+  name: string;
+  icon?: string; // UI icon key
+  color?: string; // Hex color
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CartItem {

@@ -13,6 +13,10 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
+import { useSalesRepo } from "../../hooks/useSalesRepository";
+import { useCashTxRepo } from "../../hooks/useCashTransactionsRepository";
+import { usePartsRepo } from "../../hooks/usePartsRepository";
+import type { Sale, Part } from "../../types";
 import { showToast } from "../../utils/toast";
 import { formatCurrency, formatDate } from "../../utils/format";
 import {
@@ -27,16 +31,11 @@ type ReportTab = "revenue" | "cashflow" | "inventory" | "payroll" | "debt";
 type DateRange = "today" | "week" | "month" | "quarter" | "year" | "custom";
 
 const ReportsManager: React.FC = () => {
-  const {
-    sales,
-    cashTransactions,
-    parts,
-    payrollRecords,
-    customers,
-    suppliers,
-    currentBranchId,
-    employees,
-  } = useAppContext();
+  const { payrollRecords, customers, suppliers, currentBranchId, employees } =
+    useAppContext();
+  // Repository data (Supabase-backed)
+  const { data: salesData = [], isLoading: salesLoading } = useSalesRepo();
+  const { data: partsData = [], isLoading: partsLoading } = usePartsRepo();
 
   const [activeTab, setActiveTab] = useState<ReportTab>("revenue");
   const [dateRange, setDateRange] = useState<DateRange>("month");
@@ -77,15 +76,18 @@ const ReportsManager: React.FC = () => {
 
   // Báo cáo doanh thu
   const revenueReport = useMemo(() => {
-    const filteredSales = sales.filter((s) => {
+    const filteredSales: Sale[] = salesData.filter((s: Sale) => {
       const saleDate = new Date(s.date);
       return saleDate >= start && saleDate <= end;
     });
 
-    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
-    const totalCost = filteredSales.reduce((sum, s) => {
+    const totalRevenue = filteredSales.reduce(
+      (sum: number, s: Sale) => sum + s.total,
+      0
+    );
+    const totalCost = filteredSales.reduce((sum: number, s: Sale) => {
       const cost = s.items.reduce(
-        (c, it) => c + ((it as any).costPrice || 0) * it.quantity,
+        (c: number, it: any) => c + ((it as any).costPrice || 0) * it.quantity,
         0
       );
       return sum + cost;
@@ -101,11 +103,17 @@ const ReportsManager: React.FC = () => {
         totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0,
       orderCount: filteredSales.length,
     };
-  }, [sales, start, end]);
+  }, [salesData, start, end]);
 
   // Báo cáo thu chi
+  // Fetch cash transactions via repository with range filters
+  const { data: cashTxData = [], isLoading: cashTxLoading } = useCashTxRepo({
+    branchId: currentBranchId,
+    startDate: start.toISOString(),
+    endDate: end.toISOString(),
+  });
   const cashflowReport = useMemo(() => {
-    const filteredTransactions = cashTransactions.filter((t) => {
+    const filteredTransactions = cashTxData.filter((t) => {
       const txDate = new Date(t.date);
       return txDate >= start && txDate <= end;
     });
@@ -138,11 +146,11 @@ const ReportsManager: React.FC = () => {
       netCashFlow: income - expense,
       byCategory,
     };
-  }, [cashTransactions, start, end]);
+  }, [cashTxData, start, end]);
 
   // Báo cáo tồn kho
   const inventoryReport = useMemo(() => {
-    const currentStock = parts.map((p) => ({
+    const currentStock = partsData.map((p: Part) => ({
       ...p,
       stock: p.stock[currentBranchId] || 0,
       price: p.retailPrice[currentBranchId] || 0,
@@ -150,8 +158,11 @@ const ReportsManager: React.FC = () => {
         (p.stock[currentBranchId] || 0) * (p.retailPrice[currentBranchId] || 0),
     }));
 
-    const totalValue = currentStock.reduce((sum, p) => sum + p.value, 0);
-    const lowStock = currentStock.filter((p) => p.stock < 10);
+    const totalValue = currentStock.reduce(
+      (sum: number, p: any) => sum + p.value,
+      0
+    );
+    const lowStock = currentStock.filter((p: any) => p.stock < 10);
 
     return {
       parts: currentStock,
@@ -159,7 +170,7 @@ const ReportsManager: React.FC = () => {
       lowStockCount: lowStock.length,
       lowStockItems: lowStock,
     };
-  }, [parts, currentBranchId]);
+  }, [partsData, currentBranchId]);
 
   // Báo cáo lương
   const payrollReport = useMemo(() => {
@@ -190,12 +201,15 @@ const ReportsManager: React.FC = () => {
   const debtReport = useMemo(() => {
     // Tính nợ khách hàng từ sales chưa thanh toán
     const customerDebts = customers.map((c) => {
-      const unpaidSales = sales.filter(
-        (s) =>
+      const unpaidSales = salesData.filter(
+        (s: Sale) =>
           (s.customer.name === c.name || s.customer.phone === c.phone) &&
           (s as any).paymentStatus !== "paid"
       );
-      const debt = unpaidSales.reduce((sum, s) => sum + s.total, 0);
+      const debt = unpaidSales.reduce(
+        (sum: number, s: Sale) => sum + s.total,
+        0
+      );
       return { name: c.name, debt };
     });
 
@@ -229,7 +243,7 @@ const ReportsManager: React.FC = () => {
           exportCashflowReport(cashflowReport.transactions, startStr, endStr);
           break;
         case "inventory":
-          exportInventoryReport(parts, currentBranchId, startStr, endStr);
+          exportInventoryReport(partsData, currentBranchId, startStr, endStr);
           break;
         case "payroll":
           const startMonth = start.toISOString().slice(0, 7);
@@ -368,6 +382,11 @@ const ReportsManager: React.FC = () => {
       <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
         {activeTab === "revenue" && (
           <div className="space-y-6">
+            {salesLoading && (
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                Đang tải doanh thu...
+              </div>
+            )}
             {/* Thống kê cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
@@ -483,6 +502,11 @@ const ReportsManager: React.FC = () => {
 
         {activeTab === "cashflow" && (
           <div className="space-y-6">
+            {cashTxLoading && (
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                Đang tải sổ quỹ...
+              </div>
+            )}
             {/* Thống kê cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-6 border border-green-200 dark:border-green-800">
@@ -605,6 +629,11 @@ const ReportsManager: React.FC = () => {
 
         {activeTab === "inventory" && (
           <div className="space-y-6">
+            {partsLoading && (
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                Đang tải tồn kho...
+              </div>
+            )}
             {/* Thống kê cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">

@@ -22,6 +22,10 @@ import type {
   CustomerDebt,
   SupplierDebt,
 } from "../types";
+import { createCashTransaction } from "../lib/repository/cashTransactionsRepository";
+import { updatePaymentSourceBalance } from "../lib/repository/paymentSourcesRepository";
+import { showToast } from "../utils/toast";
+import { mapRepoErrorForUser } from "../utils/errorMapping";
 
 interface AppContextType {
   parts: Part[];
@@ -548,39 +552,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
             .filter((debt) => debt.remainingAmount > 0) // Remove fully paid debts
       );
 
-      // Create cash transaction for collection
-      const cashTxId = `CT-${Date.now()}-${Math.random()
-        .toString(16)
-        .slice(2)}`;
-      const cashTransaction = {
-        id: cashTxId,
-        type: "income" as const,
-        date: timestamp,
-        amount: totalPaid,
-        recipient: `Thu nợ ${customerIds.length} khách hàng`,
-        notes: `Thu hết nợ cho ${customerIds.length} khách hàng`,
-        paymentSourceId: paymentMethod,
-        branchId: currentBranchId,
-        category: "debt_collection" as const,
-      };
-
-      setCashTransactions((prev) => [cashTransaction, ...prev]);
-
-      // Update payment source balance
-      setPaymentSources((prev) =>
-        prev.map((ps) =>
-          ps.id === paymentMethod
-            ? {
-                ...ps,
-                balance: {
-                  ...ps.balance,
-                  [currentBranchId]:
-                    (ps.balance[currentBranchId] || 0) + totalPaid,
-                },
-              }
-            : ps
-        )
-      );
+      // Ghi sổ quỹ và cập nhật số dư nguồn tiền trên Supabase
+      if (totalPaid > 0) {
+        void (async () => {
+          const cashRes = await createCashTransaction({
+            type: "income",
+            amount: totalPaid,
+            branchId: currentBranchId,
+            paymentSourceId: paymentMethod,
+            date: timestamp,
+            category: "debt_collection",
+            notes: `Thu hết nợ cho ${customerIds.length} khách hàng`,
+            recipient: `Thu nợ ${customerIds.length} khách hàng`,
+          });
+          if (!cashRes.ok) {
+            showToast.error(mapRepoErrorForUser(cashRes.error));
+            return;
+          }
+          const balRes = await updatePaymentSourceBalance(
+            paymentMethod,
+            currentBranchId,
+            totalPaid
+          );
+          if (!balRes.ok) {
+            showToast.error(mapRepoErrorForUser(balRes.error));
+          }
+        })();
+      }
     },
     [currentBranchId]
   );
@@ -618,39 +616,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
             .filter((debt) => debt.remainingAmount > 0) // Remove fully paid debts
       );
 
-      // Create cash transaction for payment
-      const cashTxId = `CT-${Date.now()}-${Math.random()
-        .toString(16)
-        .slice(2)}`;
-      const cashTransaction = {
-        id: cashTxId,
-        type: "expense" as const,
-        date: timestamp,
-        amount: totalPaid,
-        recipient: `Trả nợ ${supplierIds.length} nhà cung cấp`,
-        notes: `Trả hết nợ cho ${supplierIds.length} nhà cung cấp`,
-        paymentSourceId: paymentMethod,
-        branchId: currentBranchId,
-        category: "debt_payment" as const,
-      };
-
-      setCashTransactions((prev) => [cashTransaction, ...prev]);
-
-      // Update payment source balance (subtract for expense)
-      setPaymentSources((prev) =>
-        prev.map((ps) =>
-          ps.id === paymentMethod
-            ? {
-                ...ps,
-                balance: {
-                  ...ps.balance,
-                  [currentBranchId]:
-                    (ps.balance[currentBranchId] || 0) - totalPaid,
-                },
-              }
-            : ps
-        )
-      );
+      // Ghi sổ quỹ và cập nhật số dư nguồn tiền trên Supabase
+      if (totalPaid > 0) {
+        void (async () => {
+          const cashRes = await createCashTransaction({
+            type: "expense",
+            amount: totalPaid,
+            branchId: currentBranchId,
+            paymentSourceId: paymentMethod,
+            date: timestamp,
+            category: "debt_payment",
+            notes: `Trả hết nợ cho ${supplierIds.length} nhà cung cấp`,
+            recipient: `Trả nợ ${supplierIds.length} nhà cung cấp`,
+          });
+          if (!cashRes.ok) {
+            showToast.error(mapRepoErrorForUser(cashRes.error));
+            return;
+          }
+          const balRes = await updatePaymentSourceBalance(
+            paymentMethod,
+            currentBranchId,
+            -totalPaid
+          );
+          if (!balRes.ok) {
+            showToast.error(mapRepoErrorForUser(balRes.error));
+          }
+        })();
+      }
     },
     [currentBranchId]
   );

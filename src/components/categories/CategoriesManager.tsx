@@ -1,9 +1,16 @@
-import React, { useState } from "react";
-import { useAppContext } from "../../contexts/AppContext";
+import React, { useState, useMemo } from "react";
 import { showToast } from "../../utils/toast";
 import { useConfirm } from "../../hooks/useConfirm";
 import ConfirmModal from "../common/ConfirmModal";
 import { PlusIcon } from "../Icons";
+import { useParts } from "../../hooks/useSupabase";
+import {
+  useCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategoryRecord,
+} from "../../hooks/useCategories";
+import { mapRepoErrorForUser } from "../../utils/errorMapping";
 import {
   Boxes,
   Wrench,
@@ -20,7 +27,17 @@ import {
 } from "lucide-react";
 
 const CategoriesManager: React.FC = () => {
-  const { parts, upsertPart } = useAppContext();
+  // Live parts from Supabase
+  const { data: parts = [] } = useParts();
+  const {
+    data: categoriesData = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useCategories();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategoryRecord = useDeleteCategoryRecord();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -31,34 +48,17 @@ const CategoriesManager: React.FC = () => {
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
 
   // Extract unique categories from parts
-  const categories = React.useMemo(() => {
-    const categoryMap = new Map<
-      string,
-      { count: number; icon: string; color: string }
-    >();
-
-    parts.forEach((part) => {
-      if (part.category) {
-        const existing = categoryMap.get(part.category);
-        if (existing) {
-          existing.count++;
-        } else {
-          categoryMap.set(part.category, {
-            count: 1,
-            icon: "package", // Default icon key
-            color: "#3b82f6", // Default color
-          });
-        }
-      }
-    });
-
-    return Array.from(categoryMap.entries()).map(([name, data]) => ({
-      name,
-      ...data,
+  const categories = useMemo(() => {
+    return categoriesData.map((c) => ({
+      id: c.id,
+      name: c.name,
+      icon: c.icon || "package",
+      color: c.color || "#3b82f6",
+      count: parts.filter((p) => p.category === c.name).length,
     }));
-  }, [parts]);
+  }, [categoriesData, parts]);
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
       showToast.warning("Vui lòng nhập tên danh mục");
       return;
@@ -72,34 +72,46 @@ const CategoriesManager: React.FC = () => {
       return;
     }
 
-    // Category metadata would be stored separately in a real app
-    // For now, we just show success since categories are derived from parts
-    showToast.success(`Danh mục "${newCategoryName}" đã được thêm`);
-    setNewCategoryName("");
-    setShowAddModal(false);
+    // Since categories are derived from parts only, create a placeholder part row (or instruct user)
+    // Safer approach: create minimal hidden part to persist category existence (optional)
+    try {
+      await createCategory.mutateAsync({
+        name: newCategoryName,
+        icon: selectedIcon,
+        color: selectedColor,
+      });
+      setNewCategoryName("");
+      setShowAddModal(false);
+    } catch (e: any) {
+      showToast.error(mapRepoErrorForUser(e));
+    }
   };
 
-  const handleRenameCategory = (oldName: string, newName: string) => {
+  const handleRenameCategory = async (oldName: string, newName: string) => {
     if (!newName.trim()) {
       showToast.warning("Vui lòng nhập tên danh mục mới");
       return;
     }
-
-    // Update all parts with this category
-    const partsToUpdate = parts.filter((p) => p.category === oldName);
-    partsToUpdate.forEach((part) => {
-      upsertPart({
-        id: part.id,
-        category: newName,
+    const cat = categoriesData.find((c) => c.name === oldName);
+    if (!cat) {
+      showToast.error("Không tìm thấy danh mục để đổi tên");
+      return;
+    }
+    try {
+      await updateCategory.mutateAsync({
+        id: cat.id,
+        updates: { name: newName },
       });
-    });
-
-    showToast.success(`Đã đổi tên danh mục từ "${oldName}" sang "${newName}"`);
-    setEditingCategory(null);
+      setEditingCategory(null);
+    } catch (e: any) {
+      showToast.error(mapRepoErrorForUser(e));
+    }
   };
 
   const handleDeleteCategory = async (categoryName: string) => {
-    const partsCount = parts.filter((p) => p.category === categoryName).length;
+    const partsCount = parts.filter(
+      (p: any) => p.category === categoryName
+    ).length;
 
     const confirmed = await confirm({
       title: "Xác nhận xóa danh mục",
@@ -110,17 +122,16 @@ const CategoriesManager: React.FC = () => {
     });
 
     if (!confirmed) return;
-
-    // Remove category from all parts
-    const partsToUpdate = parts.filter((p) => p.category === categoryName);
-    partsToUpdate.forEach((part) => {
-      upsertPart({
-        id: part.id,
-        category: "",
-      });
-    });
-
-    showToast.success(`Đã xóa danh mục "${categoryName}"`);
+    const cat = categoriesData.find((c) => c.name === categoryName);
+    if (!cat) {
+      showToast.error("Không tìm thấy danh mục");
+      return;
+    }
+    try {
+      await deleteCategoryRecord.mutateAsync({ id: cat.id });
+    } catch (e: any) {
+      showToast.error(mapRepoErrorForUser(e));
+    }
   };
 
   const colors = [
@@ -172,6 +183,21 @@ const CategoriesManager: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Loading & Error States */}
+      {isLoading && (
+        <div className="p-6 text-sm text-slate-500 dark:text-slate-400">
+          Đang tải danh mục...
+        </div>
+      )}
+      {isError && (
+        <div className="p-6 text-sm text-red-500">
+          Lỗi tải dữ liệu.{" "}
+          <button onClick={() => refetch()} className="underline">
+            Thử lại
+          </button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="px-6 py-4 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-700">

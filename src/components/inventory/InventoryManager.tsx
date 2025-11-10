@@ -1,6 +1,12 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Boxes, Package, Search, FileText } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
+import {
+  usePartsRepo,
+  useCreatePartRepo,
+  useUpdatePartRepo,
+  useDeletePartRepo,
+} from "../../hooks/usePartsRepository";
 import { formatCurrency, formatDate } from "../../utils/format";
 import {
   exportPartsToExcel,
@@ -13,6 +19,7 @@ import ConfirmModal from "../common/ConfirmModal";
 import CategoriesManager from "../categories/CategoriesManager";
 import LookupManager from "../lookup/LookupManager";
 import type { Part, InventoryTransaction } from "../../types";
+import { useCreateInventoryTxRepo } from "../../hooks/useInventoryTransactionsRepository";
 
 // Add New Product Modal Component
 const AddProductModal: React.FC<{
@@ -1378,14 +1385,9 @@ const InventoryHistoryModal: React.FC<{
 
 // Main Inventory Manager Component (Ảnh 1)
 const InventoryManager: React.FC = () => {
-  const {
-    parts,
-    upsertPart,
-    deletePart,
-    currentBranchId,
-    recordInventoryTransaction,
-    inventoryTransactions,
-  } = useAppContext();
+  const { currentBranchId, inventoryTransactions } = useAppContext();
+  // Supabase repository mutation for inventory transactions
+  const { mutateAsync: createInventoryTxAsync } = useCreateInventoryTxRepo();
   const [activeTab, setActiveTab] = useState("stock"); // stock, categories, lookup, history
   const [showGoodsReceipt, setShowGoodsReceipt] = useState(false);
   const [search, setSearch] = useState("");
@@ -1397,9 +1399,16 @@ const InventoryManager: React.FC = () => {
   // Confirm dialog hook
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
 
+  const {
+    data: repoParts = [],
+    isLoading: partsLoading,
+    isError: partsError,
+    refetch: refetchParts,
+  } = usePartsRepo();
+
   const filteredParts = useMemo(() => {
     const q = search.toLowerCase();
-    let filtered = parts.filter(
+    let filtered = repoParts.filter(
       (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
     );
 
@@ -1408,21 +1417,25 @@ const InventoryManager: React.FC = () => {
     }
 
     return filtered;
-  }, [parts, search, categoryFilter]);
+  }, [repoParts, search, categoryFilter]);
 
   const totalStockValue = useMemo(() => {
-    return parts.reduce((sum, part) => {
+    return repoParts.reduce((sum, part) => {
       const stock = part.stock[currentBranchId] || 0;
       const price = part.retailPrice[currentBranchId] || 0;
       return sum + stock * price;
     }, 0);
-  }, [parts, currentBranchId]);
+  }, [repoParts, currentBranchId]);
 
   const totalStockQuantity = useMemo(() => {
-    return parts.reduce((sum, part) => {
+    return repoParts.reduce((sum, part) => {
       return sum + (part.stock[currentBranchId] || 0);
     }, 0);
-  }, [parts, currentBranchId]);
+  }, [repoParts, currentBranchId]);
+
+  const updatePartMutation = useUpdatePartRepo();
+  const createPartMutation = useCreatePartRepo();
+  const deletePartMutation = useDeletePartRepo();
 
   const handleSaveGoodsReceipt = useCallback(
     (
@@ -1439,28 +1452,31 @@ const InventoryManager: React.FC = () => {
     ) => {
       // Update stock and prices for each item
       items.forEach((item) => {
-        const part = parts.find((p) => p.id === item.partId);
+        const part = repoParts.find((p) => p.id === item.partId);
         if (part) {
           const currentStock = part.stock[currentBranchId] || 0;
-          upsertPart({
+          updatePartMutation.mutate({
             id: item.partId,
-            stock: {
-              ...part.stock,
-              [currentBranchId]: currentStock + item.quantity,
-            },
-            retailPrice: {
-              ...part.retailPrice,
-              [currentBranchId]: item.sellingPrice,
+            updates: {
+              stock: {
+                ...part.stock,
+                [currentBranchId]: currentStock + item.quantity,
+              },
+              retailPrice: {
+                ...part.retailPrice,
+                [currentBranchId]: item.sellingPrice,
+              },
             },
           });
 
-          // Record transaction
-          recordInventoryTransaction({
+          // Record transaction to Supabase
+          createInventoryTxAsync({
             type: "Nhập kho",
             partId: item.partId,
             partName: item.partName,
             quantity: item.quantity,
             date: new Date().toISOString(),
+            unitPrice: item.importPrice,
             totalPrice: item.importPrice * item.quantity,
             branchId: currentBranchId,
             notes: `NCC: ${supplier}`,
@@ -1471,7 +1487,7 @@ const InventoryManager: React.FC = () => {
       setShowGoodsReceipt(false);
       showToast.success("Nhập kho thành công!");
     },
-    [parts, currentBranchId, upsertPart, recordInventoryTransaction]
+    [repoParts, currentBranchId, updatePartMutation, createInventoryTxAsync]
   );
 
   // Handle select all
@@ -1494,7 +1510,7 @@ const InventoryManager: React.FC = () => {
 
   // Handle delete single item
   const handleDeleteItem = async (id: string) => {
-    const part = parts.find((p) => p.id === id);
+    const part = repoParts.find((p) => p.id === id);
     if (!part) return;
 
     const confirmed = await confirm({
@@ -1507,7 +1523,7 @@ const InventoryManager: React.FC = () => {
 
     if (!confirmed) return;
 
-    deletePart(id);
+    deletePartMutation.mutate({ id });
     // Remove from selected items if it was selected
     setSelectedItems((prev) => prev.filter((i) => i !== id));
     showToast.success(`Đã xóa sản phẩm "${part.name}"`);
@@ -1531,7 +1547,7 @@ const InventoryManager: React.FC = () => {
     if (!confirmed) return;
 
     // Delete all selected items
-    selectedItems.forEach((id) => deletePart(id));
+    selectedItems.forEach((id) => deletePartMutation.mutate({ id }));
     setSelectedItems([]);
     showToast.success(`Đã xóa ${selectedItems.length} sản phẩm`);
   };
@@ -1543,7 +1559,7 @@ const InventoryManager: React.FC = () => {
       const filename = `ton-kho-${now.getDate()}-${
         now.getMonth() + 1
       }-${now.getFullYear()}.xlsx`;
-      exportPartsToExcel(parts, currentBranchId, filename);
+      exportPartsToExcel(repoParts, currentBranchId, filename);
       showToast.success("Xuất file Excel thành công!");
     } catch (error) {
       console.error("Export error:", error);
@@ -1909,7 +1925,7 @@ const InventoryManager: React.FC = () => {
       <GoodsReceiptModal
         isOpen={showGoodsReceipt}
         onClose={() => setShowGoodsReceipt(false)}
-        parts={parts}
+        parts={repoParts}
         currentBranchId={currentBranchId}
         onSave={handleSaveGoodsReceipt}
       />
@@ -1920,7 +1936,10 @@ const InventoryManager: React.FC = () => {
           part={editingPart}
           onClose={() => setEditingPart(null)}
           onSave={(updatedPart) => {
-            upsertPart(updatedPart);
+            updatePartMutation.mutate({
+              id: updatedPart.id,
+              updates: updatedPart,
+            });
             setEditingPart(null);
           }}
           currentBranchId={currentBranchId}
@@ -1942,30 +1961,32 @@ const InventoryManager: React.FC = () => {
               // Process imported data
               importedData.forEach((item) => {
                 // Check if part exists by SKU
-                const existingPart = parts.find((p) => p.sku === item.sku);
+                const existingPart = repoParts.find((p) => p.sku === item.sku);
 
                 if (existingPart) {
                   // Update existing part
-                  upsertPart({
+                  updatePartMutation.mutate({
                     id: existingPart.id,
-                    stock: {
-                      ...existingPart.stock,
-                      [currentBranchId]:
-                        (existingPart.stock[currentBranchId] || 0) +
-                        item.quantity,
-                    },
-                    retailPrice: {
-                      ...existingPart.retailPrice,
-                      [currentBranchId]: item.retailPrice,
-                    },
-                    wholesalePrice: {
-                      ...existingPart.wholesalePrice,
-                      [currentBranchId]: item.wholesalePrice,
+                    updates: {
+                      stock: {
+                        ...existingPart.stock,
+                        [currentBranchId]:
+                          (existingPart.stock[currentBranchId] || 0) +
+                          item.quantity,
+                      },
+                      retailPrice: {
+                        ...existingPart.retailPrice,
+                        [currentBranchId]: item.retailPrice,
+                      },
+                      wholesalePrice: {
+                        ...existingPart.wholesalePrice,
+                        [currentBranchId]: item.wholesalePrice,
+                      },
                     },
                   });
                 } else {
                   // Create new part
-                  upsertPart({
+                  createPartMutation.mutate({
                     name: item.name,
                     sku: item.sku,
                     category: item.category,
@@ -1986,9 +2007,9 @@ const InventoryManager: React.FC = () => {
               // Record inventory transactions for each imported item
               const importDate = new Date().toISOString();
               importedData.forEach((item) => {
-                const existingPart = parts.find((p) => p.sku === item.sku);
+                const existingPart = repoParts.find((p) => p.sku === item.sku);
                 if (existingPart) {
-                  recordInventoryTransaction({
+                  createInventoryTxAsync({
                     type: "Nhập kho",
                     date: importDate,
                     branchId: currentBranchId,

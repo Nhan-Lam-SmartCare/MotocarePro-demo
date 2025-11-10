@@ -1,8 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
+import * as dotenv from "dotenv";
+dotenv.config();
 
-const supabaseUrl = "https://uluxycppxlzdskyklgqt.supabase.co";
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsdXh5Y3BweGx6ZHNreWtsZ3F0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MDU5MzIsImV4cCI6MjA3ODA4MTkzMn0.pCmr1LEfsiPnvWKeTjGX4zGgUOYbwaLoKe1Qzy5jbdk";
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY in .env");
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -17,10 +22,14 @@ async function main() {
   ];
 
   const emails = [
+    // Demo accounts
     "owner.motocare.test@gmail.com",
     "manager.motocare.test@gmail.com",
     "staff.motocare.test@gmail.com",
-  ];
+    // Optionally append your real users to test quickly
+    process.env.TEST_EMAIL_1 || undefined,
+    process.env.TEST_EMAIL_2 || undefined,
+  ].filter(Boolean);
 
   for (const email of emails) {
     console.log(`\n=== Testing account: ${email} ===`);

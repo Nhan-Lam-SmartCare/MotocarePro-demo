@@ -15,10 +15,12 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useAppContext } from "../../contexts/AppContext";
+import { usePartsData } from "../../hooks/useData";
 import { formatCurrency } from "../../utils/format";
 
 const InventoryAnalytics: React.FC = () => {
-  const { parts, currentBranchId, inventoryTransactions } = useAppContext();
+  const { currentBranchId, inventoryTransactions } = useAppContext();
+  const { data: parts = [] } = usePartsData();
 
   // Stock value by category
   const categoryData = useMemo(() => {

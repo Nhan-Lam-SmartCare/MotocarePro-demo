@@ -1,48 +1,48 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { showToast } from "../../utils/toast";
 import { useNavigate } from "react-router-dom";
-import { Crown, UserCog, User, LogOut } from "lucide-react";
+import { Crown, UserCog, User as UserIcon, LogOut } from "lucide-react";
+
+const roleLabels: Record<string, { label: string; icon?: React.ReactNode }> = {
+  owner: { label: "Chủ cửa hàng", icon: <Crown className="w-4 h-4" /> },
+  manager: { label: "Quản lý", icon: <UserCog className="w-4 h-4" /> },
+  staff: { label: "Nhân viên", icon: <UserIcon className="w-4 h-4" /> },
+};
 
 export const UserMenu = () => {
-  const { profile, signOut } = useAuth();
-  const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
+  const { profile, signOut, hasRole } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
       await signOut();
       showToast.success("Đã đăng xuất");
       navigate("/login");
-    } catch (error) {
-      showToast.error("Không thể đăng xuất");
+    } catch (err) {
+      showToast.error("Lỗi khi đăng xuất");
     }
   };
 
-  if (!profile) return null;
-
-  const roleLabels: Record<string, { label: string; icon: React.ReactNode }> = {
-    owner: { label: "Chủ cửa hàng", icon: <Crown className="w-3.5 h-3.5" /> },
-    manager: { label: "Quản lý", icon: <UserCog className="w-3.5 h-3.5" /> },
-    staff: { label: "Nhân viên", icon: <User className="w-3.5 h-3.5" /> },
-  };
+  const canAction = hasRole(["manager", "owner"]);
 
   return (
-    <div className="relative">
+    <div className="relative inline-block text-left">
       <button
         onClick={() => setShowMenu(!showMenu)}
         className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
       >
         <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-          {profile.full_name?.[0] || profile.email[0].toUpperCase()}
+          {profile?.full_name?.[0] || profile?.email?.[0]?.toUpperCase()}
         </div>
         <div className="text-left hidden sm:block">
           <div className="text-sm font-medium text-slate-900 dark:text-white">
-            {profile.full_name || profile.email}
+            {profile?.full_name || profile?.email}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-            {roleLabels[profile.role]?.icon}
-            <span>{roleLabels[profile.role]?.label}</span>
+            {roleLabels[profile?.role || "staff"]?.icon}
+            <span>{roleLabels[profile?.role || "staff"]?.label}</span>
           </div>
         </div>
         <svg
@@ -72,9 +72,21 @@ export const UserMenu = () => {
                 Đăng nhập với
               </div>
               <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                {profile.email}
+                {profile?.email}
               </div>
             </div>
+
+            {/* Admin actions visible only to manager/owner */}
+            {canAction && (
+              <button
+                onClick={() => navigate("/settings")}
+                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors flex items-center gap-2"
+              >
+                <UserCog className="w-4 h-4" />
+                <span>Cài đặt & Quản lý</span>
+              </button>
+            )}
+
             <button
               onClick={handleLogout}
               className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"

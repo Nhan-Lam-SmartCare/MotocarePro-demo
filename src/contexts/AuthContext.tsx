@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
+// Use a single Supabase client app-wide to avoid multiple GoTrue instances
+import { supabase } from "../supabaseClient";
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 
 export type UserRole = "owner" | "manager" | "staff";
@@ -72,14 +73,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loadUserProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("user_profiles")
+      // Ưu tiên bảng profiles trước, sau đó fallback sang user_profiles nếu không có hoặc bảng không tồn tại
+      let { data, error } = await supabase
+        .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
+
+      if (error && (error as any).code !== "PGRST116") {
+        // Lỗi khác PGRST116 (table not found) => ném lỗi để hiển thị
+        throw error;
+      }
+
+      if (!data) {
+        const alt = await supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+        data = alt.data as any;
+        error = alt.error as any;
+        if (error && (error as any).code !== "PGRST116") throw error;
+      }
 
       if (error) throw error;
-      setProfile(data);
+      if (!data) {
+        setProfile(null);
+      } else {
+        setProfile(data as any);
+      }
     } catch (error) {
       console.error("Error loading user profile:", error);
       setProfile(null);
