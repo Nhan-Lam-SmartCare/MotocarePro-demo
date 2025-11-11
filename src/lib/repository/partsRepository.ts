@@ -80,6 +80,10 @@ export async function createPart(
     if (!input.name)
       return failure({ code: "validation", message: "Thiếu tên phụ tùng" });
     const payload: any = {
+      id:
+        typeof crypto !== "undefined" && (crypto as any).randomUUID
+          ? (crypto as any).randomUUID()
+          : `${Math.random().toString(36).slice(2)}-${Date.now()}`,
       name: input.name,
       sku: input.sku || `SKU-${Date.now()}`,
       stock: input.stock || { CN1: 0 },
@@ -88,20 +92,20 @@ export async function createPart(
       category: input.category,
       description: input.description,
       warrantyPeriod: input.warrantyPeriod,
-      costPrice: input.costPrice || { CN1: 0 },
-      vatRate: input.vatRate ?? 0.1,
+      // costPrice, vatRate không có trong schema parts của bản hiện tại => không insert
     };
     const { data, error } = await supabase
       .from(PARTS_TABLE)
       .insert([payload])
       .select()
       .single();
-    if (error || !data)
-      return failure({
-        code: "supabase",
-        message: "Tạo phụ tùng thất bại",
-        cause: error,
-      });
+    if (error || !data) {
+      const msg =
+        (error as any)?.message ||
+        (error as any)?.details ||
+        "Tạo phụ tùng thất bại";
+      return failure({ code: "supabase", message: msg, cause: error });
+    }
     // Audit tạo phụ tùng
     let userId: string | null = null;
     try {

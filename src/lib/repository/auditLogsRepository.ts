@@ -1,4 +1,5 @@
 import { supabase } from "../../supabaseClient";
+import { enqueueAudit } from "../auditQueue";
 import { RepoResult, success, failure } from "./types";
 
 export interface AuditLogInput {
@@ -68,10 +69,8 @@ export async function createAuditLog(
 // Best effort helper that never throws inside UI flows
 export async function safeAudit(userId: string | null, input: AuditLogInput) {
   try {
-    const res = await createAuditLog(userId, input);
-    if (!res.ok && (import.meta as any)?.env?.DEV) {
-      console.warn("Audit log failed", res.error);
-    }
+    // Chuyển sang hàng đợi để giảm số lần gọi mạng
+    enqueueAudit(userId, input);
   } catch (e) {
     if ((import.meta as any)?.env?.DEV) {
       console.warn("Audit log exception", e);

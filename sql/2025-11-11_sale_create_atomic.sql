@@ -86,9 +86,21 @@ BEGIN
     -- Decrement stock JSONB
     UPDATE parts SET stock = jsonb_set(stock, ARRAY[p_branch_id], to_jsonb(v_current_stock - v_quantity), true) WHERE id = v_part_id;
 
-    -- Insert inventory_transactions (Xuất kho)
+    -- Insert inventory_transactions (Xuất kho) with cost snapshot (average cost)
     INSERT INTO inventory_transactions(id, type, partId, partName, quantity, date, unitPrice, totalPrice, branchId, notes, saleId)
-    VALUES (gen_random_uuid()::text, 'Xuất kho', v_part_id, v_part_name, v_quantity, NOW(), NULL, 0, p_branch_id, 'Bán hàng', p_sale_id);
+    VALUES (
+      gen_random_uuid()::text,
+      'Xuất kho',
+      v_part_id,
+      v_part_name,
+      v_quantity,
+      NOW(),
+      public.mc_avg_cost(v_part_id, p_branch_id),
+      public.mc_avg_cost(v_part_id, p_branch_id) * v_quantity,
+      p_branch_id,
+      'Bán hàng',
+      p_sale_id
+    );
     v_inventory_tx_count := v_inventory_tx_count + 1;
   END LOOP;
 

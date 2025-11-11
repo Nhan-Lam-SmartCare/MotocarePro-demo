@@ -29,8 +29,10 @@ export async function fetchInventoryTransactions(params?: {
   try {
     let query = supabase
       .from(TABLE)
-      .select("*")
-      .order("date", { ascending: false });
+      .select(
+        "id,type,partId,partName,quantity,date,unitPrice,totalPrice,branchId,notes,saleId,workOrderId,created_at"
+      )
+      .order("created_at", { ascending: false });
     if (params?.branchId) query = query.eq("branchId", params.branchId);
     if (params?.startDate) query = query.gte("date", params.startDate);
     if (params?.endDate) query = query.lte("date", params.endDate);
@@ -39,7 +41,10 @@ export async function fetchInventoryTransactions(params?: {
     if (error)
       return failure({
         code: "supabase",
-        message: "Không thể tải lịch sử kho",
+        message:
+          (error as any)?.message ||
+          (error as any)?.details ||
+          "Không thể tải lịch sử kho",
         cause: error,
       });
     return success((data || []) as InventoryTransaction[]);
@@ -75,6 +80,10 @@ export async function createInventoryTransaction(
     const totalPrice = input.totalPrice ?? unitPrice * input.quantity;
 
     const payload: any = {
+      id:
+        typeof crypto !== "undefined" && (crypto as any).randomUUID
+          ? (crypto as any).randomUUID()
+          : `${Math.random().toString(36).slice(2)}-${Date.now()}`,
       type: input.type,
       partId: input.partId,
       partName: input.partName,
@@ -96,7 +105,10 @@ export async function createInventoryTransaction(
     if (error || !data)
       return failure({
         code: "supabase",
-        message: "Ghi lịch sử kho thất bại",
+        message:
+          (error as any)?.message ||
+          (error as any)?.details ||
+          "Ghi lịch sử kho thất bại",
         cause: error,
       });
     // Audit inventory transaction

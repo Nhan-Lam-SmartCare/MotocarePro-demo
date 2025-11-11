@@ -23,9 +23,16 @@ import { useConfirm } from "../../hooks/useConfirm";
 import ConfirmModal from "../common/ConfirmModal";
 import CategoriesManager from "../categories/CategoriesManager";
 import LookupManager from "../lookup/LookupManager";
+import { useCategories, useCreateCategory } from "../../hooks/useCategories";
+import { useSuppliers, useCreateSupplier } from "../../hooks/useSuppliers";
 import type { Part, InventoryTransaction } from "../../types";
 import { fetchPartBySku } from "../../lib/repository/partsRepository";
-import { useCreateInventoryTxRepo } from "../../hooks/useInventoryTransactionsRepository";
+import {
+  useCreateInventoryTxRepo,
+  useInventoryTxRepo,
+} from "../../hooks/useInventoryTransactionsRepository";
+import FormattedNumberInput from "../common/FormattedNumberInput";
+import { validatePriceAndQty } from "../../utils/validation";
 
 // Add New Product Modal Component
 const AddProductModal: React.FC<{
@@ -45,11 +52,16 @@ const AddProductModal: React.FC<{
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [quantity, setQuantity] = useState("1");
-  const [importPrice, setImportPrice] = useState("0");
-  const [retailPrice, setRetailPrice] = useState("0");
-  const [warranty, setWarranty] = useState("1");
+  const [quantity, setQuantity] = useState<number>(1);
+  const [importPrice, setImportPrice] = useState<number>(0);
+  const [retailPrice, setRetailPrice] = useState<number>(0);
+  const [warranty, setWarranty] = useState<number>(1);
   const [warrantyUnit, setWarrantyUnit] = useState("tháng");
+  const [retailOverridden, setRetailOverridden] = useState<boolean>(false);
+  const { data: categories = [] } = useCategories();
+  const createCategory = useCreateCategory();
+  const [showInlineCat, setShowInlineCat] = useState(false);
+  const [inlineCatName, setInlineCatName] = useState("");
 
   const handleSubmit = () => {
     if (!name.trim()) {
@@ -61,10 +73,10 @@ const AddProductModal: React.FC<{
       name: name.trim(),
       description: description.trim(),
       category: category || "Chưa phân loại",
-      quantity: parseInt(quantity) || 1,
-      importPrice: parseFloat(importPrice) || 0,
-      retailPrice: parseFloat(retailPrice) || 0,
-      warranty: parseInt(warranty) || 0,
+      quantity: Number(quantity) || 1,
+      importPrice: Number(importPrice) || 0,
+      retailPrice: Number(retailPrice) || 0,
+      warranty: Number(warranty) || 0,
       warrantyUnit,
     });
 
@@ -72,10 +84,11 @@ const AddProductModal: React.FC<{
     setName("");
     setDescription("");
     setCategory("");
-    setQuantity("1");
-    setImportPrice("0");
-    setRetailPrice("0");
-    setWarranty("1");
+    setQuantity(1);
+    setImportPrice(0);
+    setRetailPrice(0);
+    setWarranty(1);
+    setRetailOverridden(false);
     setWarrantyUnit("tháng");
   };
 
@@ -133,24 +146,83 @@ const AddProductModal: React.FC<{
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Danh mục sản phẩm
               </label>
-              <div className="flex gap-2">
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                >
-                  <option value="">-- Chọn hoặc tạo mới --</option>
-                  <option value="Phụ tùng">Phụ tùng</option>
-                  <option value="Vòng bi">Vòng bi</option>
-                  <option value="Nhớt">Nhớt</option>
-                  <option value="Đèn">Đèn</option>
-                  <option value="Lốp xe">Lốp xe</option>
-                </select>
-                <button className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600">
-                  <span className="text-xl text-slate-600 dark:text-slate-300">
-                    +
-                  </span>
-                </button>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                  >
+                    <option value="">-- Chọn hoặc tạo mới --</option>
+                    {categories.map((c: any) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowInlineCat(true)}
+                    className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600"
+                    aria-label="Thêm danh mục mới"
+                  >
+                    <span className="text-xl text-slate-600 dark:text-slate-300">
+                      +
+                    </span>
+                  </button>
+                </div>
+                {showInlineCat && (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const trimmed = inlineCatName.trim();
+                      if (!trimmed) {
+                        showToast.warning("Vui lòng nhập tên danh mục");
+                        return;
+                      }
+                      if (trimmed.length < 2) {
+                        showToast.warning("Tên quá ngắn");
+                        return;
+                      }
+                      try {
+                        const res = await createCategory.mutateAsync({
+                          name: trimmed,
+                        });
+                        setCategory(res.name);
+                        setInlineCatName("");
+                        setShowInlineCat(false);
+                      } catch (err: any) {
+                        showToast.error(err?.message || "Lỗi tạo danh mục");
+                      }
+                    }}
+                    className="flex gap-2"
+                  >
+                    <input
+                      autoFocus
+                      type="text"
+                      value={inlineCatName}
+                      onChange={(e) => setInlineCatName(e.target.value)}
+                      placeholder="Nhập tên danh mục mới"
+                      className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-slate-100"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+                    >
+                      Lưu
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowInlineCat(false);
+                        setInlineCatName("");
+                      }}
+                      className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600"
+                    >
+                      Hủy
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
 
@@ -164,36 +236,48 @@ const AddProductModal: React.FC<{
                   <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">
                     Số lượng:
                   </label>
-                  <input
-                    type="number"
+                  <FormattedNumberInput
                     value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    min="1"
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                    onValue={(v) => {
+                      const result = validatePriceAndQty(importPrice, v);
+                      if (result.warnings.length)
+                        result.warnings.forEach((w) => showToast.warning(w));
+                      setQuantity(Math.max(1, result.clean.quantity));
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-right"
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">
                     Giá nhập:
                   </label>
-                  <input
-                    type="number"
+                  <FormattedNumberInput
                     value={importPrice}
-                    onChange={(e) => setImportPrice(e.target.value)}
-                    min="0"
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                    onValue={(v) => {
+                      const result = validatePriceAndQty(v, quantity);
+                      if (result.warnings.length)
+                        result.warnings.forEach((w) => showToast.warning(w));
+                      setImportPrice(result.clean.importPrice);
+                      if (!retailOverridden) {
+                        setRetailPrice(
+                          Math.round(result.clean.importPrice * 1.5)
+                        );
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-right"
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1">
                     Giá bán lẻ:
                   </label>
-                  <input
-                    type="number"
+                  <FormattedNumberInput
                     value={retailPrice}
-                    onChange={(e) => setRetailPrice(e.target.value)}
-                    min="0"
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                    onValue={(v) => {
+                      setRetailPrice(Math.max(0, Math.round(v)));
+                      setRetailOverridden(true);
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-right"
                   />
                 </div>
               </div>
@@ -205,12 +289,10 @@ const AddProductModal: React.FC<{
                 Bảo hành
               </label>
               <div className="flex gap-2">
-                <input
-                  type="number"
+                <FormattedNumberInput
                   value={warranty}
-                  onChange={(e) => setWarranty(e.target.value)}
-                  min="0"
-                  className="w-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                  onValue={(v) => setWarranty(Math.max(0, Math.floor(v)))}
+                  className="w-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-right"
                 />
                 <select
                   value={warrantyUnit}
@@ -261,6 +343,16 @@ const GoodsReceiptModal: React.FC<{
 }> = ({ isOpen, onClose, parts, currentBranchId, onSave }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
+  const { data: suppliers = [] } = useSuppliers();
+  const createSupplier = useCreateSupplier();
+  const [showSupplierModal, setShowSupplierModal] = useState(false);
+  const [newSupplier, setNewSupplier] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    note: "",
+  });
+  const createPartMutation = useCreatePartRepo();
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [receiptItems, setReceiptItems] = useState<
     Array<{
@@ -358,7 +450,9 @@ const GoodsReceiptModal: React.FC<{
       showToast.warning("Vui lòng chọn sản phẩm nhập kho");
       return;
     }
-    onSave(receiptItems, selectedSupplier, totalAmount, "");
+    const supplierName =
+      suppliers.find((s: any) => s.id === selectedSupplier)?.name || "";
+    onSave(receiptItems, supplierName, totalAmount, "");
     setReceiptItems([]);
     setSelectedSupplier("");
     setSearchTerm("");
@@ -368,17 +462,39 @@ const GoodsReceiptModal: React.FC<{
   };
 
   const handleAddNewProduct = (productData: any) => {
-    // Add new product to receipt items
-    const newItem = {
-      partId: `temp-${Date.now()}`, // Temporary ID
-      partName: productData.name,
-      sku: `SKU-${Date.now()}`,
-      quantity: productData.quantity,
-      importPrice: productData.importPrice,
-      sellingPrice: productData.retailPrice,
-    };
-    setReceiptItems([...receiptItems, newItem]);
-    setShowAddProductModal(false);
+    // Persist part immediately so it shows in inventory list and can be referenced
+    (async () => {
+      try {
+        const createRes = await createPartMutation.mutateAsync({
+          name: productData.name,
+          sku: `SKU-${Date.now()}`,
+          category: productData.category,
+          description: productData.description,
+          stock: { [currentBranchId]: productData.quantity },
+          retailPrice: { [currentBranchId]: productData.retailPrice },
+          wholesalePrice: {
+            [currentBranchId]: Math.round(productData.retailPrice * 0.9),
+          },
+        });
+        // Add to receipt items from persisted part
+        setReceiptItems((prev) => [
+          ...prev,
+          {
+            partId: (createRes as any).id,
+            partName: productData.name,
+            sku: (createRes as any).sku,
+            quantity: productData.quantity,
+            importPrice: productData.importPrice,
+            sellingPrice: productData.retailPrice,
+          },
+        ]);
+        showToast.success("Đã tạo phụ tùng mới và thêm vào phiếu nhập");
+      } catch (e: any) {
+        showToast.error(e?.message || "Lỗi tạo phụ tùng mới");
+      } finally {
+        setShowAddProductModal(false);
+      }
+    })();
   };
 
   if (!isOpen) return null;
@@ -453,24 +569,177 @@ const GoodsReceiptModal: React.FC<{
           <div className="w-[500px] bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 flex flex-col">
             {/* Supplier Selection */}
             <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-              <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                Nhà cung cấp (NCC):
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Tìm nhà cung cấp"
-                  value={selectedSupplier}
-                  onChange={(e) => setSelectedSupplier(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                />
-                <button className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600">
-                  <span className="text-xl text-slate-600 dark:text-slate-300">
-                    +
-                  </span>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Nhà cung cấp (NCC):
+                </label>
+                <button
+                  onClick={() => {
+                    setNewSupplier({
+                      name: "",
+                      phone: "",
+                      address: "",
+                      note: "",
+                    });
+                    setShowSupplierModal(true);
+                  }}
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-slate-700 dark:text-blue-400"
+                >
+                  <span className="text-base leading-none">+</span>
+                  Thêm NCC
                 </button>
               </div>
+              <select
+                value={selectedSupplier}
+                onChange={(e) => setSelectedSupplier(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+              >
+                <option value="">Tìm/Chọn nhà cung cấp</option>
+                {suppliers.map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} {s.phone ? `(${s.phone})` : ""}
+                  </option>
+                ))}
+              </select>
+              {selectedSupplier && (
+                <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  {(() => {
+                    const s = suppliers.find(
+                      (x: any) => x.id === selectedSupplier
+                    );
+                    if (!s) return null;
+                    return (
+                      <div className="space-y-1">
+                        <div>
+                          <span className="font-medium">Tên:</span> {s.name}
+                        </div>
+                        {s.phone && (
+                          <div>
+                            <span className="font-medium">ĐT:</span> {s.phone}
+                          </div>
+                        )}
+                        {s.address && (
+                          <div>
+                            <span className="font-medium">Đ/c:</span>{" "}
+                            {s.address}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
+
+            {showSupplierModal && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                    Thêm nhà cung cấp
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-slate-600 dark:text-slate-400">
+                        Tên *
+                      </label>
+                      <input
+                        autoFocus
+                        value={newSupplier.name}
+                        onChange={(e) =>
+                          setNewSupplier((p) => ({
+                            ...p,
+                            name: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm"
+                        placeholder="Tên nhà cung cấp"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-slate-600 dark:text-slate-400">
+                        Điện thoại
+                      </label>
+                      <input
+                        value={newSupplier.phone}
+                        onChange={(e) =>
+                          setNewSupplier((p) => ({
+                            ...p,
+                            phone: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm"
+                        placeholder="SĐT"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-slate-600 dark:text-slate-400">
+                        Địa chỉ
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={newSupplier.address}
+                        onChange={(e) =>
+                          setNewSupplier((p) => ({
+                            ...p,
+                            address: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm resize-none"
+                        placeholder="Địa chỉ nhà cung cấp"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-slate-600 dark:text-slate-400">
+                        Ghi chú
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={newSupplier.note}
+                        onChange={(e) =>
+                          setNewSupplier((p) => ({
+                            ...p,
+                            note: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm resize-none"
+                        placeholder="Thông tin thêm (tùy chọn)"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      onClick={() => setShowSupplierModal(false)}
+                      className="px-4 py-2 text-sm rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!newSupplier.name.trim()) {
+                          showToast.warning("Nhập tên nhà cung cấp");
+                          return;
+                        }
+                        try {
+                          const res: any = await createSupplier.mutateAsync({
+                            name: newSupplier.name.trim(),
+                            phone: newSupplier.phone?.trim() || undefined,
+                            address: newSupplier.address?.trim() || undefined,
+                          });
+                          setSelectedSupplier(res.id);
+                          setShowSupplierModal(false);
+                        } catch (e: any) {
+                          // mutation hook đã show toast
+                        }
+                      }}
+                      className="px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                      disabled={createSupplier.isPending}
+                    >
+                      {createSupplier.isPending ? "Đang lưu..." : "Lưu"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Receipt Items */}
             <div className="flex-1 overflow-y-auto p-4">
@@ -564,17 +833,35 @@ const GoodsReceiptModal: React.FC<{
                           <label className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                             Giá nhập:
                           </label>
-                          <input
-                            type="number"
+                          <FormattedNumberInput
                             value={item.importPrice}
-                            onChange={(e) =>
-                              updateReceiptItem(
-                                item.partId,
-                                "importPrice",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="w-32 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm text-right focus:ring-2 focus:ring-blue-500"
+                            onValue={(val) => {
+                              const { clean } = validatePriceAndQty(
+                                val,
+                                item.quantity
+                              );
+                              const newImport = clean.importPrice;
+                              const autoPrice = Math.round(newImport * 1.5);
+                              setReceiptItems((items) =>
+                                items.map((it) =>
+                                  it.partId === item.partId
+                                    ? {
+                                        ...it,
+                                        importPrice: newImport,
+                                        sellingPrice:
+                                          it.sellingPrice === 0 ||
+                                          it.sellingPrice ===
+                                            Math.round(
+                                              (it.importPrice || 0) * 1.5
+                                            )
+                                            ? autoPrice
+                                            : it.sellingPrice,
+                                      }
+                                    : it
+                                )
+                              );
+                            }}
+                            className="w-40 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm text-right focus:ring-2 focus:ring-blue-500"
                             placeholder="0"
                           />
                         </div>
@@ -583,17 +870,16 @@ const GoodsReceiptModal: React.FC<{
                           <label className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                             Giá bán:
                           </label>
-                          <input
-                            type="number"
+                          <FormattedNumberInput
                             value={item.sellingPrice}
-                            onChange={(e) =>
+                            onValue={(val) =>
                               updateReceiptItem(
                                 item.partId,
                                 "sellingPrice",
-                                parseFloat(e.target.value) || 0
+                                Math.max(0, Math.round(val))
                               )
                             }
-                            className="w-32 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm text-right focus:ring-2 focus:ring-blue-500"
+                            className="w-40 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm text-right focus:ring-2 focus:ring-blue-500"
                             placeholder="0"
                           />
                         </div>
@@ -819,11 +1105,10 @@ const GoodsReceiptModal: React.FC<{
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Số tiền khách trả
                   </label>
-                  <input
-                    type="number"
+                  <FormattedNumberInput
                     value={partialAmount}
-                    onChange={(e) =>
-                      setPartialAmount(parseFloat(e.target.value) || 0)
+                    onValue={(v) =>
+                      setPartialAmount(Math.max(0, Math.round(v)))
                     }
                     className="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-right text-lg font-medium"
                     placeholder="0"
@@ -1396,13 +1681,17 @@ const InventoryHistoryModal: React.FC<{
 
 // Main Inventory Manager Component (Ảnh 1)
 const InventoryManager: React.FC = () => {
-  const { currentBranchId, inventoryTransactions } = useAppContext();
+  const { currentBranchId } = useAppContext();
   // Supabase repository mutation for inventory transactions
   const { mutateAsync: createInventoryTxAsync } = useCreateInventoryTxRepo();
+  const { data: invTx = [] } = useInventoryTxRepo({
+    branchId: currentBranchId,
+  });
   const [activeTab, setActiveTab] = useState("stock"); // stock, categories, lookup, history
   const [showGoodsReceipt, setShowGoodsReceipt] = useState(false);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -1446,6 +1735,7 @@ const InventoryManager: React.FC = () => {
   const updatePartMutation = useUpdatePartRepo();
   const createPartMutation = useCreatePartRepo();
   const deletePartMutation = useDeletePartRepo();
+  const { data: allCategories = [] } = useCategories();
 
   const { profile } = useAuth();
   const handleSaveGoodsReceipt = useCallback(
@@ -1461,26 +1751,11 @@ const InventoryManager: React.FC = () => {
       totalAmount: number,
       note: string
     ) => {
-      // Update stock and prices for each item
+      // Update stock and prices for each item (items include newly created parts from modal)
       items.forEach((item) => {
         const part = repoParts.find((p) => p.id === item.partId);
-        if (part) {
-          const currentStock = part.stock[currentBranchId] || 0;
-          updatePartMutation.mutate({
-            id: item.partId,
-            updates: {
-              stock: {
-                ...part.stock,
-                [currentBranchId]: currentStock + item.quantity,
-              },
-              retailPrice: {
-                ...part.retailPrice,
-                [currentBranchId]: item.sellingPrice,
-              },
-            },
-          });
-
-          // Record transaction to Supabase
+        if (!part) {
+          // Part may be outside current page cache; skip update but still record transaction best-effort
           createInventoryTxAsync({
             type: "Nhập kho",
             partId: item.partId,
@@ -1490,19 +1765,53 @@ const InventoryManager: React.FC = () => {
             unitPrice: item.importPrice,
             totalPrice: item.importPrice * item.quantity,
             branchId: currentBranchId,
-            notes: `NCC: ${supplier}`,
+            notes: supplier ? `NCC: ${supplier}` : note,
+          }).catch((err) => {
+            console.error("Lỗi lưu lịch sử kho:", err);
+            showToast.error(`Lỗi lưu lịch sử: ${err.message || "Không rõ"}`);
           });
+          return;
+        }
+        const currentStock = part.stock[currentBranchId] || 0;
+        updatePartMutation.mutate({
+          id: item.partId,
+          updates: {
+            stock: {
+              ...part.stock,
+              [currentBranchId]: currentStock + item.quantity,
+            },
+            retailPrice: {
+              ...part.retailPrice,
+              [currentBranchId]: item.sellingPrice,
+            },
+          },
+        });
 
-          // Audit price update if price changed
-          if (part.retailPrice[currentBranchId] !== item.sellingPrice) {
-            void safeAudit(profile?.id || null, {
-              action: "part.update_price",
-              tableName: "parts",
-              recordId: part.id,
-              oldData: { retailPrice: part.retailPrice[currentBranchId] },
-              newData: { retailPrice: item.sellingPrice },
-            });
-          }
+        // Record transaction to Supabase
+        createInventoryTxAsync({
+          type: "Nhập kho",
+          partId: item.partId,
+          partName: item.partName,
+          quantity: item.quantity,
+          date: new Date().toISOString(),
+          unitPrice: item.importPrice,
+          totalPrice: item.importPrice * item.quantity,
+          branchId: currentBranchId,
+          notes: supplier ? `NCC: ${supplier}` : note,
+        }).catch((err) => {
+          console.error("Lỗi lưu lịch sử kho:", err);
+          showToast.error(`Lỗi lưu lịch sử: ${err.message || "Không rõ"}`);
+        });
+
+        // Audit price update if price changed
+        if (part.retailPrice[currentBranchId] !== item.sellingPrice) {
+          void safeAudit(profile?.id || null, {
+            action: "part.update_price",
+            tableName: "parts",
+            recordId: part.id,
+            oldData: { retailPrice: part.retailPrice[currentBranchId] },
+            newData: { retailPrice: item.sellingPrice },
+          });
         }
       });
 
@@ -1741,21 +2050,35 @@ const InventoryManager: React.FC = () => {
                   }}
                   className="flex-1 px-4 py-2.5 border border-secondary-border rounded-lg bg-primary-bg text-primary-text placeholder-tertiary-text focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                 />
+                {/* Tồn kho filter (stock status) */}
+                <select
+                  value={stockFilter}
+                  onChange={(e) => {
+                    setPage(1);
+                    setStockFilter(e.target.value);
+                  }}
+                  className="px-4 py-2.5 border border-secondary-border rounded-lg bg-primary-bg text-secondary-text focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                >
+                  <option value="all">Tất cả tồn kho</option>
+                  <option value="low">Sắp hết (&lt;10)</option>
+                  <option value="out">Hết hàng (=0)</option>
+                </select>
+
+                {/* Danh mục filter */}
                 <select
                   value={categoryFilter}
                   onChange={(e) => {
-                    setPage(1); // reset page khi đổi filter
+                    setPage(1);
                     setCategoryFilter(e.target.value);
                   }}
                   className="px-4 py-2.5 border border-secondary-border rounded-lg bg-primary-bg text-secondary-text focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                 >
-                  <option value="all">Còn hàng</option>
-                  <option value="lowStock">Sắp hết</option>
-                  <option value="outOfStock">Hết hàng</option>
-                </select>
-
-                <select className="px-4 py-2.5 border border-secondary-border rounded-lg bg-primary-bg text-secondary-text focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors">
-                  <option>Tất cả danh mục</option>
+                  <option value="all">Tất cả danh mục</option>
+                  {allCategories.map((c: any) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -1992,7 +2315,7 @@ const InventoryManager: React.FC = () => {
         )}
 
         {activeTab === "history" && (
-          <InventoryHistorySection transactions={inventoryTransactions} />
+          <InventoryHistorySection transactions={invTx} />
         )}
 
         {activeTab === "categories" && (
@@ -2372,6 +2695,10 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
     retailPrice: part.retailPrice[currentBranchId] || 0,
     wholesalePrice: part.wholesalePrice?.[currentBranchId] || 0,
   });
+  const { data: categories = [] } = useCategories();
+  const createCategory = useCreateCategory();
+  const [showInlineCat, setShowInlineCat] = useState(false);
+  const [inlineCatName, setInlineCatName] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2445,15 +2772,78 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Danh mục
             </label>
-            <input
-              type="text"
-              value={formData.category}
-              onChange={(e) =>
-                setFormData({ ...formData, category: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-              placeholder="VD: Nhớt động cơ, Lốp xe, Phanh..."
-            />
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <select
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                >
+                  <option value="">-- Chọn hoặc tạo mới --</option>
+                  {categories.map((c: any) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowInlineCat(true)}
+                  className="px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600"
+                  title="Thêm danh mục mới"
+                >
+                  +
+                </button>
+              </div>
+              {showInlineCat && (
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const trimmed = inlineCatName.trim();
+                    if (!trimmed)
+                      return showToast.warning("Vui lòng nhập tên danh mục");
+                    try {
+                      const res = await createCategory.mutateAsync({
+                        name: trimmed,
+                      });
+                      setFormData({ ...formData, category: res.name });
+                      setInlineCatName("");
+                      setShowInlineCat(false);
+                    } catch (err: any) {
+                      showToast.error(err?.message || "Lỗi tạo danh mục");
+                    }
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    autoFocus
+                    type="text"
+                    value={inlineCatName}
+                    onChange={(e) => setInlineCatName(e.target.value)}
+                    placeholder="Nhập tên danh mục mới"
+                    className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-slate-100"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+                  >
+                    Lưu
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInlineCat(false);
+                      setInlineCatName("");
+                    }}
+                    className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600"
+                  >
+                    Hủy
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

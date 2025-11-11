@@ -51,6 +51,7 @@ export const useCreatePartRepo = () => {
     mutationFn: createPart,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] });
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] });
       showToast.success("Đã tạo phụ tùng");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
@@ -64,6 +65,7 @@ export const useUpdatePartRepo = () => {
       updatePart(id, updates),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] });
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] });
       showToast.success("Đã cập nhật phụ tùng");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),

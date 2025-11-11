@@ -48,7 +48,7 @@ function Pager({ meta }: any) {
   return wrapper;
 }
 
-describe.skip("Sales pagination UI basics", () => {
+describe("Sales pagination UI basics", () => {
   it("disables prev on first page and next on last page", () => {
     const metaFirst = { page: 1, totalPages: 5, pageSize: 20, hasMore: true };
     const { getByTestId, rerender } = render(Pager, { meta: metaFirst });

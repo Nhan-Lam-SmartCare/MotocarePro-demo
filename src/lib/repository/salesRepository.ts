@@ -432,6 +432,23 @@ export async function refundSale(
         cause: updErr,
       });
     }
+    // Record cash refund (expense/negative income) to adjust payment source balance
+    try {
+      const refundAmount = 0 - Number((saleRow as any).total || 0);
+      const branchId = (saleRow as Sale).branchId || "CN1";
+      const paymentMethod = (saleRow as any).paymentMethod || null;
+      await supabase.from("cash_transactions").insert([
+        {
+          category: "sale_refund",
+          amount: refundAmount,
+          date: new Date().toISOString(),
+          description: `Hoàn tiền hóa đơn ${id}`,
+          branchId,
+          paymentSource: paymentMethod,
+          reference: id,
+        },
+      ] as any);
+    } catch {}
     // Restock all items (nhập trả) - best effort
     try {
       const branchId = (saleRow as Sale).branchId || "CN1";
