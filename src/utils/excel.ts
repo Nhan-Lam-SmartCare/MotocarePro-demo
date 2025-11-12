@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import type { Part } from "../types";
+import { generateSKU, isValidSKU } from "./sku";
 
 /**
  * Export parts to Excel file
@@ -57,7 +58,7 @@ export const exportInventoryTemplate = (
   const templateData = [
     {
       "Tên sản phẩm": "VD: Nhớt Motul 7100 10W40",
-      SKU: "MOTUL-7100",
+      SKU: "A3B7K9M2 (hoặc để trống - hệ thống tự tạo)",
       "Danh mục": "Nhớt động cơ",
       "Số lượng nhập": 50,
       "Giá bán lẻ": 180000,
@@ -303,6 +304,7 @@ export const importPartsFromExcelDetailed = (
     sku: string;
     category?: string;
     quantity: number;
+    costPrice: number;
     retailPrice: number;
     wholesalePrice: number;
     description?: string;
@@ -362,6 +364,7 @@ export const importPartsFromExcelDetailed = (
           sku: ["sku", "mahang", "mah", "code", "ma", "masp", "mavt"],
           category: ["danhmuc", "nhom", "loai", "category"],
           quantity: ["soluongnhap", "soluong", "ton", "tonkho", "sl", "qty"],
+          costPrice: ["dongianhap", "gianhap", "costprice", "giavon"],
           retailPrice: [
             "giabanle",
             "giale",
@@ -369,8 +372,15 @@ export const importPartsFromExcelDetailed = (
             "gia",
             "retailprice",
             "giabanra",
+            "dongiabanle",
           ],
-          wholesalePrice: ["giabansi", "giasi", "wholesaleprice", "giabuon"],
+          wholesalePrice: [
+            "giabansi",
+            "giasi",
+            "wholesaleprice",
+            "giabuon",
+            "dongiabansi",
+          ],
           description: ["mota", "ghichu", "note", "description"],
         };
 
@@ -391,43 +401,46 @@ export const importPartsFromExcelDetailed = (
             };
 
             const name = String(get("name", "")).trim();
-            const sku = String(get("sku", "")).trim();
+            let sku = String(get("sku", "")).trim().toUpperCase();
+
+            // Auto-generate 8-char SKU if missing or invalid
+            if (!sku || !isValidSKU(sku)) {
+              sku = generateSKU();
+              console.log(`🔄 Generated SKU for "${name}": ${sku}`);
+            }
+
             const category = get("category");
             const quantity = parseNum(get("quantity", 0));
+            const costPrice = parseNum(get("costPrice", 0));
             const retailPrice = parseNum(get("retailPrice", 0));
             const wholesalePrice = parseNum(get("wholesalePrice", 0));
             const description = get("description");
 
-            if ((!name || !sku) && Object.values(row).some((v) => v !== "")) {
+            // SKU is now always generated (either from file or auto-generated)
+            // Only validate name
+            if (!name && Object.values(row).some((v) => v !== "")) {
               const nonEmpty = Object.values(row)
                 .map((v) => String(v).trim())
                 .filter((v) => v !== "");
-              if (!name && nonEmpty.length > 0) {
+              if (nonEmpty.length > 0) {
                 const guessedName = nonEmpty[0];
-                if (guessedName.length > 0) row["__guessed_name"] = guessedName;
-              }
-              if (!sku && nonEmpty.length > 1) {
-                const guessedSku = nonEmpty[1];
-                if (guessedSku.length > 0) row["__guessed_sku"] = guessedSku;
+                if (guessedName.length > 0) {
+                  errors.push(
+                    `Hàng ${rowIndex + 2}: Thiếu tên sản phẩm, tạo SKU: ${sku}`
+                  );
+                  return null;
+                }
               }
             }
-            const finalName = name || (row["__guessed_name"] as string) || "";
-            const finalSku = sku || (row["__guessed_sku"] as string) || "";
 
-            if (!finalName && !finalSku) return null; // skip blank row
-            if (!finalName || !finalSku) {
-              errors.push(
-                `Hàng ${rowIndex + 2}: thiếu ${
-                  !finalName ? "Tên sản phẩm" : "SKU"
-                }`
-              );
-              return null;
-            }
+            if (!name) return null; // skip blank row
+
             return {
-              name: finalName,
-              sku: finalSku,
+              name: name,
+              sku: sku,
               category,
               quantity,
+              costPrice,
               retailPrice,
               wholesalePrice,
               description,
@@ -438,6 +451,7 @@ export const importPartsFromExcelDetailed = (
           sku: string;
           category?: string;
           quantity: number;
+          costPrice: number;
           retailPrice: number;
           wholesalePrice: number;
           description?: string;

@@ -1,6 +1,6 @@
--- Adjust part stock per branch (JSONB) with row lock to prevent race
--- Usage: SELECT public.adjust_part_stock('<partId>', '<branchId>', 5);
--- Positive delta increases stock; negative delta decreases stock.
+-- Fix adjust_part_stock function signature to accept NUMERIC instead of INT
+-- This is needed because inventory_transactions.quantity is NUMERIC
+-- Date: 2025-11-12
 
 CREATE OR REPLACE FUNCTION public.adjust_part_stock(p_part_id TEXT, p_branch_id TEXT, p_delta NUMERIC)
 RETURNS VOID
@@ -30,3 +30,10 @@ BEGIN
   WHERE id = p_part_id;
 END;
 $$;
+
+-- Test the function
+DO $$
+BEGIN
+  -- Just verify it compiles correctly
+  RAISE NOTICE 'Function adjust_part_stock updated successfully';
+END $$;

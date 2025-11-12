@@ -2,6 +2,7 @@ import { supabase } from "../../supabaseClient";
 import type { Part } from "../../types";
 import { RepoResult, success, failure } from "./types";
 import { safeAudit } from "./auditLogsRepository";
+import { generateSKU } from "../../utils/sku";
 
 // Centralized table name constant
 const PARTS_TABLE = "parts";
@@ -79,13 +80,17 @@ export async function createPart(
   try {
     if (!input.name)
       return failure({ code: "validation", message: "Thiếu tên phụ tùng" });
+
+    // Generate unique 8-character SKU if not provided
+    const generatedSKU = input.sku || generateSKU();
+
     const payload: any = {
       id:
         typeof crypto !== "undefined" && (crypto as any).randomUUID
           ? (crypto as any).randomUUID()
           : `${Math.random().toString(36).slice(2)}-${Date.now()}`,
       name: input.name,
-      sku: input.sku || `SKU-${Date.now()}`,
+      sku: generatedSKU,
       stock: input.stock || { CN1: 0 },
       retailPrice: input.retailPrice || { CN1: 0 },
       wholesalePrice: input.wholesalePrice || { CN1: 0 },

@@ -52,7 +52,7 @@ export const useCreatePartRepo = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] });
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] });
-      showToast.success("Đã tạo phụ tùng");
+      // Toast is handled by component to avoid spam during bulk operations
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
   });
@@ -66,7 +66,7 @@ export const useUpdatePartRepo = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] });
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] });
-      showToast.success("Đã cập nhật phụ tùng");
+      // Toast is handled by component
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
   });
@@ -78,7 +78,8 @@ export const useDeletePartRepo = () => {
     mutationFn: ({ id }: { id: string }) => deletePartById(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] });
-      showToast.success("Đã xóa phụ tùng");
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] });
+      // Toast is handled by component
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
   });

@@ -80,7 +80,7 @@ async function attemptCreate(client, payload) {
 
     const payload = {
       id: uuid(),
-      type: "adjustment",
+      type: "Nhập kho",
       partId: "test-part-1",
       partName: "Test Part 1",
       quantity: 1,

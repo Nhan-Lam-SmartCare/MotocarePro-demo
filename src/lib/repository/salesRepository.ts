@@ -65,7 +65,7 @@ export async function fetchSalesPaged(
       .from(SALES_TABLE)
       .select("*", { count: "exact" })
       .order("date", { ascending: false });
-    if (branchId) builder = builder.eq("branchId", branchId);
+    if (branchId) builder = builder.eq("branchid", branchId);
     if (fromDate) builder = builder.gte("date", fromDate);
     if (toDate) builder = builder.lte("date", toDate);
     if (search) {
@@ -75,7 +75,7 @@ export async function fetchSalesPaged(
         `id.ilike.%${escaped}%,customer->>name.ilike.%${escaped}%`
       );
     }
-    if (paymentMethod) builder = builder.eq("paymentMethod", paymentMethod);
+    if (paymentMethod) builder = builder.eq("paymentmethod", paymentMethod);
     // status mapping: if status==='completed' we may treat refunded=false (assuming schema has refunded boolean)
     if (status) {
       if (status === "cancelled" || status === "refunded") {
@@ -172,11 +172,11 @@ export async function createSale(
       discount: input.discount ?? 0,
       total: input.total,
       customer: input.customer || { name: "Khách lẻ" },
-      paymentMethod: input.paymentMethod,
-      userId: input.userId || "unknown",
-      userName: input.userName || "Unknown",
-      branchId: input.branchId || "CN1",
-      cashTransactionId: input.cashTransactionId,
+      paymentmethod: input.paymentMethod,
+      userid: input.userId || "unknown",
+      username: input.userName || "Unknown",
+      branchid: input.branchId || "CN1",
+      cashtransactionid: input.cashTransactionId,
     };
     const { data, error } = await supabase
       .from(SALES_TABLE)

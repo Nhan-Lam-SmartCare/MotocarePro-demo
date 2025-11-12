@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { canDo } from "../../utils/permissions";
 import { Boxes, Package, Search, FileText } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { safeAudit } from "../../lib/repository/auditLogsRepository";
 import { supabase } from "../../supabaseClient";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   usePartsRepoPaged,
   useCreatePartRepo,
@@ -362,6 +363,7 @@ const GoodsReceiptModal: React.FC<{
       quantity: number;
       importPrice: number;
       sellingPrice: number;
+      wholesalePrice: number;
     }>
   >([]);
 
@@ -405,8 +407,9 @@ const GoodsReceiptModal: React.FC<{
           partName: part.name,
           sku: part.sku,
           quantity: 1,
-          importPrice: 0,
+          importPrice: part.costPrice?.[currentBranchId] || 0,
           sellingPrice: part.retailPrice[currentBranchId] || 0,
+          wholesalePrice: part.wholesalePrice?.[currentBranchId] || 0,
         },
       ]);
     }
@@ -415,7 +418,7 @@ const GoodsReceiptModal: React.FC<{
 
   const updateReceiptItem = (
     partId: string,
-    field: "quantity" | "importPrice" | "sellingPrice",
+    field: "quantity" | "importPrice" | "sellingPrice" | "wholesalePrice",
     value: number
   ) => {
     setReceiptItems((items) =>
@@ -486,6 +489,7 @@ const GoodsReceiptModal: React.FC<{
             quantity: productData.quantity,
             importPrice: productData.importPrice,
             sellingPrice: productData.retailPrice,
+            wholesalePrice: productData.wholesalePrice || 0,
           },
         ]);
         showToast.success("Đã tạo phụ tùng mới và thêm vào phiếu nhập");
@@ -868,7 +872,7 @@ const GoodsReceiptModal: React.FC<{
 
                         <div className="flex items-center justify-between">
                           <label className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                            Giá bán:
+                            Giá bán lẻ:
                           </label>
                           <FormattedNumberInput
                             value={item.sellingPrice}
@@ -876,6 +880,24 @@ const GoodsReceiptModal: React.FC<{
                               updateReceiptItem(
                                 item.partId,
                                 "sellingPrice",
+                                Math.max(0, Math.round(val))
+                              )
+                            }
+                            className="w-40 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm text-right focus:ring-2 focus:ring-blue-500"
+                            placeholder="0"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                            Giá bán sỉ:
+                          </label>
+                          <FormattedNumberInput
+                            value={item.wholesalePrice || 0}
+                            onValue={(val) =>
+                              updateReceiptItem(
+                                item.partId,
+                                "wholesalePrice",
                                 Math.max(0, Math.round(val))
                               )
                             }
@@ -1182,10 +1204,1009 @@ const GoodsReceiptModal: React.FC<{
   );
 };
 
+// Add/Edit Supplier Modal Component
+const SupplierModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (supplier: {
+    name: string;
+    phone: string;
+    address: string;
+    email: string;
+  }) => void;
+  initialData?: { name: string; phone: string; address: string; email: string };
+  mode: "add" | "edit";
+}> = ({ isOpen, onClose, onSave, initialData, mode }) => {
+  const [name, setName] = useState(initialData?.name || "");
+  const [phone, setPhone] = useState(initialData?.phone || "");
+  const [address, setAddress] = useState(initialData?.address || "");
+  const [email, setEmail] = useState(initialData?.email || "");
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name);
+      setPhone(initialData.phone);
+      setAddress(initialData.address);
+      setEmail(initialData.email);
+    }
+  }, [initialData]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      showToast.error("Vui lòng nhập tên nhà cung cấp");
+      return;
+    }
+    onSave({
+      name: name.trim(),
+      phone: phone.trim(),
+      address: address.trim(),
+      email: email.trim(),
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-md">
+        <form onSubmit={handleSubmit}>
+          {/* Header */}
+          <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {mode === "add"
+                ? "Thêm nhà cung cấp mới"
+                : "Chỉnh sửa nhà cung cấp"}
+            </h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-2xl"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Tên nhà cung cấp *
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nhập tên nhà cung cấp"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                required
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Số điện thoại
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Nhập số điện thoại"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Nhập email"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Địa chỉ
+              </label>
+              <textarea
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Nhập địa chỉ"
+                rows={3}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+              />
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end gap-3 p-4 border-t border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+            >
+              {mode === "add" ? "Thêm" : "Lưu"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Add Product to Receipt Modal Component
+const AddProductToReceiptModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: (product: {
+    partId: string;
+    partName: string;
+    sku: string;
+    quantity: number;
+    unitPrice: number;
+  }) => void;
+  currentBranchId: string;
+}> = ({ isOpen, onClose, onAdd, currentBranchId }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Part | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [unitPrice, setUnitPrice] = useState(0);
+
+  const { data: allParts = [] } = useQuery<Part[]>({
+    queryKey: ["allPartsForReceipt"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parts")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const filteredParts = useMemo(() => {
+    if (!searchTerm) return [];
+    const q = searchTerm.toLowerCase();
+    return allParts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.sku?.toLowerCase().includes(q) ||
+        p.description?.toLowerCase().includes(q)
+    );
+  }, [allParts, searchTerm]);
+
+  const handleSelectProduct = (part: Part) => {
+    setSelectedProduct(part);
+    setUnitPrice(part.costPrice?.[currentBranchId] || 0);
+    setSearchTerm(part.name);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProduct) {
+      showToast.error("Vui lòng chọn sản phẩm");
+      return;
+    }
+    if (quantity <= 0) {
+      showToast.error("Số lượng phải lớn hơn 0");
+      return;
+    }
+    if (unitPrice < 0) {
+      showToast.error("Đơn giá không được âm");
+      return;
+    }
+
+    onAdd({
+      partId: selectedProduct.id,
+      partName: selectedProduct.name,
+      sku: selectedProduct.sku || "",
+      quantity,
+      unitPrice,
+    });
+
+    // Reset form
+    setSearchTerm("");
+    setSelectedProduct(null);
+    setQuantity(1);
+    setUnitPrice(0);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-lg">
+        <form onSubmit={handleSubmit}>
+          {/* Header */}
+          <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              Thêm sản phẩm vào phiếu
+            </h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-2xl"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="p-4 space-y-4">
+            {/* Product Search */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Tìm kiếm sản phẩm *
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setSelectedProduct(null);
+                  }}
+                  placeholder="Nhập tên hoặc SKU sản phẩm..."
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                  autoFocus
+                />
+                {searchTerm && !selectedProduct && filteredParts.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredParts.map((part) => (
+                      <button
+                        key={part.id}
+                        type="button"
+                        onClick={() => handleSelectProduct(part)}
+                        className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-200 dark:border-slate-700 last:border-0"
+                      >
+                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {part.name}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          SKU: {part.sku || "N/A"} | Giá nhập:{" "}
+                          {formatCurrency(
+                            part.costPrice?.[currentBranchId] || 0
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {selectedProduct && (
+                <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm text-green-800 dark:text-green-200">
+                  ✓ Đã chọn: {selectedProduct.name} ({selectedProduct.sku})
+                </div>
+              )}
+            </div>
+
+            {/* Quantity */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Số lượng *
+              </label>
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(Number(e.target.value))}
+                min="1"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                required
+              />
+            </div>
+
+            {/* Unit Price */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Đơn giá nhập *
+              </label>
+              <FormattedNumberInput
+                value={unitPrice}
+                onValue={setUnitPrice}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                placeholder="0"
+              />
+            </div>
+
+            {/* Total */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Thành tiền
+              </label>
+              <input
+                type="text"
+                value={formatCurrency(quantity * unitPrice)}
+                readOnly
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-bold"
+              />
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end gap-3 p-4 border-t border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+            >
+              Thêm sản phẩm
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Edit Receipt Modal Component - Full Receipt Editing
+const EditReceiptModal: React.FC<{
+  receipt: {
+    receiptCode: string;
+    date: Date;
+    supplier: string;
+    items: InventoryTransaction[];
+    total: number;
+  };
+  onClose: () => void;
+  onSave: (data: any) => void;
+  currentBranchId: string;
+}> = ({ receipt, onClose, onSave, currentBranchId }) => {
+  const [supplier, setSupplier] = useState(receipt.supplier);
+  const [supplierPhone, setSupplierPhone] = useState("");
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState(
+    receipt.supplier
+  );
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [showSupplierModal, setShowSupplierModal] = useState(false);
+  const [supplierModalMode, setSupplierModalMode] = useState<"add" | "edit">(
+    "add"
+  );
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+
+  // Fetch suppliers from database
+  const { data: allSuppliers = [] } = useQuery({
+    queryKey: ["suppliers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("suppliers")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const filteredSuppliers = useMemo(() => {
+    if (!supplierSearchTerm) return allSuppliers;
+    const q = supplierSearchTerm.toLowerCase();
+    return allSuppliers.filter((s: any) => s.name.toLowerCase().includes(q));
+  }, [allSuppliers, supplierSearchTerm]);
+
+  const [items, setItems] = useState(
+    receipt.items.map((item) => ({
+      id: item.id,
+      partName: item.partName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice || 0,
+      totalPrice: item.quantity * (item.unitPrice || 0),
+      notes: item.notes || "",
+    }))
+  );
+  const [payments, setPayments] = useState([
+    {
+      time: "15:31",
+      date: receipt.date,
+      payer: "Xuân Nhan",
+      cashier: "(Tiền mặt)",
+      amount: receipt.total,
+    },
+  ]);
+  const [isPaid, setIsPaid] = useState(true);
+
+  // Extract phone from notes if available
+  React.useEffect(() => {
+    const firstItem = receipt.items[0];
+    if (firstItem?.notes?.includes("Phone:")) {
+      const phone = firstItem.notes.split("Phone:")[1]?.split("NV:")[0]?.trim();
+      if (phone) setSupplierPhone(phone);
+    }
+  }, [receipt.items]);
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".supplier-dropdown-container")) {
+        setShowSupplierDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+  const updateItemQuantity = (index: number, quantity: number) => {
+    const newItems = [...items];
+    newItems[index].quantity = quantity;
+    newItems[index].totalPrice = quantity * newItems[index].unitPrice;
+    setItems(newItems);
+  };
+
+  const updateItemPrice = (index: number, unitPrice: number) => {
+    const newItems = [...items];
+    newItems[index].unitPrice = unitPrice;
+    newItems[index].totalPrice = newItems[index].quantity * unitPrice;
+    setItems(newItems);
+  };
+
+  const removeItem = (index: number) => {
+    if (items.length === 1) {
+      showToast.error("Phải có ít nhất 1 sản phẩm");
+      return;
+    }
+    const newItems = items.filter((_, i) => i !== index);
+    setItems(newItems);
+    showToast.success("Đã xóa sản phẩm");
+  };
+
+  const handleAddProduct = (product: {
+    partId: string;
+    partName: string;
+    sku: string;
+    quantity: number;
+    unitPrice: number;
+  }) => {
+    const newItem = {
+      id: `new-${Date.now()}`, // Temporary ID for new items
+      partId: product.partId,
+      partName: product.partName,
+      quantity: product.quantity,
+      unitPrice: product.unitPrice,
+      totalPrice: product.quantity * product.unitPrice,
+      notes: "",
+      sku: product.sku,
+    };
+    setItems([...items, newItem]);
+    setShowAddProductModal(false);
+    showToast.success(`Đã thêm ${product.partName} (sẽ lưu khi bấm LƯU)`);
+  };
+
+  const handleSaveSupplier = (supplierData: {
+    name: string;
+    phone: string;
+    address: string;
+    email: string;
+  }) => {
+    setSupplier(supplierData.name);
+    setSupplierPhone(supplierData.phone);
+    setShowSupplierModal(false);
+    showToast.success(
+      supplierModalMode === "add"
+        ? "Đã thêm nhà cung cấp"
+        : "Đã cập nhật nhà cung cấp"
+    );
+  };
+
+  const handleEditSupplier = () => {
+    setSupplierModalMode("edit");
+    setShowSupplierModal(true);
+  };
+
+  const handleAddSupplier = () => {
+    setSupplierModalMode("add");
+    setShowSupplierModal(true);
+  };
+
+  const handleEditItem = (index: number) => {
+    setEditingItemIndex(index);
+    showToast.info("Click vào ô số lượng hoặc đơn giá để chỉnh sửa");
+  };
+
+  const handleItemMenu = (index: number) => {
+    if (confirm("Bạn có muốn xóa sản phẩm này?")) {
+      removeItem(index);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supplier) {
+      showToast.error("Vui lòng chọn nhà cung cấp");
+      return;
+    }
+    if (items.some((item) => item.quantity <= 0)) {
+      showToast.error("Số lượng phải lớn hơn 0");
+      return;
+    }
+    onSave({ supplier, supplierPhone, items, payments, isPaid });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit}>
+          {/* Header */}
+          <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 flex justify-between items-center">
+            <div>
+              <div className="flex items-center gap-2">
+                <svg
+                  className="w-5 h-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  [Chỉnh sửa] Phiếu Nhập Kho {receipt.receiptCode}
+                </h3>
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {new Date(receipt.date).toLocaleDateString("vi-VN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                })}{" "}
+                {new Date(receipt.date).toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-2xl w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="p-6 space-y-6">
+            {/* Supplier Section */}
+            <div>
+              <label className="block text-base font-medium text-teal-600 dark:text-teal-400 mb-2">
+                Nhà cung cấp:
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-1 relative supplier-dropdown-container">
+                  <input
+                    type="text"
+                    value={supplierSearchTerm}
+                    onChange={(e) => {
+                      setSupplierSearchTerm(e.target.value);
+                      setShowSupplierDropdown(true);
+                    }}
+                    onFocus={() => setShowSupplierDropdown(true)}
+                    placeholder="Tìm kiếm và chọn một nhà cung cấp"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                  />
+                  {supplierSearchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSupplierSearchTerm("");
+                        setSupplier("");
+                        setSupplierPhone("");
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                  {/* Supplier Dropdown */}
+                  {showSupplierDropdown && filteredSuppliers.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {filteredSuppliers.map((sup: any) => (
+                        <button
+                          key={sup.id}
+                          type="button"
+                          onClick={() => {
+                            setSupplier(sup.name);
+                            setSupplierSearchTerm(sup.name);
+                            setSupplierPhone(sup.phone || "");
+                            setShowSupplierDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-200 dark:border-slate-700 last:border-0"
+                        >
+                          <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {sup.name}
+                          </div>
+                          {sup.phone && (
+                            <div className="text-xs text-slate-500">
+                              Phone: {sup.phone}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleEditSupplier}
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                >
+                  <svg
+                    className="w-5 h-5 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                  Chỉnh sửa
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddSupplier}
+                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-2"
+                >
+                  <span className="text-xl">+</span>
+                  Thêm mới
+                </button>
+              </div>
+            </div>
+
+            {/* Products Section */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-base font-medium text-teal-600 dark:text-teal-400">
+                  Chi tiết sản phẩm nhập kho:
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowAddProductModal(true)}
+                  className="text-sm text-teal-600 hover:text-teal-700 dark:text-teal-400 flex items-center gap-1"
+                >
+                  <span className="text-lg">+</span>
+                  Thêm sản phẩm
+                </button>
+              </div>
+
+              {/* Products Table */}
+              <div className="border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-slate-50 dark:bg-slate-700">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-sm font-medium text-slate-700 dark:text-slate-300">
+                        -
+                      </th>
+                      <th className="px-3 py-2 text-left text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Tên
+                      </th>
+                      <th className="px-3 py-2 text-center text-sm font-medium text-slate-700 dark:text-slate-300">
+                        SL
+                      </th>
+                      <th className="px-3 py-2 text-right text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Đơn giá nhập
+                      </th>
+                      <th className="px-3 py-2 text-right text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Thành tiền
+                      </th>
+                      <th className="px-3 py-2 text-center text-sm font-medium text-slate-700 dark:text-slate-300 w-20"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {items.map((item, index) => (
+                      <tr
+                        key={item.id}
+                        className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${
+                          editingItemIndex === index
+                            ? "bg-blue-50 dark:bg-blue-900/20"
+                            : ""
+                        }`}
+                      >
+                        <td className="px-3 py-3 text-sm text-slate-900 dark:text-slate-100">
+                          {index + 1}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="text-sm text-slate-900 dark:text-slate-100">
+                            {item.partName}
+                          </div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">
+                            [Khác]
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            - ĐG Bán lẻ: {formatCurrency(70000)}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            - ĐG Bán sỉ: {formatCurrency(0)}
+                          </div>
+                          <div className="text-xs text-red-500">
+                            (Đã xuất kho)
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updateItemQuantity(index, Number(e.target.value))
+                            }
+                            onFocus={() => setEditingItemIndex(index)}
+                            onBlur={() => setEditingItemIndex(null)}
+                            min="1"
+                            className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <FormattedNumberInput
+                            value={item.unitPrice}
+                            onValue={(val) => updateItemPrice(index, val)}
+                            className="w-28 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-3 py-3 text-right text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {formatCurrency(item.totalPrice)}
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <div className="flex justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleEditItem(index)}
+                              className="p-1 text-blue-400 hover:bg-blue-500/20 rounded"
+                              title="Chỉnh sửa"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleItemMenu(index)}
+                              className="p-1 text-slate-400 hover:bg-slate-500/20 rounded"
+                              title="Xóa sản phẩm"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-slate-50 dark:bg-slate-700">
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="px-3 py-2 text-right font-bold text-slate-900 dark:text-slate-100"
+                      >
+                        TỔNG:
+                      </td>
+                      <td className="px-3 py-2 text-right font-bold text-slate-900 dark:text-slate-100">
+                        {formatCurrency(totalAmount)}
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            {/* Payment Section */}
+            <div className="border border-slate-300 dark:border-slate-600 rounded-lg p-4">
+              <label className="block text-base font-medium text-teal-600 dark:text-teal-400 mb-3">
+                Công nợ:
+              </label>
+
+              {/* Total Payment */}
+              <div className="flex items-center justify-between mb-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <span className="text-lg font-bold text-red-600 dark:text-red-400">
+                  TỔNG PHẢI CHI: {formatCurrency(totalAmount)}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Đã thanh toán đủ
+                  </span>
+                  <button
+                    type="button"
+                    className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm flex items-center gap-1"
+                  >
+                    <span className="text-lg">+</span>
+                    Tạo phiếu chi
+                  </button>
+                </div>
+              </div>
+
+              {/* Payment Notice */}
+              <div className="text-xs text-slate-500 dark:text-slate-400 mb-3 flex items-start gap-1">
+                <svg
+                  className="w-4 h-4 mt-0.5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Tổng phải chi là phí chưa phải trả cho đối tác sửa chữa
+              </div>
+
+              {/* Payment History Table */}
+              <table className="w-full text-sm">
+                <thead className="border-b border-slate-200 dark:border-slate-700">
+                  <tr>
+                    <th className="px-2 py-2 text-left text-slate-700 dark:text-slate-300">
+                      -
+                    </th>
+                    <th className="px-2 py-2 text-left text-slate-700 dark:text-slate-300">
+                      Thời gian
+                    </th>
+                    <th className="px-2 py-2 text-left text-slate-700 dark:text-slate-300">
+                      Người chi - Ghi chú
+                    </th>
+                    <th className="px-2 py-2 text-right text-slate-700 dark:text-slate-300">
+                      Số tiền
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((payment, index) => (
+                    <tr
+                      key={index}
+                      className="border-b border-slate-200 dark:border-slate-700"
+                    >
+                      <td className="px-2 py-2 text-slate-900 dark:text-slate-100">
+                        {index + 1}
+                      </td>
+                      <td className="px-2 py-2 text-slate-900 dark:text-slate-100">
+                        {payment.time}{" "}
+                        {new Date(payment.date).toLocaleDateString("vi-VN", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })}
+                      </td>
+                      <td className="px-2 py-2">
+                        <div className="text-slate-900 dark:text-slate-100">
+                          {payment.payer}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {payment.cashier}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 text-right text-slate-900 dark:text-slate-100">
+                        {formatCurrency(payment.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-slate-50 dark:bg-slate-700">
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="px-2 py-2 text-right font-bold text-slate-900 dark:text-slate-100"
+                    >
+                      Tổng đã chi
+                    </td>
+                    <td className="px-2 py-2 text-right font-bold text-slate-900 dark:text-slate-100">
+                      {formatCurrency(totalPaid)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="sticky bottom-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-4 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+            >
+              ĐÓNG
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+            >
+              LƯU
+            </button>
+          </div>
+        </form>
+
+        {/* Supplier Modal */}
+        <SupplierModal
+          isOpen={showSupplierModal}
+          onClose={() => setShowSupplierModal(false)}
+          onSave={handleSaveSupplier}
+          initialData={
+            supplierModalMode === "edit"
+              ? { name: supplier, phone: supplierPhone, address: "", email: "" }
+              : undefined
+          }
+          mode={supplierModalMode}
+        />
+
+        {/* Add Product Modal */}
+        <AddProductToReceiptModal
+          isOpen={showAddProductModal}
+          onClose={() => setShowAddProductModal(false)}
+          onAdd={handleAddProduct}
+          currentBranchId={currentBranchId}
+        />
+      </div>
+    </div>
+  );
+};
+
 // Inventory History Section Component (Embedded in main page)
 const InventoryHistorySection: React.FC<{
   transactions: InventoryTransaction[];
 }> = ({ transactions }) => {
+  const queryClient = useQueryClient();
   const [activeTimeFilter, setActiveTimeFilter] = useState("7days");
   const [customStartDate, setCustomStartDate] = useState(
     formatDate(new Date(), true)
@@ -1194,9 +2215,26 @@ const InventoryHistorySection: React.FC<{
     formatDate(new Date(), true)
   );
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingReceipt, setEditingReceipt] = useState<{
+    receiptCode: string;
+    date: Date;
+    supplier: string;
+    items: InventoryTransaction[];
+    total: number;
+  } | null>(null);
+  const { currentBranchId } = useAppContext();
 
   const filteredTransactions = useMemo(() => {
-    let filtered = [...transactions];
+    // CHỈ LẤY GIAO DỊCH NHẬP KHO
+    console.log(
+      "📦 [InventoryHistorySection] Tổng số giao dịch:",
+      transactions.length
+    );
+    let filtered = transactions.filter((t) => t.type === "Nhập kho");
+    console.log(
+      "📦 [InventoryHistorySection] Giao dịch 'Nhập kho':",
+      filtered.length
+    );
     const now = new Date();
 
     // Apply time filter
@@ -1249,6 +2287,56 @@ const InventoryHistorySection: React.FC<{
   const totalAmount = useMemo(() => {
     return filteredTransactions.reduce((sum, t) => sum + t.totalPrice, 0);
   }, [filteredTransactions]);
+
+  // Group transactions by receipt (same date, same supplier/notes)
+  const groupedReceipts = useMemo(() => {
+    const groups = new Map<string, InventoryTransaction[]>();
+
+    filteredTransactions.forEach((transaction) => {
+      // Create a group key based on date and supplier
+      const date = new Date(transaction.date);
+      const dateKey = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      const supplier = transaction.notes?.includes("NCC:")
+        ? transaction.notes.split("NCC:")[1]?.trim()
+        : "Không xác định";
+      const groupKey = `${dateKey}_${supplier}_${date.getHours()}_${date.getMinutes()}`;
+
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey)!.push(transaction);
+    });
+
+    // Convert to array and generate receipt codes
+    return Array.from(groups.entries())
+      .map(([key, items], index) => {
+        const firstItem = items[0];
+        const date = new Date(firstItem.date);
+        const dateStr = `${date.getFullYear()}${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+        const receiptCode = `PN-${dateStr}-${String(
+          groups.size - index
+        ).padStart(3, "0")}`;
+
+        return {
+          receiptCode,
+          date: firstItem.date,
+          supplier: firstItem.notes?.includes("NCC:")
+            ? firstItem.notes.split("NCC:")[1]?.trim()
+            : "Không xác định",
+          items,
+          total: items.reduce((sum, item) => sum + item.totalPrice, 0),
+        };
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredTransactions]);
+
+  const [selectedReceipts, setSelectedReceipts] = useState<Set<string>>(
+    new Set()
+  );
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
@@ -1324,7 +2412,7 @@ const InventoryHistorySection: React.FC<{
           <div className="text-sm text-slate-600 dark:text-slate-400">
             Tổng số tiền:{" "}
             <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              {filteredTransactions.length}
+              {groupedReceipts.length}
             </span>
           </div>
           <div className="text-right">
@@ -1338,86 +2426,413 @@ const InventoryHistorySection: React.FC<{
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-slate-100 dark:bg-slate-700">
-            <tr>
-              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Ngày
-              </th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Nhà cung cấp
-              </th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Nội dung
-              </th>
-              <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Số tiền
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-            {filteredTransactions.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-6 py-8 text-center text-slate-500"
-                >
-                  Không có dữ liệu
-                </td>
-              </tr>
-            ) : (
-              filteredTransactions.map((transaction) => (
-                <tr
-                  key={transaction.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-slate-900 dark:text-slate-100">
-                      {formatDate(new Date(transaction.date), false)}
-                    </div>
+      {/* Receipts List */}
+      <div className="divide-y divide-slate-200 dark:divide-slate-700">
+        {groupedReceipts.length === 0 ? (
+          <div className="px-6 py-12 text-center text-slate-500">
+            <div className="text-6xl mb-4">📦</div>
+            <div>Không có dữ liệu</div>
+          </div>
+        ) : (
+          groupedReceipts.map((receipt) => (
+            <div
+              key={receipt.receiptCode}
+              className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
+            >
+              {/* Receipt Row - Horizontal Layout */}
+              <div className="flex items-start gap-3">
+                {/* Checkbox */}
+                <input
+                  type="checkbox"
+                  checked={selectedReceipts.has(receipt.receiptCode)}
+                  onChange={(e) => {
+                    const newSelected = new Set(selectedReceipts);
+                    if (e.target.checked) {
+                      newSelected.add(receipt.receiptCode);
+                    } else {
+                      newSelected.delete(receipt.receiptCode);
+                    }
+                    setSelectedReceipts(newSelected);
+                  }}
+                  className="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 flex-shrink-0"
+                />
+
+                {/* Date Column */}
+                <div className="w-28 flex-shrink-0">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {new Date(receipt.date).toLocaleDateString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {new Date(receipt.date).toLocaleTimeString("vi-VN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                </div>
+
+                {/* Supplier Column */}
+                <div className="w-40 flex-shrink-0">
+                  <div className="text-sm text-slate-900 dark:text-slate-100">
+                    {receipt.supplier}
+                  </div>
+                  {receipt.items[0].notes?.includes("Phone:") && (
                     <div className="text-xs text-slate-500">
-                      {new Date(transaction.date).toLocaleTimeString("vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      Phone: {receipt.items[0].notes.split("Phone:")[1]?.trim()}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-slate-900 dark:text-slate-100">
-                      {transaction.notes && transaction.notes.includes("NCC:")
-                        ? transaction.notes.split("NCC:")[1]?.trim() ||
-                          "Chưa rõ"
-                        : "Chưa rõ"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                      {transaction.partName}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      SL: {transaction.quantity}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      {formatCurrency(transaction.totalPrice)}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  )}
+                </div>
+
+                {/* Items Details Column - Flex grow */}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                    Chi tiết nhập kho:
+                  </div>
+                  <div className="space-y-0.5">
+                    {receipt.items.map((item, idx) => (
+                      <div
+                        key={item.id}
+                        className="text-sm text-slate-900 dark:text-slate-100"
+                      >
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {item.quantity}x{" "}
+                        </span>
+                        <span>{item.partName}</span>
+                        <span className="text-slate-500">
+                          {" "}
+                          (ĐG: {formatCurrency(item.unitPrice || 0)})
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    NV: Nhập kho:{" "}
+                    {receipt.items[0].notes
+                      ?.split("NV:")[1]
+                      ?.split("NCC:")[0]
+                      ?.trim() || "Xuân Nhan"}
+                  </div>
+                </div>
+
+                {/* Amount Column */}
+                <div className="w-32 text-right flex-shrink-0">
+                  <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {formatCurrency(receipt.total)}
+                  </div>
+                </div>
+
+                {/* Actions Column */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() =>
+                      setEditingReceipt({
+                        ...receipt,
+                        date: new Date(receipt.date),
+                      })
+                    }
+                    className="p-1.5 text-blue-400 hover:bg-blue-500/20 rounded transition-colors"
+                    title="Chỉnh sửa"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    className="p-1.5 text-slate-400 hover:bg-slate-500/20 rounded transition-colors"
+                    title="Thêm tùy chọn"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
-      {/* Footer */}
-      <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+      {/* Footer - if needed */}
+      <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700">
         <div className="text-sm text-slate-600 dark:text-slate-400">
-          Hiển thị {filteredTransactions.length} kết quả
+          Hiển thị {groupedReceipts.length} phiếu nhập
         </div>
       </div>
+
+      {/* Edit Receipt Modal */}
+      {editingReceipt && (
+        <EditReceiptModal
+          receipt={editingReceipt}
+          onClose={() => setEditingReceipt(null)}
+          onSave={async (updatedData) => {
+            try {
+              // Track original item IDs to detect deletions
+              const originalItemIds = new Set(
+                editingReceipt.items.map((i) => i.id)
+              );
+              const updatedItemIds = new Set(
+                updatedData.items
+                  .filter((i: any) => !i.id.startsWith("new-"))
+                  .map((i: any) => i.id)
+              );
+
+              // 1. Handle DELETED items - rollback stock
+              const deletedItemIds = Array.from(originalItemIds).filter(
+                (id) => !updatedItemIds.has(id)
+              );
+
+              for (const deletedId of deletedItemIds) {
+                const deletedItem = editingReceipt.items.find(
+                  (i) => i.id === deletedId
+                );
+                if (!deletedItem) continue;
+
+                // Get part info
+                const { data: part, error: fetchError } = await supabase
+                  .from("parts")
+                  .select("stock")
+                  .eq("id", deletedItem.partId)
+                  .single();
+
+                if (fetchError) {
+                  throw new Error(
+                    `Không thể lấy thông tin phụ tùng: ${fetchError.message}`
+                  );
+                }
+
+                if (part) {
+                  const currentStock = part.stock?.[currentBranchId] || 0;
+                  const newStock = currentStock - deletedItem.quantity;
+
+                  if (newStock < 0) {
+                    throw new Error(
+                      `Không thể xóa sản phẩm "${deletedItem.partName}" vì sẽ làm tồn kho âm`
+                    );
+                  }
+
+                  // Update stock
+                  const { error: updateError } = await supabase
+                    .from("parts")
+                    .update({
+                      stock: {
+                        ...part.stock,
+                        [currentBranchId]: newStock,
+                      },
+                    })
+                    .eq("id", deletedItem.partId);
+
+                  if (updateError) {
+                    throw new Error(
+                      `Không thể cập nhật tồn kho: ${updateError.message}`
+                    );
+                  }
+                }
+
+                // Delete transaction
+                const { error: deleteError } = await supabase
+                  .from("inventory_transactions")
+                  .delete()
+                  .eq("id", deletedId);
+
+                if (deleteError) {
+                  throw new Error(
+                    `Không thể xóa giao dịch: ${deleteError.message}`
+                  );
+                }
+              }
+
+              // 2. Handle UPDATED items - update transaction and adjust stock
+              for (const item of updatedData.items) {
+                if (item.id.startsWith("new-")) continue; // Skip new items for now
+
+                const originalItem = editingReceipt.items.find(
+                  (i) => i.id === item.id
+                );
+
+                // Update the transaction record
+                const { error } = await supabase
+                  .from("inventory_transactions")
+                  .update({
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    totalPrice: item.totalPrice,
+                    notes: `NV:${
+                      updatedData.items[0].notes
+                        ?.split("NV:")[1]
+                        ?.split("NCC:")[0]
+                        ?.trim() || "Xuân Nhan"
+                    } NCC:${updatedData.supplier}${
+                      updatedData.supplierPhone
+                        ? ` Phone:${updatedData.supplierPhone}`
+                        : ""
+                    }`,
+                  })
+                  .eq("id", item.id);
+
+                if (error) throw error;
+
+                // If quantity changed, update parts.stock
+                if (originalItem && originalItem.quantity !== item.quantity) {
+                  const quantityDiff = item.quantity - originalItem.quantity;
+
+                  // Get the part to update its stock
+                  const { data: part, error: fetchError } = await supabase
+                    .from("parts")
+                    .select("stock, id")
+                    .eq("id", originalItem.partId)
+                    .single();
+
+                  if (fetchError) {
+                    throw new Error(
+                      `Không thể lấy thông tin phụ tùng: ${fetchError.message}`
+                    );
+                  }
+
+                  if (part) {
+                    const currentStock = part.stock?.[currentBranchId] || 0;
+                    const newStock = currentStock + quantityDiff;
+
+                    if (newStock < 0) {
+                      throw new Error(
+                        `Không thể giảm số lượng vì sẽ làm tồn kho âm (hiện có: ${currentStock})`
+                      );
+                    }
+
+                    // Update stock in database
+                    const { error: updateError } = await supabase
+                      .from("parts")
+                      .update({
+                        stock: {
+                          ...part.stock,
+                          [currentBranchId]: newStock,
+                        },
+                      })
+                      .eq("id", part.id);
+
+                    if (updateError) {
+                      throw new Error(
+                        `Không thể cập nhật tồn kho: ${updateError.message}`
+                      );
+                    }
+                  }
+                }
+              }
+
+              // 3. Handle NEW items - create transaction and add stock
+              const newItems = updatedData.items.filter((i: any) =>
+                i.id.startsWith("new-")
+              );
+
+              for (const newItem of newItems) {
+                // Get part info
+                const { data: part, error: fetchError } = await supabase
+                  .from("parts")
+                  .select("stock, id")
+                  .eq("id", newItem.partId)
+                  .single();
+
+                if (fetchError) {
+                  throw new Error(
+                    `Không thể lấy thông tin phụ tùng: ${fetchError.message}`
+                  );
+                }
+
+                if (part) {
+                  const currentStock = part.stock?.[currentBranchId] || 0;
+                  const newStock = currentStock + newItem.quantity;
+
+                  // Update stock
+                  const { error: updateError } = await supabase
+                    .from("parts")
+                    .update({
+                      stock: {
+                        ...part.stock,
+                        [currentBranchId]: newStock,
+                      },
+                    })
+                    .eq("id", part.id);
+
+                  if (updateError) {
+                    throw new Error(
+                      `Không thể cập nhật tồn kho: ${updateError.message}`
+                    );
+                  }
+                }
+
+                // Create new transaction
+                const { error: insertError } = await supabase
+                  .from("inventory_transactions")
+                  .insert({
+                    type: "Nhập kho",
+                    partId: newItem.partId,
+                    partName: newItem.partName,
+                    quantity: newItem.quantity,
+                    date: editingReceipt.date.toISOString(),
+                    unitPrice: newItem.unitPrice,
+                    totalPrice: newItem.totalPrice,
+                    branchId: currentBranchId,
+                    notes: `NV:${
+                      updatedData.items[0].notes
+                        ?.split("NV:")[1]
+                        ?.split("NCC:")[0]
+                        ?.trim() || "Xuân Nhan"
+                    } NCC:${updatedData.supplier}${
+                      updatedData.supplierPhone
+                        ? ` Phone:${updatedData.supplierPhone}`
+                        : ""
+                    }`,
+                  });
+
+                if (insertError) {
+                  throw new Error(
+                    `Không thể tạo giao dịch mới: ${insertError.message}`
+                  );
+                }
+              }
+
+              showToast.success(
+                `Đã cập nhật phiếu nhập kho (${updatedData.items.length} sản phẩm)`
+              );
+              queryClient.invalidateQueries({
+                queryKey: ["inventoryTransactions"],
+              });
+              queryClient.invalidateQueries({
+                queryKey: ["partsRepo"],
+              });
+              queryClient.invalidateQueries({
+                queryKey: ["partsRepoPaged"],
+              });
+              setEditingReceipt(null);
+            } catch (err: any) {
+              showToast.error(`Lỗi cập nhật: ${err.message || "Không rõ"}`);
+            }
+          }}
+          currentBranchId={currentBranchId}
+        />
+      )}
     </div>
   );
 };
@@ -1428,6 +2843,7 @@ const InventoryHistoryModal: React.FC<{
   onClose: () => void;
   transactions: InventoryTransaction[];
 }> = ({ isOpen, onClose, transactions }) => {
+  const queryClient = useQueryClient();
   const [activeTimeFilter, setActiveTimeFilter] = useState("7days");
   const [customStartDate, setCustomStartDate] = useState(
     formatDate(new Date(), true)
@@ -1438,7 +2854,8 @@ const InventoryHistoryModal: React.FC<{
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredTransactions = useMemo(() => {
-    let filtered = [...transactions];
+    // CHỈ LẤY GIAO DỊCH NHẬP KHO
+    let filtered = transactions.filter((t) => t.type === "Nhập kho");
     const now = new Date();
 
     // Apply time filter
@@ -1611,13 +3028,16 @@ const InventoryHistoryModal: React.FC<{
                 <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Số tiền
                 </th>
+                <th className="text-center px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Thao tác
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
               {filteredTransactions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-6 py-8 text-center text-slate-500"
                   >
                     Không có dữ liệu
@@ -1661,6 +3081,74 @@ const InventoryHistoryModal: React.FC<{
                         {formatCurrency(transaction.totalPrice)}
                       </div>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => {
+                            // TODO: Implement edit functionality
+                            showToast.info("Tính năng đang phát triển");
+                          }}
+                          className="p-1.5 text-blue-400 hover:bg-blue-500/20 rounded transition-colors"
+                          title="Chỉnh sửa"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const confirmed = window.confirm(
+                              `Bạn có chắc muốn xóa giao dịch nhập "${transaction.partName}"?`
+                            );
+                            if (confirmed) {
+                              try {
+                                const { error } = await supabase
+                                  .from("inventory_transactions")
+                                  .delete()
+                                  .eq("id", transaction.id);
+
+                                if (error) throw error;
+
+                                showToast.success("Đã xóa giao dịch");
+                                queryClient.invalidateQueries({
+                                  queryKey: ["inventoryTransactions"],
+                                });
+                              } catch (err: any) {
+                                showToast.error(
+                                  `Lỗi xóa: ${err.message || "Không rõ"}`
+                                );
+                              }
+                            }
+                          }}
+                          className="p-1.5 text-red-400 hover:bg-red-500/20 rounded transition-colors"
+                          title="Xóa"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -1692,6 +3180,7 @@ const InventoryManager: React.FC = () => {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
+  const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -1715,23 +3204,122 @@ const InventoryManager: React.FC = () => {
   const totalParts = pagedResult?.meta?.total || 0;
   const totalPages = Math.max(1, Math.ceil(totalParts / pageSize));
 
-  // Sau khi chuyển sang server filter, filteredParts = repoParts (có thể thêm client filter tồn kho nếu cần)
-  const filteredParts = useMemo(() => repoParts, [repoParts]);
+  // Fetch ALL parts for accurate totals calculation (stock, costPrice, retailPrice)
+  const { data: allPartsData, refetch: refetchAllParts } = useQuery({
+    queryKey: ["allPartsForTotals", currentBranchId, search, categoryFilter],
+    queryFn: async () => {
+      console.log("🔄 Fetching allPartsForTotals...");
+      let query = supabase
+        .from("parts")
+        .select("id, name, sku, stock, costPrice, retailPrice")
+        .order("name");
 
-  const totalStockValue = useMemo(() => {
-    return repoParts.reduce((sum, part) => {
-      const stock = part.stock[currentBranchId] || 0;
-      const price = part.retailPrice[currentBranchId] || 0;
-      return sum + stock * price;
-    }, 0);
-  }, [repoParts, currentBranchId]);
+      if (categoryFilter && categoryFilter !== "all") {
+        query = query.eq("category", categoryFilter);
+      }
+      if (search && search.trim()) {
+        const term = search.trim();
+        query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      console.log(`✅ Fetched ${data?.length || 0} parts`);
+      return data || [];
+    },
+    staleTime: 5_000, // Reduced from 30s to 5s for faster updates
+  });
+
+  // Detect duplicate product names
+  const duplicateNames = useMemo(() => {
+    if (!allPartsData) return new Set<string>();
+    const nameCount = new Map<string, number>();
+    allPartsData.forEach((part: any) => {
+      const count = nameCount.get(part.name) || 0;
+      nameCount.set(part.name, count + 1);
+    });
+    const duplicates = new Set(
+      Array.from(nameCount.entries())
+        .filter(([_, count]) => count > 1)
+        .map(([name, _]) => name)
+    );
+    console.log(
+      `🔍 Detected ${duplicates.size} duplicate product names from ${allPartsData.length} parts`
+    );
+    if (duplicates.size > 0) {
+      console.log("Duplicate names:", Array.from(duplicates).slice(0, 5));
+    }
+    return duplicates;
+  }, [allPartsData]);
+
+  // Check if a part has duplicate name
+  const hasDuplicateName = useCallback(
+    (partName: string) => {
+      return duplicateNames.has(partName);
+    },
+    [duplicateNames]
+  );
+
+  // Fetch duplicate parts when filter is enabled
+  const { data: duplicatePartsData } = useQuery({
+    queryKey: ["duplicateParts", currentBranchId, Array.from(duplicateNames)],
+    queryFn: async () => {
+      if (duplicateNames.size === 0) return [];
+
+      console.log(
+        `🔍 Fetching all duplicate parts for ${duplicateNames.size} names...`
+      );
+
+      // Fetch all parts with duplicate names
+      const { data, error } = await supabase
+        .from("parts")
+        .select("*")
+        .in("name", Array.from(duplicateNames))
+        .order("name");
+
+      if (error) throw error;
+      console.log(`✅ Found ${data?.length || 0} parts with duplicate names`);
+      return data || [];
+    },
+    enabled: showDuplicatesOnly && duplicateNames.size > 0,
+    staleTime: 5_000,
+  });
+
+  // Sau khi chuyển sang server filter, filteredParts = repoParts (có thể thêm client filter tồn kho nếu cần)
+  const filteredParts = useMemo(() => {
+    // If showing duplicates only, use the duplicate parts data
+    if (showDuplicatesOnly && duplicateNames.size > 0) {
+      return duplicatePartsData || [];
+    }
+
+    // Otherwise use the paginated results
+    return repoParts;
+  }, [repoParts, showDuplicatesOnly, duplicateNames, duplicatePartsData]);
+
+  // Auto-disable duplicate filter when no duplicates remain
+  useEffect(() => {
+    if (showDuplicatesOnly && duplicateNames.size === 0) {
+      setShowDuplicatesOnly(false);
+    }
+  }, [showDuplicatesOnly, duplicateNames.size]);
 
   const totalStockQuantity = useMemo(() => {
-    return repoParts.reduce((sum, part) => {
-      return sum + (part.stock[currentBranchId] || 0);
+    if (!allPartsData) return 0;
+    return allPartsData.reduce((sum, part: any) => {
+      return sum + (part.stock?.[currentBranchId] || 0);
     }, 0);
-  }, [repoParts, currentBranchId]);
+  }, [allPartsData, currentBranchId]);
 
+  const totalStockValue = useMemo(() => {
+    if (!allPartsData) return 0;
+    return allPartsData.reduce((sum, part: any) => {
+      const stock = part.stock?.[currentBranchId] || 0;
+      const costPrice = part.costPrice?.[currentBranchId] || 0;
+      return sum + stock * costPrice;
+    }, 0);
+  }, [allPartsData, currentBranchId]);
+
+  const queryClient = useQueryClient();
   const updatePartMutation = useUpdatePartRepo();
   const createPartMutation = useCreatePartRepo();
   const deletePartMutation = useDeletePartRepo();
@@ -1746,17 +3334,23 @@ const InventoryManager: React.FC = () => {
         quantity: number;
         importPrice: number;
         sellingPrice: number;
+        wholesalePrice?: number;
       }>,
       supplier: string,
       totalAmount: number,
       note: string
     ) => {
-      // Update stock and prices for each item (items include newly created parts from modal)
-      items.forEach((item) => {
+      // ⚠️ IMPORTANT: Stock is now auto-updated by trigger (trg_inventory_tx_after_insert)
+      // We only need to:
+      // 1. Create inventory_transaction (trigger will update stock)
+      // 2. Update prices (retailPrice, wholesalePrice) - not handled by trigger
+
+      items.forEach(async (item) => {
         const part = repoParts.find((p) => p.id === item.partId);
-        if (!part) {
-          // Part may be outside current page cache; skip update but still record transaction best-effort
-          createInventoryTxAsync({
+
+        // Create inventory transaction - trigger will auto-update stock
+        try {
+          await createInventoryTxAsync({
             type: "Nhập kho",
             partId: item.partId,
             partName: item.partName,
@@ -1766,52 +3360,39 @@ const InventoryManager: React.FC = () => {
             totalPrice: item.importPrice * item.quantity,
             branchId: currentBranchId,
             notes: supplier ? `NCC: ${supplier}` : note,
-          }).catch((err) => {
-            console.error("Lỗi lưu lịch sử kho:", err);
-            showToast.error(`Lỗi lưu lịch sử: ${err.message || "Không rõ"}`);
           });
-          return;
-        }
-        const currentStock = part.stock[currentBranchId] || 0;
-        updatePartMutation.mutate({
-          id: item.partId,
-          updates: {
-            stock: {
-              ...part.stock,
-              [currentBranchId]: currentStock + item.quantity,
-            },
-            retailPrice: {
-              ...part.retailPrice,
-              [currentBranchId]: item.sellingPrice,
-            },
-          },
-        });
-
-        // Record transaction to Supabase
-        createInventoryTxAsync({
-          type: "Nhập kho",
-          partId: item.partId,
-          partName: item.partName,
-          quantity: item.quantity,
-          date: new Date().toISOString(),
-          unitPrice: item.importPrice,
-          totalPrice: item.importPrice * item.quantity,
-          branchId: currentBranchId,
-          notes: supplier ? `NCC: ${supplier}` : note,
-        }).catch((err) => {
+        } catch (err: any) {
           console.error("Lỗi lưu lịch sử kho:", err);
           showToast.error(`Lỗi lưu lịch sử: ${err.message || "Không rõ"}`);
-        });
+          return; // Skip price update if transaction failed
+        }
 
-        // Audit price update if price changed
-        if (part.retailPrice[currentBranchId] !== item.sellingPrice) {
-          void safeAudit(profile?.id || null, {
-            action: "part.update_price",
-            tableName: "parts",
-            recordId: part.id,
-            oldData: { retailPrice: part.retailPrice[currentBranchId] },
-            newData: { retailPrice: item.sellingPrice },
+        // Update only prices (not stock - trigger handles stock)
+        if (part) {
+          updatePartMutation.mutate({
+            id: item.partId,
+            updates: {
+              retailPrice: {
+                ...part.retailPrice,
+                [currentBranchId]: item.sellingPrice,
+              },
+              wholesalePrice: {
+                ...part.wholesalePrice,
+                [currentBranchId]: item.wholesalePrice || 0,
+              },
+            },
           });
+
+          // Audit price update if price changed
+          if (part.retailPrice[currentBranchId] !== item.sellingPrice) {
+            void safeAudit(profile?.id || null, {
+              action: "part.update_price",
+              tableName: "parts",
+              recordId: part.id,
+              oldData: { retailPrice: part.retailPrice[currentBranchId] },
+              newData: { retailPrice: item.sellingPrice },
+            });
+          }
         }
       });
 
@@ -1876,10 +3457,23 @@ const InventoryManager: React.FC = () => {
 
     if (!confirmed) return;
 
-    deletePartMutation.mutate({ id });
-    // Remove from selected items if it was selected
-    setSelectedItems((prev) => prev.filter((i) => i !== id));
-    showToast.success(`Đã xóa sản phẩm "${part.name}"`);
+    deletePartMutation.mutate(
+      { id },
+      {
+        onSuccess: async () => {
+          // Remove from selected items if it was selected
+          setSelectedItems((prev) => prev.filter((i) => i !== id));
+          // Force refetch to update duplicate detection immediately
+          await refetchAllParts();
+          console.log("🔄 Refetched allPartsForTotals after delete");
+          showToast.success(`Đã xóa phụ tùng "${part.name}"`);
+        },
+        onError: (error) => {
+          console.error("Delete error:", error);
+          showToast.error(`Không thể xóa: ${error.message}`);
+        },
+      }
+    );
   };
 
   // Handle bulk delete
@@ -1899,10 +3493,51 @@ const InventoryManager: React.FC = () => {
 
     if (!confirmed) return;
 
+    // Track progress for bulk delete
+    let successCount = 0;
+    let errorCount = 0;
+    const totalCount = selectedItems.length;
+
     // Delete all selected items
-    selectedItems.forEach((id) => deletePartMutation.mutate({ id }));
+    selectedItems.forEach((id, index) => {
+      deletePartMutation.mutate(
+        { id },
+        {
+          onSuccess: async () => {
+            successCount++;
+            // Show toast only after last item
+            if (successCount + errorCount === totalCount) {
+              // Force refetch to update duplicate detection immediately
+              await refetchAllParts();
+              console.log("🔄 Refetched allPartsForTotals after bulk delete");
+              if (errorCount === 0) {
+                showToast.success(`Đã xóa ${successCount} phụ tùng`);
+              } else {
+                showToast.warning(
+                  `Đã xóa ${successCount}/${totalCount} phụ tùng (${errorCount} lỗi)`
+                );
+              }
+            }
+          },
+          onError: (error) => {
+            console.error(`Delete error for item ${id}:`, error);
+            errorCount++;
+            // Show toast only after last item
+            if (successCount + errorCount === totalCount) {
+              if (successCount === 0) {
+                showToast.error(`Không thể xóa ${totalCount} phụ tùng`);
+              } else {
+                showToast.warning(
+                  `Đã xóa ${successCount}/${totalCount} phụ tùng (${errorCount} lỗi)`
+                );
+              }
+            }
+          },
+        }
+      );
+    });
+
     setSelectedItems([]);
-    showToast.success(`Đã xóa ${selectedItems.length} sản phẩm`);
   };
 
   // Handle export to Excel
@@ -2015,6 +3650,42 @@ const InventoryManager: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-6">
         {activeTab === "stock" && (
           <div className="space-y-4">
+            {/* Duplicate Warning Banner */}
+            {duplicateNames.size > 0 && (
+              <div className="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 p-4 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">⚠️</span>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-1">
+                      Phát hiện {duplicateNames.size} sản phẩm có tên trùng lặp
+                    </h3>
+                    <p className="text-sm text-orange-700 dark:text-orange-400 mb-2">
+                      Các sản phẩm có tên giống nhau nhưng SKU khác nhau có thể
+                      gây nhầm lẫn khi bán hàng. Các dòng trùng lặp được đánh
+                      dấu màu cam với nhãn "⚠️ Trùng".
+                    </p>
+                    <p className="text-xs text-orange-600 dark:text-orange-500">
+                      💡 Khuyến nghị: Chọn các sản phẩm trùng tên và xóa hoặc
+                      đổi tên để phân biệt (VD: thêm mã nhà cung cấp, thêm phiên
+                      bản)
+                    </p>
+                    <button
+                      onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
+                      className={`mt-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        showDuplicatesOnly
+                          ? "bg-orange-600 text-white hover:bg-orange-700"
+                          : "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/60"
+                      }`}
+                    >
+                      {showDuplicatesOnly
+                        ? "✓ Đang lọc sản phẩm trùng"
+                        : "🔍 Chỉ hiển thị sản phẩm trùng"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Stats Cards and Search/Filters in One Row */}
             <div className="flex gap-4 items-center">
               {/* Stats Cards */}
@@ -2024,13 +3695,13 @@ const InventoryManager: React.FC = () => {
                     Tổng SL tồn
                   </div>
                   <div className="text-xl font-bold text-primary-text">
-                    {totalStockQuantity}
+                    {totalStockQuantity.toLocaleString()}
                   </div>
                 </div>
 
                 <div className="bg-accent-green-bg rounded-lg px-5 py-3 border border-accent-green-border min-w-[180px]">
                   <div className="text-xs text-accent-green-text mb-1">
-                    Giá trị tồn
+                    Tổng giá trị tồn
                   </div>
                   <div className="text-xl font-bold text-accent-green-text">
                     {formatCurrency(totalStockValue)}
@@ -2141,7 +3812,13 @@ const InventoryManager: React.FC = () => {
                         Tồn kho
                       </th>
                       <th className="text-right px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
-                        Giá bán
+                        Giá nhập
+                      </th>
+                      <th className="text-right px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
+                        Giá bán lẻ
+                      </th>
+                      <th className="text-right px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
+                        Giá bán sỉ
                       </th>
                       <th className="text-right px-6 py-4 text-xs font-semibold text-secondary-text uppercase tracking-wider">
                         Giá trị
@@ -2155,7 +3832,7 @@ const InventoryManager: React.FC = () => {
                     {filteredParts.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={8}
+                          colSpan={10}
                           className="px-6 py-8 text-center text-tertiary-text"
                         >
                           <div className="text-6xl mb-4">🗂️</div>
@@ -2168,9 +3845,15 @@ const InventoryManager: React.FC = () => {
                     ) : (
                       filteredParts.map((part, index) => {
                         const stock = part.stock[currentBranchId] || 0;
-                        const price = part.retailPrice[currentBranchId] || 0;
-                        const value = stock * price;
+                        const retailPrice =
+                          part.retailPrice[currentBranchId] || 0;
+                        const wholesalePrice =
+                          part.wholesalePrice?.[currentBranchId] || 0;
+                        const costPrice =
+                          part.costPrice?.[currentBranchId] || 0;
+                        const value = stock * retailPrice;
                         const isSelected = selectedItems.includes(part.id);
+                        const isDuplicate = hasDuplicateName(part.name);
 
                         return (
                           <tr
@@ -2178,6 +3861,8 @@ const InventoryManager: React.FC = () => {
                             className={`border-b border-primary-border hover:bg-tertiary-bg transition-colors ${
                               isSelected
                                 ? "bg-blue-900/20 dark:bg-blue-900/20"
+                                : isDuplicate
+                                ? "bg-orange-500/10 border-l-4 border-l-orange-500"
                                 : ""
                             }`}
                           >
@@ -2195,11 +3880,23 @@ const InventoryManager: React.FC = () => {
                               {index + 1}
                             </td>
                             <td className="px-6 py-4">
-                              <div className="text-sm font-medium text-primary-text">
-                                {part.name}
-                              </div>
-                              <div className="text-xs text-tertiary-text">
-                                SKU: {part.sku}
+                              <div className="flex items-center gap-2">
+                                <div>
+                                  <div className="text-sm font-medium text-primary-text">
+                                    {part.name}
+                                  </div>
+                                  <div className="text-xs text-tertiary-text">
+                                    SKU: {part.sku}
+                                  </div>
+                                </div>
+                                {isDuplicate && (
+                                  <span
+                                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-700"
+                                    title="Sản phẩm có tên trùng lặp"
+                                  >
+                                    ⚠️ Trùng
+                                  </span>
+                                )}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-text">
@@ -2218,8 +3915,14 @@ const InventoryManager: React.FC = () => {
                                 {stock}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-primary-text">
-                              {formatCurrency(price)}
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-secondary-text">
+                              {formatCurrency(costPrice)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-primary-text font-medium">
+                              {formatCurrency(retailPrice)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-secondary-text">
+                              {formatCurrency(wholesalePrice)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-primary-text">
                               {formatCurrency(value)}
@@ -2346,9 +4049,23 @@ const InventoryManager: React.FC = () => {
           part={editingPart}
           onClose={() => setEditingPart(null)}
           onSave={(updatedPart) => {
+            console.log("💾 Saving part updates:", updatedPart);
+            // Only send fields that are allowed in database schema
+            const updates: Partial<Part> = {
+              name: updatedPart.name,
+              category: updatedPart.category,
+              stock: updatedPart.stock,
+              retailPrice: updatedPart.retailPrice,
+              wholesalePrice: updatedPart.wholesalePrice,
+            };
+            // Try to add costPrice if it exists in schema
+            if (updatedPart.costPrice) {
+              updates.costPrice = updatedPart.costPrice;
+            }
+            console.log("📤 Sending updates:", updates);
             updatePartMutation.mutate({
               id: updatedPart.id,
-              updates: updatedPart,
+              updates,
             });
             setEditingPart(null);
           }}
@@ -2373,72 +4090,108 @@ const InventoryManager: React.FC = () => {
                 throw new Error(msg);
               }
 
-              // Process imported data
-              let createdCount = 0;
-              let updatedCount = 0;
-              for (const item of importedData) {
-                // Check if part exists by SKU (paged có thể không có hết -> fallback fetch)
-                let existingPart = repoParts.find((p) => p.sku === item.sku);
-                if (!existingPart) {
-                  const skuLookup = await fetchPartBySku(item.sku);
-                  if (skuLookup.ok && skuLookup.data)
-                    existingPart = skuLookup.data;
+              // OPTIMIZATION: Batch fetch all parts by SKU in one query
+              const allSkus = importedData.map((item) => item.sku);
+              console.log(`🔍 Checking ${allSkus.length} SKUs...`);
+
+              // Check for duplicate SKUs in import file
+              const skuCounts = new Map<string, number>();
+              allSkus.forEach((sku) => {
+                skuCounts.set(sku, (skuCounts.get(sku) || 0) + 1);
+              });
+              const duplicates = Array.from(skuCounts.entries())
+                .filter(([_, count]) => count > 1)
+                .map(([sku, count]) => `${sku}(${count}x)`);
+
+              if (duplicates.length > 0) {
+                console.warn(
+                  `⚠️ Duplicate SKUs in file: ${duplicates
+                    .slice(0, 5)
+                    .join(", ")}`
+                );
+              }
+
+              // Fetch existing parts in chunks (Supabase .in() has URL length limit)
+              const uniqueSkus = Array.from(new Set(allSkus));
+              const CHUNK_SIZE = 100; // Process 100 SKUs per request
+              const allExistingParts: any[] = [];
+
+              for (let i = 0; i < uniqueSkus.length; i += CHUNK_SIZE) {
+                const chunk = uniqueSkus.slice(i, i + CHUNK_SIZE);
+                const { data, error } = await supabase
+                  .from("parts")
+                  .select("*")
+                  .in("sku", chunk);
+
+                if (error) {
+                  console.error(
+                    `❌ Fetch chunk ${i / CHUNK_SIZE + 1} error:`,
+                    error
+                  );
+                  throw new Error(`Lỗi kiểm tra phụ tùng: ${error.message}`);
                 }
 
-                if (existingPart) {
-                  updatedCount += 1;
-                  // Update existing part
-                  updatePartMutation.mutate({
-                    id: existingPart.id,
-                    updates: {
-                      stock: {
-                        ...existingPart.stock,
-                        [currentBranchId]:
-                          (existingPart.stock[currentBranchId] || 0) +
-                          item.quantity,
-                      },
-                      retailPrice: {
-                        ...existingPart.retailPrice,
-                        [currentBranchId]: item.retailPrice,
-                      },
-                      wholesalePrice: {
-                        ...existingPart.wholesalePrice,
-                        [currentBranchId]: item.wholesalePrice,
-                      },
-                    },
-                  });
-                } else {
-                  createdCount += 1;
-                  // Create new part
-                  createPartMutation.mutate({
-                    name: item.name,
-                    sku: item.sku,
-                    category: item.category,
-                    description: item.description,
-                    stock: {
-                      [currentBranchId]: item.quantity,
-                    },
-                    retailPrice: {
-                      [currentBranchId]: item.retailPrice,
-                    },
-                    wholesalePrice: {
-                      [currentBranchId]: item.wholesalePrice,
-                    },
-                  });
+                if (data) {
+                  allExistingParts.push(...data);
                 }
               }
 
-              // Record inventory transactions for each imported item
+              console.log(`✅ Found ${allExistingParts.length} existing parts`);
+
+              const existingPartsMap = new Map(
+                allExistingParts.map((p) => [p.sku, p])
+              );
+
+              // Prepare batch operations
+              const partsToCreate: any[] = [];
+              const partsToUpdate: any[] = [];
+              const inventoryTxToCreate: any[] = [];
+              const processedSkus = new Set<string>(); // Track processed SKUs to avoid duplicates
+              let createdCount = 0;
+              let updatedCount = 0;
+              let skippedCount = 0;
               const importDate = new Date().toISOString();
+
               for (const item of importedData) {
-                let existingPart = repoParts.find((p) => p.sku === item.sku);
-                if (!existingPart) {
-                  const skuLookup = await fetchPartBySku(item.sku);
-                  if (skuLookup.ok && skuLookup.data)
-                    existingPart = skuLookup.data;
+                // Skip if SKU already processed (duplicate in file)
+                if (processedSkus.has(item.sku)) {
+                  console.warn(
+                    `⚠️ Skipping duplicate SKU in file: ${item.sku}`
+                  );
+                  skippedCount++;
+                  continue;
                 }
+                processedSkus.add(item.sku);
+
+                const existingPart = existingPartsMap.get(item.sku);
+
                 if (existingPart) {
-                  createInventoryTxAsync({
+                  // Update existing part
+                  updatedCount += 1;
+                  partsToUpdate.push({
+                    id: existingPart.id,
+                    stock: {
+                      ...existingPart.stock,
+                      [currentBranchId]:
+                        (existingPart.stock[currentBranchId] || 0) +
+                        item.quantity,
+                    },
+                    costPrice: {
+                      ...existingPart.costPrice,
+                      [currentBranchId]: item.costPrice,
+                    },
+                    retailPrice: {
+                      ...existingPart.retailPrice,
+                      [currentBranchId]: item.retailPrice,
+                    },
+                    wholesalePrice: {
+                      ...existingPart.wholesalePrice,
+                      [currentBranchId]: item.wholesalePrice,
+                    },
+                  });
+
+                  // Prepare inventory transaction
+                  inventoryTxToCreate.push({
                     type: "Nhập kho",
                     date: importDate,
                     branchId: currentBranchId,
@@ -2449,8 +4202,106 @@ const InventoryManager: React.FC = () => {
                     totalPrice: item.quantity * item.retailPrice,
                     notes: `Nhập kho từ file Excel`,
                   });
+                } else {
+                  // Create new part
+                  createdCount += 1;
+                  const newPartId =
+                    crypto?.randomUUID?.() ||
+                    `${Math.random().toString(36).slice(2)}-${Date.now()}`;
+
+                  partsToCreate.push({
+                    id: newPartId,
+                    name: item.name,
+                    sku: item.sku,
+                    category: item.category,
+                    description: item.description,
+                    stock: {
+                      [currentBranchId]: item.quantity,
+                    },
+                    costPrice: {
+                      [currentBranchId]: item.costPrice,
+                    },
+                    retailPrice: {
+                      [currentBranchId]: item.retailPrice,
+                    },
+                    wholesalePrice: {
+                      [currentBranchId]: item.wholesalePrice,
+                    },
+                  });
+
+                  // Prepare inventory transaction
+                  inventoryTxToCreate.push({
+                    type: "Nhập kho",
+                    date: importDate,
+                    branchId: currentBranchId,
+                    partId: newPartId,
+                    partName: item.name,
+                    quantity: item.quantity,
+                    unitPrice: item.retailPrice,
+                    totalPrice: item.quantity * item.retailPrice,
+                    notes: `Nhập kho từ file Excel`,
+                  });
                 }
               }
+
+              // BATCH: Execute all creates
+              if (partsToCreate.length > 0) {
+                const { data: createdParts, error: createError } =
+                  await supabase.from("parts").insert(partsToCreate).select();
+
+                if (createError) {
+                  console.error("❌ Batch create error:", createError);
+                  throw new Error(`Lỗi tạo phụ tùng: ${createError.message}`);
+                }
+                console.log(`✅ Created ${createdParts?.length || 0} parts`);
+              }
+
+              // BATCH: Execute all updates
+              if (partsToUpdate.length > 0) {
+                let updateSuccess = 0;
+                let updateFailed = 0;
+
+                for (const update of partsToUpdate) {
+                  const { error } = await supabase
+                    .from("parts")
+                    .update({
+                      stock: update.stock,
+                      costPrice: update.costPrice,
+                      retailPrice: update.retailPrice,
+                      wholesalePrice: update.wholesalePrice,
+                    })
+                    .eq("id", update.id);
+
+                  if (error) {
+                    console.error(
+                      `❌ Update error for part ${update.id}:`,
+                      error
+                    );
+                    updateFailed++;
+                  } else {
+                    updateSuccess++;
+                  }
+                }
+                console.log(
+                  `✅ Updated ${updateSuccess}/${partsToUpdate.length} parts`
+                );
+              }
+
+              // BATCH: Create inventory transactions
+              if (inventoryTxToCreate.length > 0) {
+                const { error: txError } = await supabase
+                  .from("inventory_transactions")
+                  .insert(inventoryTxToCreate);
+
+                if (txError) {
+                  console.warn("⚠️ Inventory transactions error:", txError);
+                  // Don't throw - transactions are not critical
+                }
+              }
+
+              // Invalidate queries to refresh UI
+              queryClient.invalidateQueries({ queryKey: ["partsRepo"] });
+              queryClient.invalidateQueries({ queryKey: ["partsRepoPaged"] });
 
               // Audit summary for import (best-effort)
               try {
@@ -2472,12 +4323,18 @@ const InventoryManager: React.FC = () => {
               } catch {}
 
               setShowImportModal(false);
-              const summaryMsg =
-                `Import: tạo mới ${createdCount}, cập nhật ${updatedCount}` +
-                (rowErrors.length ? `, bỏ qua ${rowErrors.length}` : "");
+
+              let summaryMsg = `Import: tạo mới ${createdCount}, cập nhật ${updatedCount}`;
+              if (skippedCount > 0) {
+                summaryMsg += `, bỏ qua ${skippedCount} SKU trùng`;
+              }
+              if (rowErrors.length > 0) {
+                summaryMsg += `, ${rowErrors.length} dòng lỗi`;
+              }
+
               showToast.success(summaryMsg);
             } catch (error) {
-              console.error("Import error:", error);
+              console.error("❌ Import error:", error);
               showToast.error(`Lỗi import: ${error}`);
             }
           }}
@@ -2694,6 +4551,8 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
     category: part.category || "",
     retailPrice: part.retailPrice[currentBranchId] || 0,
     wholesalePrice: part.wholesalePrice?.[currentBranchId] || 0,
+    costPrice: part.costPrice?.[currentBranchId] || 0,
+    stock: part.stock[currentBranchId] || 0,
   });
   const { data: categories = [] } = useCategories();
   const createCategory = useCreateCategory();
@@ -2712,6 +4571,14 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
       id: part.id,
       name: formData.name.trim(),
       category: formData.category.trim() || undefined,
+      stock: {
+        ...part.stock,
+        [currentBranchId]: formData.stock,
+      },
+      costPrice: {
+        ...part.costPrice,
+        [currentBranchId]: formData.costPrice,
+      },
       retailPrice: {
         ...part.retailPrice,
         [currentBranchId]: formData.retailPrice,
@@ -2846,7 +4713,25 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Giá nhập
+              </label>
+              <input
+                type="number"
+                value={formData.costPrice || 0}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    costPrice: Number(e.target.value),
+                  })
+                }
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                min="0"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Giá bán lẻ
@@ -2884,18 +4769,39 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
             </div>
           </div>
 
+          {/* Stock adjustment */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Tồn kho hiện tại
+            </label>
+            <input
+              type="number"
+              value={formData.stock}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  stock: Number(e.target.value),
+                })
+              }
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+              min="0"
+            />
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Số lượng tồn kho tại chi nhánh hiện tại
+            </p>
+          </div>
+
           {/* Info */}
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="text-sm text-blue-800 dark:text-blue-300">
               <div className="font-medium mb-1">Lưu ý:</div>
               <ul className="list-disc list-inside space-y-1">
                 <li>
-                  Tồn kho hiện tại:{" "}
-                  <strong>{part.stock[currentBranchId] || 0}</strong>
+                  Bạn có thể chỉnh sửa trực tiếp giá nhập, giá bán và tồn kho
                 </li>
                 <li>
-                  Để thay đổi tồn kho, vui lòng sử dụng chức năng "Tạo phiếu
-                  nhập" hoặc "Chuyển kho"
+                  Hoặc sử dụng "Tạo phiếu nhập" để ghi nhận lịch sử nhập kho chi
+                  tiết
                 </li>
               </ul>
             </div>
