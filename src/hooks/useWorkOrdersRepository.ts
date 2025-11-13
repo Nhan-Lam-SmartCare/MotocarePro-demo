@@ -2,8 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchWorkOrders,
   createWorkOrderAtomic,
+  updateWorkOrderAtomic,
   updateWorkOrder,
   deleteWorkOrder,
+  refundWorkOrder,
 } from "../lib/repository/workOrdersRepository";
 import type { WorkOrder } from "../types";
 import { showToast } from "../utils/toast";
@@ -23,16 +25,35 @@ export const useWorkOrdersRepo = () => {
 export const useCreateWorkOrderAtomicRepo = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: Partial<WorkOrder>) => createWorkOrderAtomic(input),
-    onSuccess: (res) => {
+    mutationFn: async (input: Partial<WorkOrder>) => {
+      const res = await createWorkOrderAtomic(input);
+      if (!res.ok) throw res.error;
+      return res.data;
+    },
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["workOrdersRepo"] });
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Refresh parts for stock update
       showToast.success("Đã tạo phiếu sửa chữa (atomic)");
-      if ((res as any)?.data?.inventoryTxCount) {
-        showToast.info(
-          `Xuất kho: ${(res as any).data.inventoryTxCount} phụ tùng`
-        );
+      if (data?.inventoryTxCount) {
+        showToast.info(`Xuất kho: ${data.inventoryTxCount} phụ tùng`);
       }
+    },
+    onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
+  });
+};
+
+export const useUpdateWorkOrderAtomicRepo = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: Partial<WorkOrder>) => {
+      const res = await updateWorkOrderAtomic(input);
+      if (!res.ok) throw res.error;
+      return res.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workOrdersRepo"] });
+      qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Refresh parts for stock update
+      showToast.success("Đã cập nhật phiếu sửa chữa (atomic)");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
   });
@@ -63,6 +84,32 @@ export const useDeleteWorkOrderRepo = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workOrdersRepo"] });
       showToast.success("Đã xóa phiếu sửa chữa");
+    },
+    onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
+  });
+};
+
+export const useRefundWorkOrderRepo = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      orderId,
+      refundReason,
+    }: {
+      orderId: string;
+      refundReason: string;
+    }) => refundWorkOrder(orderId, refundReason),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["workOrdersRepo"] });
+      qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Refresh for restored stock
+      showToast.success("Đã hoàn tiền phiếu sửa chữa");
+      if (data?.refundAmount) {
+        showToast.info(
+          `Hoàn tiền: ${new Intl.NumberFormat("vi-VN").format(
+            data.refundAmount
+          )}đ`
+        );
+      }
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
   });

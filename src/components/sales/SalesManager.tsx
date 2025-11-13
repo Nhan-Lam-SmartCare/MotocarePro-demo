@@ -16,6 +16,7 @@ import {
   Banknote,
   Star,
   MapPin,
+  Printer,
 } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { usePartsRepo } from "../../hooks/usePartsRepository";
@@ -32,6 +33,20 @@ import { showToast } from "../../utils/toast";
 import { PlusIcon, XMarkIcon } from "../Icons";
 import type { CartItem, Part, Customer, Sale } from "../../types";
 import { safeAudit } from "../../lib/repository/auditLogsRepository";
+import { supabase } from "../../supabaseClient";
+
+interface StoreSettings {
+  store_name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  logo_url?: string;
+  bank_qr_url?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_account_holder?: string;
+  bank_branch?: string;
+}
 
 // Sale Detail Modal Component (for viewing/editing sale details)
 interface SaleDetailModalProps {
@@ -1621,6 +1636,40 @@ const SalesManager: React.FC = () => {
   const [partialAmount, setPartialAmount] = useState(0);
   const [autoPrintReceipt, setAutoPrintReceipt] = useState(false);
 
+  // Print preview states
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [printSale, setPrintSale] = useState<Sale | null>(null);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(
+    null
+  );
+
+  // Fetch store settings on mount
+  useEffect(() => {
+    const fetchStoreSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("store_settings")
+          .select(
+            "store_name, address, phone, email, logo_url, bank_qr_url, bank_name, bank_account_number, bank_account_holder, bank_branch"
+          )
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error) {
+          console.error("Error fetching store settings:", error);
+          return;
+        }
+
+        setStoreSettings(data);
+      } catch (err) {
+        console.error("Failed to fetch store settings:", err);
+      }
+    };
+
+    fetchStoreSettings();
+  }, []);
+
   // Cart functions
   const addToCart = useCallback(
     (part: Part) => {
@@ -1832,15 +1881,22 @@ const SalesManager: React.FC = () => {
     setShowAddCustomerModal(false);
   };
 
-  // Handle print receipt
+  // Handle print receipt - Show preview modal
   const handlePrintReceipt = (sale: Sale) => {
-    // Set receipt data
-    setReceiptId(sale.id);
-    setCustomerName(sale.customer.name);
-    setCustomerPhone(sale.customer.phone || "");
+    setPrintSale(sale);
+    setShowPrintPreview(true);
+  };
 
-    // Normalize items to ensure they have all required fields
-    const normalizedItems: CartItem[] = sale.items.map((item: any) => ({
+  // Handle actual print after preview
+  const handleDoPrint = () => {
+    if (!printSale) return;
+
+    // Set receipt data for hidden element
+    setReceiptId(printSale.id);
+    setCustomerName(printSale.customer.name);
+    setCustomerPhone(printSale.customer.phone || "");
+
+    const normalizedItems: CartItem[] = printSale.items.map((item: any) => ({
       partId: item.partId || item.partid || "",
       partName: item.partName || item.partname || "",
       sku: item.sku || "",
@@ -1852,11 +1908,13 @@ const SalesManager: React.FC = () => {
     }));
 
     setReceiptItems(normalizedItems);
-    setReceiptDiscount(sale.discount || 0);
+    setReceiptDiscount(printSale.discount || 0);
 
     // Wait for state update then print
     setTimeout(() => {
       printElementById("last-receipt");
+      setShowPrintPreview(false);
+      setPrintSale(null);
     }, 100);
   };
 
@@ -3281,6 +3339,347 @@ const SalesManager: React.FC = () => {
               >
                 Lưu
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print Preview Modal */}
+      {showPrintPreview && printSale && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-t-xl flex-shrink-0">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                Xem trước hóa đơn
+              </h2>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleDoPrint}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition"
+                >
+                  <Printer className="w-4 h-4" />
+                  In hóa đơn
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPrintPreview(false);
+                    setPrintSale(null);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  aria-label="Đóng"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="w-5 h-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Print Preview Content */}
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-100 dark:bg-slate-900">
+              <div
+                className="bg-white shadow-lg mx-auto"
+                style={{ width: "80mm", minHeight: "100mm", color: "#000" }}
+              >
+                <div style={{ padding: "5mm" }}>
+                  {/* Store Info Header - Compact for Receipt */}
+                  <div
+                    style={{
+                      borderBottom: "2px solid #3b82f6",
+                      paddingBottom: "2mm",
+                      marginBottom: "3mm",
+                    }}
+                  >
+                    <div style={{ textAlign: "center" }}>
+                      {storeSettings?.logo_url && (
+                        <img
+                          src={storeSettings.logo_url}
+                          alt="Logo"
+                          style={{
+                            height: "12mm",
+                            width: "auto",
+                            objectFit: "contain",
+                            margin: "0 auto 2mm",
+                          }}
+                        />
+                      )}
+                      <div
+                        style={{
+                          fontWeight: "bold",
+                          fontSize: "11pt",
+                          color: "#1e40af",
+                        }}
+                      >
+                        {storeSettings?.store_name || "Nhạn Lâm SmartCare"}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "8pt",
+                          color: "#000",
+                          marginTop: "1mm",
+                        }}
+                      >
+                        {storeSettings?.address &&
+                          `📍 ${storeSettings.address}`}
+                      </div>
+                      <div style={{ fontSize: "8pt", color: "#000" }}>
+                        {storeSettings?.phone && `📞 ${storeSettings.phone}`}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Title & Date */}
+                  <div style={{ textAlign: "center", marginBottom: "3mm" }}>
+                    <h1
+                      style={{
+                        fontSize: "14pt",
+                        fontWeight: "bold",
+                        margin: "0",
+                        color: "#1e40af",
+                      }}
+                    >
+                      HÓA ĐƠN BÁN HÀNG
+                    </h1>
+                    <div
+                      style={{
+                        fontSize: "8pt",
+                        color: "#666",
+                        marginTop: "1mm",
+                      }}
+                    >
+                      {new Date(printSale.date).toLocaleString("vi-VN", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "8pt",
+                        fontWeight: "bold",
+                        marginTop: "0.5mm",
+                      }}
+                    >
+                      Mã: {printSale.id}
+                    </div>
+                  </div>
+
+                  {/* Customer Info - Compact */}
+                  <div
+                    style={{
+                      border: "1px solid #ddd",
+                      padding: "2mm",
+                      marginBottom: "3mm",
+                      borderRadius: "2mm",
+                      backgroundColor: "#f8fafc",
+                      fontSize: "8.5pt",
+                    }}
+                  >
+                    <div style={{ marginBottom: "1mm" }}>
+                      <span style={{ fontWeight: "bold" }}>KH:</span>{" "}
+                      {printSale.customer.name}
+                    </div>
+                    {printSale.customer.phone && (
+                      <div>
+                        <span style={{ fontWeight: "bold" }}>SĐT:</span>{" "}
+                        {printSale.customer.phone}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Items Table */}
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      marginBottom: "3mm",
+                      fontSize: "8.5pt",
+                    }}
+                  >
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid #ddd" }}>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "1mm",
+                            fontSize: "8pt",
+                          }}
+                        >
+                          Sản phẩm
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "center",
+                            padding: "1mm",
+                            width: "15%",
+                            fontSize: "8pt",
+                          }}
+                        >
+                          SL
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "right",
+                            padding: "1mm",
+                            width: "28%",
+                            fontSize: "8pt",
+                          }}
+                        >
+                          Thành tiền
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {printSale.items.map((item: any, idx: number) => {
+                        const price =
+                          item.sellingPrice ||
+                          item.sellingprice ||
+                          item.price ||
+                          0;
+                        const qty = item.quantity || 0;
+                        return (
+                          <tr
+                            key={idx}
+                            style={{ borderBottom: "1px dashed #ddd" }}
+                          >
+                            <td
+                              style={{
+                                padding: "1.5mm 1mm",
+                                fontSize: "8.5pt",
+                              }}
+                            >
+                              {item.partName || item.partname}
+                            </td>
+                            <td
+                              style={{
+                                textAlign: "center",
+                                padding: "1.5mm 1mm",
+                                fontSize: "8.5pt",
+                              }}
+                            >
+                              {qty}
+                            </td>
+                            <td
+                              style={{
+                                textAlign: "right",
+                                padding: "1.5mm 1mm",
+                                fontSize: "8.5pt",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              {formatCurrency(price * qty)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  {/* Total Summary */}
+                  <div
+                    style={{
+                      borderTop: "2px solid #333",
+                      paddingTop: "2mm",
+                      marginBottom: "3mm",
+                      fontSize: "9pt",
+                    }}
+                  >
+                    {printSale.discount > 0 && (
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "1mm",
+                          color: "#e74c3c",
+                        }}
+                      >
+                        <span>Giảm giá:</span>
+                        <span>-{formatCurrency(printSale.discount)}</span>
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontWeight: "bold",
+                        fontSize: "11pt",
+                      }}
+                    >
+                      <span>TỔNG CỘNG:</span>
+                      <span style={{ color: "#2563eb" }}>
+                        {formatCurrency(printSale.total)} ₫
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bank Info */}
+                  {storeSettings?.bank_name && (
+                    <div
+                      style={{
+                        borderTop: "1px dashed #999",
+                        paddingTop: "2mm",
+                        marginBottom: "3mm",
+                        fontSize: "7.5pt",
+                        textAlign: "center",
+                      }}
+                    >
+                      <div style={{ fontWeight: "bold", marginBottom: "1mm" }}>
+                        Chuyển khoản: {storeSettings.bank_name}
+                      </div>
+                      {storeSettings.bank_account_number && (
+                        <div>STK: {storeSettings.bank_account_number}</div>
+                      )}
+                      {storeSettings.bank_account_holder && (
+                        <div style={{ fontSize: "7pt" }}>
+                          {storeSettings.bank_account_holder}
+                        </div>
+                      )}
+                      {storeSettings.bank_qr_url && (
+                        <div style={{ marginTop: "2mm" }}>
+                          <img
+                            src={storeSettings.bank_qr_url}
+                            alt="QR Banking"
+                            style={{
+                              height: "20mm",
+                              width: "20mm",
+                              objectFit: "contain",
+                              margin: "0 auto",
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Footer */}
+                  <div
+                    style={{
+                      textAlign: "center",
+                      fontSize: "7.5pt",
+                      color: "#666",
+                      borderTop: "1px dashed #999",
+                      paddingTop: "2mm",
+                    }}
+                  >
+                    <div>Cảm ơn quý khách!</div>
+                    <div>Hẹn gặp lại</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

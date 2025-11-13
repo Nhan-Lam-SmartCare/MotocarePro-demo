@@ -1,5 +1,12 @@
-export const formatCurrency = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
-export const formatDate = (iso: string | Date, short = true) => {
+export const formatCurrency = (v: number) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    v
+  );
+export const formatDate = (
+  iso: string | Date | undefined | null,
+  short = true
+) => {
+  if (!iso) return "--";
   const d = typeof iso === "string" ? new Date(iso) : iso;
   if (Number.isNaN(d.getTime())) return "--";
   const dd = String(d.getDate()).padStart(2, "0");

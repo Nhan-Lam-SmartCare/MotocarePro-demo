@@ -14,6 +14,8 @@ import {
   Palette,
   Landmark,
   FileText,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 
 interface StoreSettings {
@@ -27,6 +29,7 @@ interface StoreSettings {
   website?: string;
   tax_code?: string;
   logo_url?: string;
+  bank_qr_url?: string;
   primary_color?: string;
   business_hours?: string;
   established_year?: number;
@@ -48,6 +51,8 @@ export const SettingsManager = () => {
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingQR, setUploadingQR] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "general" | "branding" | "banking" | "invoice"
   >("general");
@@ -61,6 +66,7 @@ export const SettingsManager = () => {
       const { data, error } = await supabase
         .from("store_settings")
         .select("*")
+        .order("created_at", { ascending: false })
         .limit(1)
         .single();
 
@@ -80,12 +86,26 @@ export const SettingsManager = () => {
     setSaving(true);
     try {
       const previous = { ...settings };
-      const { error } = await supabase
+
+      console.log("Saving settings:", settings);
+
+      // Update settings
+      const { error, data } = await supabase
         .from("store_settings")
         .update(settings)
-        .eq("id", settings.id);
+        .eq("id", settings.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Update error:", error);
+        throw error;
+      }
+
+      console.log("Update result:", data);
+
+      // Reload settings after save to confirm changes
+      await loadSettings();
+
       showToast.success("Đã lưu cài đặt thành công!");
       void safeAudit(profile?.id || null, {
         action: "settings.update",
@@ -105,6 +125,88 @@ export const SettingsManager = () => {
   const updateField = (field: keyof StoreSettings, value: any) => {
     if (!settings) return;
     setSettings({ ...settings, [field]: value });
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      showToast.error("Vui lòng chọn file ảnh");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      showToast.error("Kích thước ảnh không được vượt quá 2MB");
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `store-assets/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("public-assets")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("public-assets")
+        .getPublicUrl(filePath);
+
+      updateField("logo_url", data.publicUrl);
+      showToast.success("Đã tải logo lên thành công!");
+    } catch (error: any) {
+      console.error("Error uploading logo:", error);
+      showToast.error(error.message || "Không thể tải logo lên");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleQRUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast.error("Vui lòng chọn file ảnh");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToast.error("Kích thước ảnh không được vượt quá 2MB");
+      return;
+    }
+
+    setUploadingQR(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `bank-qr-${Date.now()}.${fileExt}`;
+      const filePath = `store-assets/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("public-assets")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("public-assets")
+        .getPublicUrl(filePath);
+
+      updateField("bank_qr_url", data.publicUrl);
+      showToast.success("Đã tải mã QR ngân hàng lên thành công!");
+    } catch (error: any) {
+      console.error("Error uploading QR:", error);
+      showToast.error(error.message || "Không thể tải mã QR lên");
+    } finally {
+      setUploadingQR(false);
+    }
   };
 
   // Check permissions
@@ -374,13 +476,55 @@ export const SettingsManager = () => {
         {activeTab === "branding" && (
           <div className="space-y-6">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-              Thương hiệu & Giao diện
+              Thương hiệu & Hình ảnh
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Logo Upload */}
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Logo URL
+                  Logo cửa hàng
+                </label>
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <label
+                      className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors ${
+                        isOwner
+                          ? "cursor-pointer"
+                          : "opacity-50 cursor-not-allowed"
+                      }`}
+                    >
+                      <Upload className="w-5 h-5 text-slate-500" />
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        {uploadingLogo ? "Đang tải lên..." : "Chọn ảnh logo"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        disabled={!isOwner || uploadingLogo}
+                        className="hidden"
+                      />
+                    </label>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Kích thước tối đa: 2MB. Định dạng: JPG, PNG, SVG
+                    </p>
+                  </div>
+                  {settings.logo_url && (
+                    <div className="w-32 h-32 border-2 border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden bg-white dark:bg-slate-700 flex items-center justify-center">
+                      <img
+                        src={settings.logo_url}
+                        alt="Store Logo"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Hoặc nhập URL Logo
                 </label>
                 <input
                   type="url"
@@ -390,11 +534,69 @@ export const SettingsManager = () => {
                   placeholder="https://..."
                   className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:opacity-50"
                 />
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Upload logo lên Imgur hoặc Cloudinary và dán link vào
-                </p>
+              </div>
+            </div>
+
+            {/* QR Code Upload */}
+            <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-700">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Mã QR ngân hàng
+                </label>
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <label
+                      className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors ${
+                        isOwner
+                          ? "cursor-pointer"
+                          : "opacity-50 cursor-not-allowed"
+                      }`}
+                    >
+                      <ImageIcon className="w-5 h-5 text-slate-500" />
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        {uploadingQR ? "Đang tải lên..." : "Chọn ảnh QR Code"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleQRUpload}
+                        disabled={!isOwner || uploadingQR}
+                        className="hidden"
+                      />
+                    </label>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Kích thước tối đa: 2MB. Định dạng: JPG, PNG
+                    </p>
+                  </div>
+                  {settings.bank_qr_url && (
+                    <div className="w-32 h-32 border-2 border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden bg-white dark:bg-slate-700 flex items-center justify-center">
+                      <img
+                        src={settings.bank_qr_url}
+                        alt="Bank QR Code"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Hoặc nhập URL mã QR
+                </label>
+                <input
+                  type="url"
+                  value={settings.bank_qr_url || ""}
+                  onChange={(e) => updateField("bank_qr_url", e.target.value)}
+                  disabled={!isOwner}
+                  placeholder="https://..."
+                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            {/* Color Theme */}
+            <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Màu chủ đạo
@@ -416,29 +618,15 @@ export const SettingsManager = () => {
                       updateField("primary_color", e.target.value)
                     }
                     disabled={!isOwner}
+                    placeholder="#3B82F6"
                     className="flex-1 px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:opacity-50"
                   />
                 </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Màu này sẽ được sử dụng trong giao diện hệ thống
+                </p>
               </div>
             </div>
-
-            {settings.logo_url && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Preview Logo
-                </label>
-                <div className="p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg inline-block">
-                  <img
-                    src={settings.logo_url}
-                    alt="Store Logo"
-                    className="max-h-32 object-contain"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -450,23 +638,23 @@ export const SettingsManager = () => {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Tên ngân hàng
+                  Tên ngân hàng *
                 </label>
                 <input
                   type="text"
                   value={settings.bank_name || ""}
                   onChange={(e) => updateField("bank_name", e.target.value)}
                   disabled={!isOwner}
-                  placeholder="Vietcombank"
+                  placeholder="VD: Vietcombank, Techcombank, MB Bank..."
                   className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:opacity-50"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Số tài khoản
+                  Số tài khoản *
                 </label>
                 <input
                   type="text"
@@ -481,7 +669,7 @@ export const SettingsManager = () => {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Chủ tài khoản
+                  Chủ tài khoản *
                 </label>
                 <input
                   type="text"
@@ -490,12 +678,12 @@ export const SettingsManager = () => {
                     updateField("bank_account_holder", e.target.value)
                   }
                   disabled={!isOwner}
-                  placeholder="NGUYEN VAN A"
+                  placeholder="VD: NGUYEN VAN A"
                   className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:opacity-50"
                 />
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Chi nhánh
                 </label>
@@ -504,20 +692,24 @@ export const SettingsManager = () => {
                   value={settings.bank_branch || ""}
                   onChange={(e) => updateField("bank_branch", e.target.value)}
                   disabled={!isOwner}
-                  placeholder="CN Quận 1"
+                  placeholder="VD: Chi nhánh Quận 1, TP.HCM"
                   className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:opacity-50"
                 />
               </div>
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-4 flex items-start gap-2">
-              <Info
-                className="w-5 h-5 text-blue-700 dark:text-blue-300 mt-0.5"
-                aria-hidden="true"
-              />
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                Thông tin này sẽ được in trên hóa đơn để khách hàng chuyển khoản
-              </p>
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex gap-3">
+                <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-800 dark:text-blue-300">
+                  <p className="font-medium mb-1">Thông tin ngân hàng</p>
+                  <p>
+                    Thông tin này sẽ được hiển thị trên các hóa đơn, biên nhận
+                    và phiếu dịch vụ. Khách hàng có thể quét mã QR hoặc chuyển
+                    khoản theo thông tin này.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}

@@ -127,6 +127,12 @@ export interface WorkOrder {
   remainingAmount?: number; // Còn nợ = total - totalPaid
   paymentDate?: string;
   cashTransactionId?: string; // Link to final payment transaction
+
+  // Refund (Hoàn tiền)
+  refunded?: boolean; // True if refunded/cancelled
+  refunded_at?: string; // Timestamp when refunded (snake_case to match DB)
+  refund_transaction_id?: string; // Link to refund transaction (snake_case to match DB)
+  refund_reason?: string; // Reason for refund (snake_case to match DB)
 }
 
 export interface InventoryTransaction {
