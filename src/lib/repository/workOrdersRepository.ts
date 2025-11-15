@@ -47,6 +47,13 @@ export async function fetchWorkOrders(): Promise<RepoResult<WorkOrder[]>> {
       .from(WORK_ORDERS_TABLE)
       .select("*")
       .order("creationdate", { ascending: false }); // Use lowercase to match DB column
+
+    console.log("[fetchWorkOrders] Raw data from DB:", data);
+    console.log(
+      "[fetchWorkOrders] Status values:",
+      data?.map((d) => ({ id: d.id, status: d.status }))
+    );
+
     if (error)
       return failure({
         code: "supabase",
@@ -99,13 +106,31 @@ export async function createWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
       p_payment_method: input.paymentMethod || null,
       p_deposit_amount: input.depositAmount || 0,
       p_additional_payment: input.additionalPayment || 0,
-      p_user_id: (input as any).userId || "unknown",
+      p_user_id: null, // For audit log only
     } as any;
+
+    console.log(
+      "[DEBUG] Creating work order with payload:",
+      JSON.stringify(payload, null, 2)
+    );
 
     const { data, error } = await supabase.rpc(
       "work_order_create_atomic",
       payload
     );
+
+    console.log("[DEBUG] RPC Response - data:", data, "error:", error);
+
+    // 🔹 DETAILED ERROR LOGGING
+    if (error) {
+      console.error("[DEBUG] RPC Error Details:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        fullError: JSON.stringify(error, null, 2),
+      });
+    }
 
     if (error || !data) {
       // Map PostgREST function error details to usable validation messages
@@ -183,7 +208,10 @@ export async function createWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
       });
     }
 
+    // 🔹 FIX: RPC returns { success, orderId, depositTransactionId, paymentTransactionId }
+    // Not { workOrder: {...} } format
     const workOrderRow = (data as any).workOrder as WorkOrder | undefined;
+    const orderId = (data as any).orderId as string | undefined;
     const depositTransactionId = (data as any).depositTransactionId as
       | string
       | undefined;
@@ -194,7 +222,8 @@ export async function createWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
       | number
       | undefined;
 
-    if (!workOrderRow) {
+    // Accept either workOrder object OR orderId from RPC
+    if (!workOrderRow && !orderId) {
       return failure({ code: "unknown", message: "Kết quả RPC không hợp lệ" });
     }
 
@@ -204,16 +233,21 @@ export async function createWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
     } catch {}
-    await safeAudit(userId, {
-      action: "work_order.create",
-      tableName: WORK_ORDERS_TABLE,
-      recordId: (workOrderRow as any).id,
-      oldData: null,
-      newData: workOrderRow,
-    });
 
+    // If we have full workOrder object, use it for audit
+    if (workOrderRow) {
+      await safeAudit(userId, {
+        action: "work_order.create",
+        tableName: WORK_ORDERS_TABLE,
+        recordId: (workOrderRow as any).id,
+        oldData: null,
+        newData: workOrderRow,
+      });
+    }
+
+    // Return either full workOrder or just the IDs from RPC
     return success({
-      ...(workOrderRow as any),
+      ...(workOrderRow || { id: orderId }),
       depositTransactionId,
       paymentTransactionId,
       inventoryTxCount,
@@ -261,7 +295,7 @@ export async function updateWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
       p_payment_method: input.paymentMethod || null,
       p_deposit_amount: input.depositAmount || 0,
       p_additional_payment: input.additionalPayment || 0,
-      p_user_id: (input as any).userId || "unknown",
+      p_user_id: null, // For audit log only
     } as any;
 
     const { data, error } = await supabase.rpc(

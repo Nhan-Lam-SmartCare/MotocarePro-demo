@@ -68,18 +68,112 @@ export default function ServiceManager() {
     setWorkOrders,
   } = useAppContext();
 
+  // Popular motorcycle models in Vietnam
+  const POPULAR_MOTORCYCLES = [
+    // Honda
+    "Honda Wave RSX",
+    "Honda Wave Alpha",
+    "Honda Blade",
+    "Honda Future",
+    "Honda Winner X",
+    "Honda Vision",
+    "Honda Air Blade",
+    "Honda SH Mode",
+    "Honda SH 125i",
+    "Honda SH 150i",
+    "Honda SH 160i",
+    "Honda SH 350i",
+    "Honda Vario",
+    "Honda Lead",
+    "Honda PCX",
+    "Honda ADV",
+    // Yamaha
+    "Yamaha Exciter",
+    "Yamaha Sirius",
+    "Yamaha Jupiter",
+    "Yamaha Grande",
+    "Yamaha Janus",
+    "Yamaha FreeGo",
+    "Yamaha Latte",
+    "Yamaha NVX",
+    "Yamaha XSR",
+    // Suzuki
+    "Suzuki Raider",
+    "Suzuki Axelo",
+    "Suzuki Satria",
+    "Suzuki GD110",
+    "Suzuki Impulse",
+    "Suzuki Address",
+    "Suzuki Revo",
+    // SYM
+    "SYM Elite",
+    "SYM Galaxy",
+    "SYM Star",
+    "SYM Attila",
+    "SYM Angela",
+    "SYM Passing",
+    // Piaggio & Vespa
+    "Piaggio Liberty",
+    "Piaggio Medley",
+    "Vespa Sprint",
+    "Vespa Primavera",
+    "Vespa GTS",
+    // VinFast
+    "VinFast Klara",
+    "VinFast Evo200",
+    "VinFast Ludo",
+    "VinFast Impes",
+    "VinFast Theon",
+    // Khác
+    "Khác",
+  ];
+
   // Fetch parts from Supabase
   const { data: fetchedParts, isLoading: partsLoading } = usePartsRepo();
+
+  // Fetch employees from Supabase
+  const { data: fetchedEmployees, isLoading: employeesLoading } =
+    useEmployeesRepo();
 
   // Fetch work orders from Supabase
   const { data: fetchedWorkOrders, isLoading: workOrdersLoading } =
     useWorkOrdersRepo();
 
-  // Use fetched parts if available, otherwise use context parts
+  // Fetch customers from Supabase directly
+  const [fetchedCustomers, setFetchedCustomers] = useState<any[]>([]);
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setFetchedCustomers(data);
+      }
+    };
+    fetchCustomers();
+  }, []);
+
+  // Use fetched data if available, otherwise use context
   const parts = fetchedParts || contextParts;
+  const displayCustomers =
+    fetchedCustomers.length > 0 ? fetchedCustomers : customers;
+  const displayEmployees = fetchedEmployees || employees;
+  const displayWorkOrders = fetchedWorkOrders || workOrders;
 
   // Sync fetched work orders to context
   useEffect(() => {
+    console.log(
+      "[ServiceManager] fetchedWorkOrders:",
+      fetchedWorkOrders?.length,
+      fetchedWorkOrders
+    );
+    console.log(
+      "[ServiceManager] workOrders from context:",
+      workOrders?.length,
+      workOrders
+    );
     if (fetchedWorkOrders) {
       setWorkOrders(fetchedWorkOrders);
     }
@@ -109,6 +203,27 @@ export default function ServiceManager() {
   const [refundingOrder, setRefundingOrder] = useState<WorkOrder | null>(null);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundReason, setRefundReason] = useState("");
+
+  // State for service template editing
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [templateForm, setTemplateForm] = useState({
+    id: "",
+    name: "",
+    description: "",
+    duration: 30,
+    laborCost: 0,
+    parts: [] as Array<{
+      name: string;
+      quantity: number;
+      price: number;
+      unit: string;
+    }>,
+  });
+  const [templatePartSearchIndex, setTemplatePartSearchIndex] = useState<
+    number | null
+  >(null);
+  const [templatePartSearchTerm, setTemplatePartSearchTerm] = useState("");
 
   // Open modal automatically if navigated from elsewhere with editOrder state
   const location = useLocation();
@@ -154,6 +269,23 @@ export default function ServiceManager() {
 
     fetchStoreSettings();
   }, []);
+
+  // Close template part search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".template-part-input")) {
+        setTemplatePartSearchIndex(null);
+        setTemplatePartSearchTerm("");
+      }
+    };
+
+    if (templatePartSearchIndex !== null) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [templatePartSearchIndex]);
 
   // Service Templates
   const serviceTemplates = [
@@ -229,7 +361,20 @@ export default function ServiceManager() {
 
   const filteredOrders = useMemo(() => {
     // Exclude "Trả máy" - those show in ServiceHistory
-    let filtered = workOrders.filter((o) => o.status !== "Trả máy");
+    let filtered = displayWorkOrders.filter((o) => o.status !== "Trả máy");
+
+    console.log(
+      "[ServiceManager] Total displayWorkOrders:",
+      displayWorkOrders.length
+    );
+    console.log(
+      "[ServiceManager] Work orders status:",
+      displayWorkOrders.map((o) => ({ id: o.id, status: o.status }))
+    );
+    console.log(
+      "[ServiceManager] After filter (exclude Trả máy):",
+      filtered.length
+    );
 
     // Tab filter
     if (activeTab === "pending")
@@ -238,6 +383,12 @@ export default function ServiceManager() {
       filtered = filtered.filter((o) => o.status === "Đang sửa");
     else if (activeTab === "done")
       filtered = filtered.filter((o) => o.status === "Đã sửa xong");
+
+    console.log(
+      "[ServiceManager] After tab filter:",
+      activeTab,
+      filtered.length
+    );
 
     // Search filter
     if (searchQuery) {
@@ -255,21 +406,29 @@ export default function ServiceManager() {
       if (!dateA || !dateB) return 0;
       return new Date(dateB).getTime() - new Date(dateA).getTime();
     });
-  }, [workOrders, activeTab, searchQuery]);
+  }, [displayWorkOrders, activeTab, searchQuery]);
 
   const stats = useMemo(() => {
-    const pending = workOrders.filter((o) => o.status === "Tiếp nhận").length;
-    const inProgress = workOrders.filter((o) => o.status === "Đang sửa").length;
-    const done = workOrders.filter((o) => o.status === "Đã sửa xong").length;
-    const delivered = workOrders.filter((o) => o.status === "Trả máy").length;
-    const todayRevenue = workOrders
+    const pending = displayWorkOrders.filter(
+      (o) => o.status === "Tiếp nhận"
+    ).length;
+    const inProgress = displayWorkOrders.filter(
+      (o) => o.status === "Đang sửa"
+    ).length;
+    const done = displayWorkOrders.filter(
+      (o) => o.status === "Đã sửa xong"
+    ).length;
+    const delivered = displayWorkOrders.filter(
+      (o) => o.status === "Trả máy"
+    ).length;
+    const todayRevenue = displayWorkOrders
       .filter(
         (o) =>
           o.paymentStatus === "paid" &&
           new Date(o.creationDate).toDateString() === new Date().toDateString()
       )
       .reduce((sum, o) => sum + o.total, 0);
-    const todayProfit = workOrders
+    const todayProfit = displayWorkOrders
       .filter(
         (o) =>
           o.paymentStatus === "paid" &&
@@ -287,7 +446,7 @@ export default function ServiceManager() {
       );
 
     return { pending, inProgress, done, delivered, todayRevenue, todayProfit };
-  }, [workOrders]);
+  }, [displayWorkOrders]);
 
   const handleOpenModal = (order?: WorkOrder) => {
     if (order) {
@@ -343,6 +502,137 @@ export default function ServiceManager() {
     setShowTemplateModal(false);
     setShowModal(true);
   };
+
+  const handleCreateTemplate = () => {
+    setEditingTemplate(null);
+    setTemplateForm({
+      id: "",
+      name: "",
+      description: "",
+      duration: 30,
+      laborCost: 0,
+      parts: [],
+    });
+    setShowTemplateEditor(true);
+  };
+
+  const handleEditTemplate = (template: (typeof serviceTemplates)[0]) => {
+    setEditingTemplate(template);
+    setTemplateForm({
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      duration: template.duration,
+      laborCost: template.laborCost,
+      parts: [...template.parts],
+    });
+    setShowTemplateEditor(true);
+  };
+
+  const handleSaveTemplate = () => {
+    if (!templateForm.name.trim()) {
+      showToast.error("Vui lòng nhập tên mẫu");
+      return;
+    }
+    if (templateForm.laborCost <= 0) {
+      showToast.error("Vui lòng nhập chi phí công");
+      return;
+    }
+
+    // TODO: Save to database or localStorage
+    // For now, just show success message
+    if (editingTemplate) {
+      showToast.success(`Đã cập nhật mẫu "${templateForm.name}"`);
+    } else {
+      showToast.success(`Đã tạo mẫu "${templateForm.name}"`);
+    }
+
+    setShowTemplateEditor(false);
+    setEditingTemplate(null);
+  };
+
+  const handleAddPartToTemplate = () => {
+    setTemplateForm({
+      ...templateForm,
+      parts: [
+        ...templateForm.parts,
+        { name: "", quantity: 1, price: 0, unit: "cái" },
+      ],
+    });
+  };
+
+  const handleRemovePartFromTemplate = (index: number) => {
+    setTemplateForm({
+      ...templateForm,
+      parts: templateForm.parts.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleUpdateTemplatePart = (
+    index: number,
+    field: string,
+    value: any
+  ) => {
+    const updatedParts = [...templateForm.parts];
+    updatedParts[index] = { ...updatedParts[index], [field]: value };
+    setTemplateForm({ ...templateForm, parts: updatedParts });
+
+    // If updating name field, trigger search
+    if (field === "name") {
+      setTemplatePartSearchIndex(index);
+      setTemplatePartSearchTerm(value);
+    }
+  };
+
+  const handleSelectTemplatePartFromInventory = (index: number, part: Part) => {
+    const updatedParts = [...templateForm.parts];
+    updatedParts[index] = {
+      ...updatedParts[index],
+      name: part.name,
+      price: part.retailPrice?.[currentBranchId || ""] || 0,
+      unit: "cái",
+    };
+    setTemplateForm({ ...templateForm, parts: updatedParts });
+    setTemplatePartSearchIndex(null);
+    setTemplatePartSearchTerm("");
+  };
+
+  // Filter parts for template autocomplete
+  const filteredTemplateInventoryParts = useMemo(() => {
+    if (templatePartSearchIndex === null) return [];
+    const availableParts = fetchedParts || [];
+    console.log("[DEBUG] fetchedParts available:", availableParts.length);
+    const term = templatePartSearchTerm.toLowerCase();
+    if (!term) {
+      // Show all parts if no search term
+      const result = availableParts.slice(0, 5);
+      console.log(
+        "[DEBUG] No search term, showing first 5 parts:",
+        result.map((p) => ({
+          name: p.name,
+          stock: p.stock?.[currentBranchId || ""],
+          price: p.retailPrice?.[currentBranchId || ""],
+        }))
+      );
+      return result;
+    }
+    const filtered = availableParts.filter((p) =>
+      p.name.toLowerCase().includes(term)
+    );
+    console.log(
+      "[DEBUG] Search term:",
+      term,
+      "Found:",
+      filtered.length,
+      "Sample:",
+      filtered.slice(0, 2).map((p) => ({
+        name: p.name,
+        stock: p.stock?.[currentBranchId || ""],
+        price: p.retailPrice?.[currentBranchId || ""],
+      }))
+    );
+    return filtered.slice(0, 5);
+  }, [fetchedParts, templatePartSearchTerm, templatePartSearchIndex]);
 
   // Handle print work order - show preview modal
   const handlePrintOrder = (order: WorkOrder) => {
@@ -611,7 +901,7 @@ export default function ServiceManager() {
                   <input type="checkbox" className="rounded" />
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300">
-                  Tên thiết bị
+                  Mã phiếu
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300">
                   Khách hàng
@@ -663,45 +953,33 @@ export default function ServiceManager() {
                       key={order.id}
                       className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/30"
                     >
+                      {/* Checkbox column */}
                       <td className="px-2 py-4 align-top">
-                        <div className="flex flex-col items-center gap-2">
-                          <input type="checkbox" className="rounded" />
-                          <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center flex-shrink-0">
-                            <Wrench className="w-5 h-5 text-slate-400" />
-                          </div>
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                            {(
-                              formatWorkOrderId(
-                                order.id,
-                                storeSettings?.work_order_prefix
-                              ) || ""
-                            )
-                              .split("-")
-                              .pop()}
-                          </span>
-                        </div>
+                        <input type="checkbox" className="rounded" />
                       </td>
 
+                      {/* Column 1: Mã phiếu */}
                       <td className="px-4 py-4 align-top">
                         <div className="space-y-0.5">
-                          <div className="font-semibold text-base text-slate-900 dark:text-slate-100">
-                            {order.vehicleModel || "N/A"}
+                          <div className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">
+                            {formatWorkOrderId(
+                              order.id,
+                              storeSettings?.work_order_prefix
+                            )}
                           </div>
                           <div className="text-xs text-slate-500">
-                            <span>Imei: </span>
-                            <span className="text-slate-600 dark:text-slate-400">
-                              {order.licensePlate || "Chưa nhập imei"}
-                            </span>
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            <span>Lúc: </span>
+                            <span>Ngày: </span>
                             <span className="text-slate-600 dark:text-slate-400">
                               {formatDate(order.creationDate, true)}
                             </span>
                           </div>
+                          <div className="text-xs text-cyan-600 dark:text-cyan-400">
+                            NV: {order.technicianName || "Chưa phân công"}
+                          </div>
                         </div>
                       </td>
 
+                      {/* Column 2: Khách hàng */}
                       <td className="px-4 py-4 align-top">
                         <div className="space-y-0.5">
                           <div className="font-semibold text-base text-slate-900 dark:text-slate-100">
@@ -710,36 +988,71 @@ export default function ServiceManager() {
                           <div className="text-xs text-slate-600 dark:text-slate-400">
                             {order.customerPhone}
                           </div>
-                          <div className="text-xs text-slate-500 italic">
-                            {order.issueDescription || "Không có ghi chú"}
+                          <div className="text-xs text-slate-500">
+                            <span className="font-medium">Xe: </span>
+                            <span>{order.vehicleModel || "N/A"}</span>
+                            {order.licensePlate && (
+                              <span className="ml-1">
+                                - {order.licensePlate}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-500 italic mt-1">
+                            {order.issueDescription || "Không có mô tả"}
                           </div>
                         </div>
                       </td>
 
+                      {/* Column 3: Chi tiết */}
                       <td className="px-4 py-4 align-top">
                         <div className="space-y-1">
-                          {/* Hiển thị danh sách phụ tùng đã thay */}
-                          {order.partsUsed && order.partsUsed.length > 0 ? (
-                            <div className="space-y-0.5">
-                              {order.partsUsed.map((part, idx) => (
-                                <div
-                                  key={idx}
-                                  className="text-xs text-slate-700 dark:text-slate-300"
-                                >
-                                  • {part.partName} ({part.quantity})
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-xs text-slate-500 italic">
-                              {order.issueDescription || "Chưa có phụ tùng"}
+                          {/* Phụ tùng */}
+                          {order.partsUsed && order.partsUsed.length > 0 && (
+                            <div className="mb-2">
+                              <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-0.5">
+                                Phụ tùng:
+                              </div>
+                              <div className="space-y-0.5">
+                                {order.partsUsed.map((part, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="text-xs text-slate-700 dark:text-slate-300"
+                                  >
+                                    • {part.partName} x{part.quantity}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
 
-                          {/* Hiển thị kỹ thuật viên */}
-                          <div className="text-xs text-cyan-600 dark:text-cyan-400 mt-2">
-                            {order.technicianName || "Chưa phân công"}
-                          </div>
+                          {/* Gia công/Đặt hàng */}
+                          {order.additionalServices &&
+                            order.additionalServices.length > 0 && (
+                              <div>
+                                <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-0.5">
+                                  Gia công/Đặt hàng:
+                                </div>
+                                <div className="space-y-0.5">
+                                  {order.additionalServices.map((svc, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="text-xs text-slate-700 dark:text-slate-300"
+                                    >
+                                      • {svc.description} x{svc.quantity || 1}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                          {/* Nếu không có gì */}
+                          {(!order.partsUsed || order.partsUsed.length === 0) &&
+                            (!order.additionalServices ||
+                              order.additionalServices.length === 0) && (
+                              <div className="text-xs text-slate-500 italic">
+                                Chưa có chi tiết
+                              </div>
+                            )}
                         </div>
                       </td>
 
@@ -816,15 +1129,19 @@ export default function ServiceManager() {
                           <div className="pt-2">
                             {order.status === "Trả máy" ? (
                               <span className="inline-block px-2.5 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded text-xs font-medium border border-green-500/20">
-                                Đã sửa xong
+                                Trả máy
                               </span>
                             ) : order.status === "Đã sửa xong" ? (
                               <span className="inline-block px-2.5 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-xs font-medium border border-blue-500/20">
                                 Đã sửa xong
                               </span>
-                            ) : (
+                            ) : order.status === "Đang sửa" ? (
                               <span className="inline-block px-2.5 py-1 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded text-xs font-medium border border-orange-500/20">
-                                Đang sửa...
+                                Đang sửa
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2.5 py-1 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded text-xs font-medium border border-slate-500/20">
+                                Tiếp nhận
                               </span>
                             )}
                           </div>
@@ -954,10 +1271,16 @@ export default function ServiceManager() {
                         >
                           Áp dụng mẫu
                         </button>
-                        <button className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded text-sm">
+                        <button
+                          onClick={handleCreateTemplate}
+                          className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded text-sm"
+                        >
                           Tạo mới
                         </button>
-                        <button className="px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-sm">
+                        <button
+                          onClick={() => handleEditTemplate(template)}
+                          className="px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-sm"
+                        >
                           Sửa mẫu
                         </button>
                       </div>
@@ -997,8 +1320,8 @@ export default function ServiceManager() {
           }}
           parts={parts}
           partsLoading={partsLoading}
-          customers={customers}
-          employees={employees}
+          customers={displayCustomers}
+          employees={displayEmployees}
           upsertCustomer={upsertCustomer}
           setCashTransactions={setCashTransactions}
           setPaymentSources={setPaymentSources}
@@ -2296,6 +2619,349 @@ export default function ServiceManager() {
           </div>
         </div>
       )}
+
+      {/* Template Editor Modal */}
+      {showTemplateEditor && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                {editingTemplate ? "Sửa mẫu sửa chữa" : "Tạo mẫu sửa chữa mới"}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowTemplateEditor(false);
+                  setEditingTemplate(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="space-y-4">
+                {/* Template Name */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Tên mẫu <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="VD: Thay dầu động cơ"
+                    value={templateForm.name}
+                    onChange={(e) =>
+                      setTemplateForm({ ...templateForm, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Mô tả
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Mô tả chi tiết dịch vụ..."
+                    value={templateForm.description}
+                    onChange={(e) =>
+                      setTemplateForm({
+                        ...templateForm,
+                        description: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 resize-none"
+                  />
+                </div>
+
+                {/* Duration & Labor Cost */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Thời gian (phút)
+                    </label>
+                    <input
+                      type="number"
+                      min="5"
+                      step="5"
+                      value={templateForm.duration}
+                      onChange={(e) =>
+                        setTemplateForm({
+                          ...templateForm,
+                          duration: Number(e.target.value),
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Chi phí công <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="10000"
+                      placeholder="0"
+                      value={templateForm.laborCost || ""}
+                      onChange={(e) =>
+                        setTemplateForm({
+                          ...templateForm,
+                          laborCost: Number(e.target.value),
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                {/* Parts List */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Phụ tùng cần thiết
+                    </label>
+                    <button
+                      onClick={handleAddPartToTemplate}
+                      className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm flex items-center gap-1"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      Thêm phụ tùng
+                    </button>
+                  </div>
+
+                  {templateForm.parts.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
+                      Chưa có phụ tùng nào. Nhấn "Thêm phụ tùng" để thêm.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {templateForm.parts.map((part, index) => (
+                        <div
+                          key={index}
+                          className="flex gap-2 items-start p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
+                        >
+                          <div className="flex-1 grid grid-cols-4 gap-2">
+                            <div className="col-span-2 relative template-part-input">
+                              <input
+                                type="text"
+                                placeholder="Tên phụ tùng"
+                                value={part.name}
+                                onChange={(e) =>
+                                  handleUpdateTemplatePart(
+                                    index,
+                                    "name",
+                                    e.target.value
+                                  )
+                                }
+                                onFocus={() => {
+                                  setTemplatePartSearchIndex(index);
+                                  setTemplatePartSearchTerm(part.name);
+                                }}
+                                className="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                              />
+                              {/* Autocomplete dropdown */}
+                              {templatePartSearchIndex === index && (
+                                <div className="absolute z-[60] top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                                  {filteredTemplateInventoryParts.length > 0 ? (
+                                    filteredTemplateInventoryParts.map(
+                                      (inventoryPart) => (
+                                        <button
+                                          key={inventoryPart.id}
+                                          type="button"
+                                          onClick={() =>
+                                            handleSelectTemplatePartFromInventory(
+                                              index,
+                                              inventoryPart
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-200 dark:border-slate-700 last:border-b-0"
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                              <div className="font-medium text-slate-900 dark:text-slate-100 text-sm">
+                                                {inventoryPart.name}
+                                              </div>
+                                              <div className="text-xs text-slate-500 dark:text-slate-400">
+                                                Tồn kho:{" "}
+                                                {inventoryPart.stock?.[
+                                                  currentBranchId || ""
+                                                ] || 0}{" "}
+                                                cái
+                                              </div>
+                                            </div>
+                                            <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                              {formatCurrency(
+                                                inventoryPart.retailPrice?.[
+                                                  currentBranchId || ""
+                                                ] || 0
+                                              )}
+                                            </div>
+                                          </div>
+                                        </button>
+                                      )
+                                    )
+                                  ) : (
+                                    <div className="px-3 py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                                      {!fetchedParts ||
+                                      fetchedParts.length === 0
+                                        ? "Không có phụ tùng trong kho. Vui lòng thêm phụ tùng trước."
+                                        : "Không tìm thấy phụ tùng phù hợp"}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <input
+                              type="number"
+                              min="1"
+                              placeholder="SL"
+                              value={part.quantity}
+                              onChange={(e) =>
+                                handleUpdateTemplatePart(
+                                  index,
+                                  "quantity",
+                                  Number(e.target.value)
+                                )
+                              }
+                              className="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              step="1000"
+                              placeholder="Đơn giá"
+                              value={part.price || ""}
+                              onChange={(e) =>
+                                handleUpdateTemplatePart(
+                                  index,
+                                  "price",
+                                  Number(e.target.value)
+                                )
+                              }
+                              className="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                            />
+                          </div>
+                          <button
+                            onClick={() => handleRemovePartFromTemplate(index)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                            title="Xóa"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Total Preview */}
+                {(templateForm.laborCost > 0 ||
+                  templateForm.parts.length > 0) && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div className="text-sm space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600 dark:text-slate-400">
+                          Chi phí công:
+                        </span>
+                        <span className="font-medium text-slate-900 dark:text-slate-100">
+                          {formatCurrency(templateForm.laborCost)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600 dark:text-slate-400">
+                          Phụ tùng:
+                        </span>
+                        <span className="font-medium text-slate-900 dark:text-slate-100">
+                          {formatCurrency(
+                            templateForm.parts.reduce(
+                              (sum, p) => sum + p.price * p.quantity,
+                              0
+                            )
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-blue-200 dark:border-blue-700">
+                        <span className="font-medium text-slate-900 dark:text-slate-100">
+                          Tổng ước tính:
+                        </span>
+                        <span className="font-bold text-blue-600 dark:text-blue-400">
+                          {formatCurrency(
+                            templateForm.laborCost +
+                              templateForm.parts.reduce(
+                                (sum, p) => sum + p.price * p.quantity,
+                                0
+                              )
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-slate-200 dark:border-slate-700 px-6 py-4 flex justify-end gap-3 bg-slate-50 dark:bg-slate-800/50">
+              <button
+                onClick={() => {
+                  setShowTemplateEditor(false);
+                  setEditingTemplate(null);
+                }}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium"
+              >
+                {editingTemplate ? "Cập nhật" : "Tạo mẫu"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2330,6 +2996,66 @@ const WorkOrderModal: React.FC<{
   currentBranchId,
   storeSettings,
 }) => {
+  // Popular motorcycle models in Vietnam
+  const POPULAR_MOTORCYCLES = [
+    // Honda
+    "Honda Wave RSX",
+    "Honda Wave Alpha",
+    "Honda Blade",
+    "Honda Future",
+    "Honda Winner X",
+    "Honda Vision",
+    "Honda Air Blade",
+    "Honda SH Mode",
+    "Honda SH 125i",
+    "Honda SH 150i",
+    "Honda SH 160i",
+    "Honda SH 350i",
+    "Honda Vario",
+    "Honda Lead",
+    "Honda PCX",
+    "Honda ADV",
+    // Yamaha
+    "Yamaha Exciter",
+    "Yamaha Sirius",
+    "Yamaha Jupiter",
+    "Yamaha Grande",
+    "Yamaha Janus",
+    "Yamaha FreeGo",
+    "Yamaha Latte",
+    "Yamaha NVX",
+    "Yamaha XSR",
+    // Suzuki
+    "Suzuki Raider",
+    "Suzuki Axelo",
+    "Suzuki Satria",
+    "Suzuki GD110",
+    "Suzuki Impulse",
+    "Suzuki Address",
+    "Suzuki Revo",
+    // SYM
+    "SYM Elite",
+    "SYM Galaxy",
+    "SYM Star",
+    "SYM Attila",
+    "SYM Angela",
+    "SYM Passing",
+    // Piaggio & Vespa
+    "Piaggio Liberty",
+    "Piaggio Medley",
+    "Vespa Sprint",
+    "Vespa Primavera",
+    "Vespa GTS",
+    // VinFast
+    "VinFast Klara",
+    "VinFast Evo200",
+    "VinFast Ludo",
+    "VinFast Impes",
+    "VinFast Theon",
+    // Khác
+    "Khác",
+  ];
+
   const { profile } = useAuth();
   const { mutateAsync: createWorkOrderAtomicAsync } =
     useCreateWorkOrderAtomicRepo();
@@ -2373,6 +3099,16 @@ const WorkOrderModal: React.FC<{
   });
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+
+  // Discount state
+  const [discountType, setDiscountType] = useState<"amount" | "percent">(
+    "amount"
+  );
+  const [discountPercent, setDiscountPercent] = useState(0);
+
+  // Submission guard to prevent duplicate submissions
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Additional services state (Báo giá - Gia công/Đặt hàng)
   const [additionalServices, setAdditionalServices] = useState<
@@ -2428,11 +3164,18 @@ const WorkOrderModal: React.FC<{
       setPartialPayment(0);
       setShowPartialPayment(false);
     }
+
+    // Reset discount type to amount when opening/changing order
+    setDiscountType("amount");
+    setDiscountPercent(0);
   }, [order]);
 
   // Filter customers based on search - show all if search is empty
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch.trim()) return customers;
+    if (!customerSearch.trim()) {
+      // Show all customers when no search term
+      return customers.slice(0, 10); // Limit to first 10 for performance
+    }
 
     return customers.filter(
       (c) =>
@@ -2447,6 +3190,9 @@ const WorkOrderModal: React.FC<{
       const target = event.target as HTMLElement;
       if (!target.closest(".customer-search-container")) {
         setShowCustomerDropdown(false);
+      }
+      if (!target.closest(".vehicle-search-container")) {
+        setShowVehicleDropdown(false);
       }
     };
 
@@ -2487,9 +3233,20 @@ const WorkOrderModal: React.FC<{
   const createCustomerDebt = useCreateCustomerDebtRepo();
   const createCustomerDebtIfNeeded = async (
     workOrder: WorkOrder,
-    remainingAmount: number
+    remainingAmount: number,
+    totalAmount: number,
+    paidAmount: number
   ) => {
     if (remainingAmount <= 0) return;
+
+    console.log("[createCustomerDebtIfNeeded] CALLED with:", {
+      workOrderId: workOrder.id,
+      totalAmount,
+      paidAmount,
+      remainingAmount,
+      customerName: workOrder.customerName,
+      timestamp: new Date().toISOString(),
+    });
 
     try {
       const safeCustomerId =
@@ -2499,40 +3256,92 @@ const WorkOrderModal: React.FC<{
         workOrder.customerPhone ||
         "Khách vãng lai";
 
+      // Tạo nội dung chi tiết từ phiếu sửa chữa
+      const workOrderNumber =
+        formatWorkOrderId(workOrder.id, storeSettings?.work_order_prefix)
+          .split("-")
+          .pop() || "";
+
+      let description = `${
+        workOrder.vehicleModel || "Xe"
+      } (Phiếu sửa chữa #${workOrderNumber})`;
+
+      // Mô tả vấn đề
+      if (workOrder.issueDescription) {
+        description += `\nVấn đề: ${workOrder.issueDescription}`;
+      }
+
+      // Danh sách phụ tùng đã sử dụng
+      if (workOrder.partsUsed && workOrder.partsUsed.length > 0) {
+        description += "\n\nPhụ tùng đã thay:";
+        workOrder.partsUsed.forEach((part) => {
+          description += `\n  • ${part.quantity} x ${
+            part.partName
+          } - ${formatCurrency(part.price * part.quantity)}`;
+        });
+      }
+
+      // Danh sách dịch vụ bổ sung (gia công, đặt hàng)
+      if (
+        workOrder.additionalServices &&
+        workOrder.additionalServices.length > 0
+      ) {
+        description += "\n\nDịch vụ:";
+        workOrder.additionalServices.forEach((service) => {
+          description += `\n  • ${service.quantity} x ${
+            service.description
+          } - ${formatCurrency(service.price * service.quantity)}`;
+        });
+      }
+
+      // Công lao động
+      if (workOrder.laborCost && workOrder.laborCost > 0) {
+        description += `\n\nCông lao động: ${formatCurrency(
+          workOrder.laborCost
+        )}`;
+      }
+
+      // Giảm giá (nếu có)
+      if (workOrder.discount && workOrder.discount > 0) {
+        description += `\nGiảm giá: -${formatCurrency(workOrder.discount)}`;
+      }
+
+      // Thông tin nhân viên kỹ thuật
+      if (workOrder.technicianName) {
+        description += `\n\nNVKỹ thuật: ${workOrder.technicianName}`;
+      }
+
       const payload = {
         customerId: safeCustomerId,
         customerName: safeCustomerName,
         phone: workOrder.customerPhone || null,
         licensePlate: workOrder.licensePlate || null,
-        description: `Công nợ từ phiếu sửa chữa #${
-          formatWorkOrderId(workOrder.id, storeSettings?.work_order_prefix)
-            .split("-")
-            .pop() || ""
-        } - ${safeCustomerName} - Biển số: ${workOrder.licensePlate || ""}`,
-        totalAmount: remainingAmount,
-        paidAmount: 0,
+        description: description,
+        totalAmount: totalAmount,
+        paidAmount: paidAmount,
         remainingAmount: remainingAmount,
         createdDate: new Date().toISOString().split("T")[0],
         branchId: currentBranchId,
+        workOrderId: workOrder.id, // 🔹 Link debt với work order
       };
 
       console.log("[ServiceManager] createCustomerDebt payload:", payload);
       const result = await createCustomerDebt.mutateAsync(payload as any);
       console.log("[ServiceManager] createCustomerDebt result:", result);
       showToast.success(
-        `Đã tạo công nợ ${remainingAmount.toLocaleString()}đ cho khách hàng (ID: ${
-          result?.id
+        `Đã tạo/cập nhật công nợ ${remainingAmount.toLocaleString()}đ (Mã: ${
+          result?.id || "N/A"
         })`
       );
     } catch (error) {
-      console.error("Error creating customer debt:", error);
-      showToast.error("Không thể tạo công nợ tự động");
+      console.error("Error creating/updating customer debt:", error);
+      showToast.error("Không thể tạo/cập nhật công nợ tự động");
     }
   };
 
-  const handleSave = async () => {
-    // 🔹 VALIDATION FRONTEND
-    // 1. Validate customer name & phone required
+  // 🔹 Function to handle deposit (đặt cọc để đặt hàng)
+  const handleDeposit = async () => {
+    // Validation
     if (!formData.customerName?.trim()) {
       showToast.error("Vui lòng nhập tên khách hàng");
       return;
@@ -2542,28 +3351,173 @@ const WorkOrderModal: React.FC<{
       return;
     }
 
-    // 2. Validate phone format (10-11 digits)
+    if (depositAmount <= 0) {
+      showToast.error("Vui lòng nhập số tiền đặt cọc");
+      return;
+    }
+
+    if (!formData.paymentMethod) {
+      showToast.error("Vui lòng chọn phương thức thanh toán");
+      return;
+    }
+
+    try {
+      const orderId =
+        formData.id ||
+        `${storeSettings?.work_order_prefix || "SC"}-${Date.now()}`;
+
+      // Prepare work order data with deposit
+      const workOrderData: WorkOrder = {
+        id: orderId,
+        customerName: formData.customerName || "",
+        customerPhone: formData.customerPhone || "",
+        vehicleModel: formData.vehicleModel || "",
+        licensePlate: formData.licensePlate || "",
+        issueDescription: formData.issueDescription || "",
+        technicianName: formData.technicianName || "",
+        status: formData.status || "Tiếp nhận",
+        laborCost: formData.laborCost || 0,
+        discount: discount,
+        partsUsed: selectedParts,
+        additionalServices:
+          additionalServices.length > 0 ? additionalServices : undefined,
+        total: total,
+        branchId: currentBranchId,
+        depositAmount: depositAmount,
+        depositDate: new Date().toISOString(),
+        paymentStatus: "partial",
+        paymentMethod: formData.paymentMethod,
+        totalPaid: depositAmount,
+        remainingAmount: total - depositAmount,
+        creationDate: formData.creationDate || new Date().toISOString(),
+      };
+
+      // Save to database using Supabase
+      if (formData.id) {
+        // Update existing work order
+        await supabase
+          .from("work_orders")
+          .update({
+            customername: workOrderData.customerName,
+            customerphone: workOrderData.customerPhone,
+            vehiclemodel: workOrderData.vehicleModel,
+            licenseplate: workOrderData.licensePlate,
+            issuedescription: workOrderData.issueDescription,
+            technicianname: workOrderData.technicianName,
+            status: workOrderData.status,
+            laborcost: workOrderData.laborCost,
+            discount: workOrderData.discount,
+            partsused: workOrderData.partsUsed,
+            additionalservices: workOrderData.additionalServices,
+            total: workOrderData.total,
+            depositamount: workOrderData.depositAmount,
+            depositdate: workOrderData.depositDate,
+            paymentstatus: workOrderData.paymentStatus,
+            paymentmethod: workOrderData.paymentMethod,
+            totalpaid: workOrderData.totalPaid,
+            remainingamount: workOrderData.remainingAmount,
+          })
+          .eq("id", formData.id);
+      } else {
+        // Insert new work order
+        await supabase.from("work_orders").insert({
+          id: workOrderData.id,
+          customername: workOrderData.customerName,
+          customerphone: workOrderData.customerPhone,
+          vehiclemodel: workOrderData.vehicleModel,
+          licenseplate: workOrderData.licensePlate,
+          issuedescription: workOrderData.issueDescription,
+          technicianname: workOrderData.technicianName,
+          status: workOrderData.status,
+          laborcost: workOrderData.laborCost,
+          discount: workOrderData.discount,
+          partsused: workOrderData.partsUsed,
+          additionalservices: workOrderData.additionalServices,
+          total: workOrderData.total,
+          branchid: workOrderData.branchId,
+          depositamount: workOrderData.depositAmount,
+          depositdate: workOrderData.depositDate,
+          paymentstatus: workOrderData.paymentStatus,
+          paymentmethod: workOrderData.paymentMethod,
+          totalpaid: workOrderData.totalPaid,
+          remainingamount: workOrderData.remainingAmount,
+          creationDate: workOrderData.creationDate,
+        });
+      }
+
+      // Create deposit cash transaction (Thu tiền cọc vào quỹ)
+      const depositTxId = `TX-${Date.now()}-DEP`;
+      await supabase.from("cash_transactions").insert({
+        id: depositTxId,
+        type: "income",
+        category: "service_deposit",
+        amount: depositAmount,
+        date: new Date().toISOString(),
+        description: `Đặt cọc sửa chữa #${orderId.split("-").pop()} - ${
+          formData.customerName
+        }`,
+        branchid: currentBranchId,
+        paymentsource: formData.paymentMethod,
+        reference: orderId,
+      });
+
+      // Create expense transaction (Phiếu chi để đặt hàng)
+      const expenseTxId = `TX-${Date.now()}-EXP`;
+      await supabase.from("cash_transactions").insert({
+        id: expenseTxId,
+        type: "expense",
+        category: "parts_purchase",
+        amount: depositAmount,
+        date: new Date().toISOString(),
+        description: `Đặt hàng phụ tùng cho #${orderId.split("-").pop()} - ${
+          formData.customerName
+        }`,
+        branchid: currentBranchId,
+        paymentsource: formData.paymentMethod,
+        reference: orderId,
+      });
+
+      // Update UI state
+      workOrderData.depositTransactionId = depositTxId;
+      onSave(workOrderData);
+
+      showToast.success(
+        "Đã đặt cọc thành công! Phiếu chi đặt hàng đã được tạo."
+      );
+      onClose();
+    } catch (error: any) {
+      console.error("Error processing deposit:", error);
+      showToast.error("Lỗi khi xử lý đặt cọc");
+    }
+  };
+
+  // 🔹 Function to save work order without payment processing
+  const handleSaveOnly = async () => {
+    // Validation
+    if (!formData.customerName?.trim()) {
+      showToast.error("Vui lòng nhập tên khách hàng");
+      return;
+    }
+    if (!formData.customerPhone?.trim()) {
+      showToast.error("Vui lòng nhập số điện thoại");
+      return;
+    }
+
     const phoneRegex = /^[0-9]{10,11}$/;
     if (!phoneRegex.test(formData.customerPhone.trim())) {
       showToast.error("Số điện thoại không hợp lệ (cần 10-11 chữ số)");
       return;
     }
 
-    // 3. Validate total > 0
-    if (total <= 0) {
-      showToast.error("Tổng tiền phải lớn hơn 0");
-      return;
-    }
+    // Note: Không validate total > 0 vì có thể chỉ tiếp nhận thông tin, chưa báo giá
 
-    // Add/update customer with duplicate check
+    // Add/update customer
     if (formData.customerName && formData.customerPhone) {
       const existingCustomer = customers.find(
         (c) => c.phone === formData.customerPhone
       );
 
-      // 🔹 VALIDATE DUPLICATE PHONE
       if (!existingCustomer) {
-        // Check if phone belongs to different customer name
         const duplicatePhone = customers.find(
           (c) =>
             c.phone === formData.customerPhone &&
@@ -2594,438 +3548,643 @@ const WorkOrderModal: React.FC<{
       }
     }
 
-    // Determine payment status
+    // Determine payment status based on existing payments only (not new ones)
     let paymentStatus: "unpaid" | "paid" | "partial" = "unpaid";
-    if (totalPaid >= total) {
+    const existingPaid =
+      (order?.depositAmount || 0) + (order?.additionalPayment || 0);
+    if (existingPaid >= total) {
       paymentStatus = "paid";
-    } else if (totalPaid > 0) {
+    } else if (existingPaid > 0) {
       paymentStatus = "partial";
     }
 
-    // If this is a NEW work order with parts, use atomic RPC
-    if (!order?.id && selectedParts.length > 0) {
-      try {
-        const orderId = `${
-          storeSettings?.work_order_prefix || "SC"
-        }-${Date.now()}`;
+    try {
+      const orderId =
+        order?.id ||
+        `${storeSettings?.work_order_prefix || "SC"}-${Date.now()}`;
 
-        const responseData = await createWorkOrderAtomicAsync({
-          id: orderId,
-          customerName: formData.customerName || "",
-          customerPhone: formData.customerPhone || "",
-          vehicleModel: formData.vehicleModel || "",
-          licensePlate: formData.licensePlate || "",
-          issueDescription: formData.issueDescription || "",
-          technicianName: formData.technicianName || "",
-          status: formData.status || "Tiếp nhận",
-          laborCost: formData.laborCost || 0,
-          discount: discount,
-          partsUsed: selectedParts,
-          additionalServices:
-            additionalServices.length > 0 ? additionalServices : undefined,
-          total: total,
-          branchId: currentBranchId,
-          paymentStatus: paymentStatus,
-          paymentMethod: formData.paymentMethod,
-          depositAmount: depositAmount > 0 ? depositAmount : undefined,
-          additionalPayment:
-            totalAdditionalPayment > 0 ? totalAdditionalPayment : undefined,
-          totalPaid: totalPaid > 0 ? totalPaid : undefined,
-          remainingAmount: remainingAmount,
-          creationDate: new Date().toISOString(),
-          userId: profile?.id || "unknown",
-        } as any);
+      const workOrderData = {
+        id: orderId,
+        customername: formData.customerName || "",
+        customerphone: formData.customerPhone || "",
+        vehiclemodel: formData.vehicleModel || "",
+        licenseplate: formData.licensePlate || "",
+        issuedescription: formData.issueDescription || "",
+        technicianname: formData.technicianName || "",
+        status: formData.status || "Tiếp nhận",
+        laborcost: formData.laborCost || 0,
+        discount: discount,
+        partsused: selectedParts,
+        additionalservices:
+          additionalServices.length > 0 ? additionalServices : undefined,
+        total: total,
+        branchid: currentBranchId,
+        paymentstatus: paymentStatus,
+        paymentmethod: formData.paymentMethod || null,
+        depositamount: order?.depositAmount || null,
+        totalpaid: existingPaid > 0 ? existingPaid : null,
+        remainingamount: total - existingPaid,
+        creationdate: order?.creationDate || new Date().toISOString(),
+      };
 
-        // Extract transaction IDs from response
-        const depositTxId = responseData?.depositTransactionId;
-        const paymentTxId = responseData?.paymentTransactionId;
+      // Save to Supabase database
+      if (order?.id) {
+        // Update existing
+        const { data, error } = await supabase
+          .from("work_orders")
+          .update(workOrderData)
+          .eq("id", order.id)
+          .select();
 
-        // Create the finalOrder object to update the UI state
-        const finalOrder: WorkOrder = {
-          id: orderId,
-          customerName: formData.customerName || "",
-          customerPhone: formData.customerPhone || "",
-          vehicleModel: formData.vehicleModel || "",
-          licensePlate: formData.licensePlate || "",
-          issueDescription: formData.issueDescription || "",
-          technicianName: formData.technicianName || "",
-          status: formData.status || "Tiếp nhận",
-          laborCost: formData.laborCost || 0,
-          discount: discount,
-          partsUsed: selectedParts,
-          additionalServices:
-            additionalServices.length > 0 ? additionalServices : undefined,
-          total: total,
-          branchId: currentBranchId,
-          depositAmount: depositAmount > 0 ? depositAmount : undefined,
-          depositDate: depositAmount > 0 ? new Date().toISOString() : undefined,
-          depositTransactionId: depositTxId,
-          paymentStatus: paymentStatus,
-          paymentMethod: formData.paymentMethod,
-          additionalPayment:
-            totalAdditionalPayment > 0 ? totalAdditionalPayment : undefined,
-          totalPaid: totalPaid > 0 ? totalPaid : undefined,
-          remainingAmount: remainingAmount,
-          cashTransactionId: paymentTxId,
-          paymentDate: paymentTxId ? new Date().toISOString() : undefined,
-          creationDate: new Date().toISOString(),
-        };
+        if (error) {
+          console.error("[UPDATE ERROR]", error);
+          throw error;
+        }
+        console.log("[UPDATE SUCCESS]", data);
+      } else {
+        // Insert new
+        console.log("[INSERT] Attempting to insert:", workOrderData);
+        const { data, error } = await supabase
+          .from("work_orders")
+          .insert(workOrderData)
+          .select();
 
-        // Update cash transactions in context (for UI consistency)
-        if (depositTxId && depositAmount > 0) {
-          setCashTransactions((prev: any[]) => [
-            ...prev,
-            {
-              id: depositTxId,
-              type: "deposit",
-              category: "service_deposit",
-              amount: depositAmount,
-              date: new Date().toISOString(),
-              description: `Đặt cọc sửa chữa #${(
-                formatWorkOrderId(orderId, storeSettings?.work_order_prefix) ||
-                ""
-              )
-                .split("-")
-                .pop()} - ${formData.customerName}`,
-              branchId: currentBranchId,
-              paymentSource: formData.paymentMethod,
-              reference: orderId,
-            },
-          ]);
-
-          setPaymentSources((prev: any[]) =>
-            prev.map((ps) => {
-              if (ps.id === formData.paymentMethod) {
-                return {
-                  ...ps,
-                  balance: {
-                    ...ps.balance,
-                    [currentBranchId]:
-                      (ps.balance[currentBranchId] || 0) + depositAmount,
-                  },
-                };
-              }
-              return ps;
-            })
+        if (error) {
+          console.error("[INSERT ERROR]", error);
+          console.error(
+            "[INSERT ERROR DETAILS]",
+            JSON.stringify(error, null, 2)
           );
+          throw error;
         }
-
-        if (paymentTxId && totalAdditionalPayment > 0) {
-          setCashTransactions((prev: any[]) => [
-            ...prev,
-            {
-              id: paymentTxId,
-              type: "income",
-              category: "service_income",
-              amount: totalAdditionalPayment,
-              date: new Date().toISOString(),
-              description: `Thu tiền sửa chữa #${(
-                formatWorkOrderId(orderId, storeSettings?.work_order_prefix) ||
-                ""
-              )
-                .split("-")
-                .pop()} - ${formData.customerName}`,
-              branchId: currentBranchId,
-              paymentSource: formData.paymentMethod,
-              reference: orderId,
-            },
-          ]);
-
-          setPaymentSources((prev: any[]) =>
-            prev.map((ps) => {
-              if (ps.id === formData.paymentMethod) {
-                return {
-                  ...ps,
-                  balance: {
-                    ...ps.balance,
-                    [currentBranchId]:
-                      (ps.balance[currentBranchId] || 0) +
-                      totalAdditionalPayment,
-                  },
-                };
-              }
-              return ps;
-            })
-          );
-        }
-
-        // Call onSave to update the workOrders state
-        onSave(finalOrder);
-
-        // 🔹 Auto-create customer debt if there's remaining amount
-        if (remainingAmount > 0) {
-          await createCustomerDebtIfNeeded(finalOrder, remainingAmount);
-        }
-      } catch (error: any) {
-        console.error("Error creating work order (atomic):", error);
-        // Error toast is already shown by the hook's onError
+        console.log("[INSERT SUCCESS]", data);
       }
+
+      onSave(workOrderData as unknown as WorkOrder);
+      showToast.success(
+        order?.id ? "Đã cập nhật phiếu" : "Đã lưu phiếu thành công"
+      );
+      onClose();
+    } catch (error: any) {
+      console.error("Error saving work order:", error);
+      showToast.error(
+        "Lỗi khi lưu phiếu: " +
+          (error.message || error.hint || "Không xác định")
+      );
+    }
+  };
+
+  // 🔹 Function to handle payment processing
+  const handleSave = async () => {
+    // 🔹 PREVENT DUPLICATE SUBMISSIONS
+    if (isSubmitting) {
+      console.log("[handleSave] Already submitting, skipping...");
       return;
     }
 
-    // 🔹 If this is an UPDATE with parts changes, use atomic RPC
-    if (order?.id && selectedParts.length > 0) {
-      try {
-        const responseData = await updateWorkOrderAtomicAsync({
-          id: order.id,
-          customerName: formData.customerName || "",
-          customerPhone: formData.customerPhone || "",
-          vehicleModel: formData.vehicleModel || "",
-          licensePlate: formData.licensePlate || "",
-          issueDescription: formData.issueDescription || "",
-          technicianName: formData.technicianName || "",
-          status: formData.status || "Tiếp nhận",
-          laborCost: formData.laborCost || 0,
-          discount: discount,
-          partsUsed: selectedParts,
-          additionalServices:
-            additionalServices.length > 0 ? additionalServices : undefined,
-          total: total,
-          branchId: currentBranchId,
-          paymentStatus: paymentStatus,
-          paymentMethod: formData.paymentMethod,
-          depositAmount: depositAmount > 0 ? depositAmount : undefined,
-          additionalPayment:
-            totalAdditionalPayment > 0 ? totalAdditionalPayment : undefined,
-          totalPaid: totalPaid > 0 ? totalPaid : undefined,
-          remainingAmount: remainingAmount,
-          userId: profile?.id || "unknown",
-        } as any);
+    setIsSubmitting(true);
 
-        const workOrderRow = (responseData as any).workOrder;
-        const depositTxId = responseData?.depositTransactionId;
-        const paymentTxId = responseData?.paymentTransactionId;
-
-        const finalOrder: WorkOrder = {
-          ...workOrderRow,
-          depositTransactionId: depositTxId || order.depositTransactionId,
-          cashTransactionId: paymentTxId || order.cashTransactionId,
-        };
-
-        // Update cash transactions in context if new transactions created
-        if (depositTxId && depositAmount > order.depositAmount!) {
-          setCashTransactions((prev: any[]) => [
-            ...prev,
-            {
-              id: depositTxId,
-              type: "deposit",
-              category: "service_deposit",
-              amount: depositAmount - (order.depositAmount || 0),
-              date: new Date().toISOString(),
-              description: `Đặt cọc bổ sung #${(
-                formatWorkOrderId(order.id, storeSettings?.work_order_prefix) ||
-                ""
-              )
-                .split("-")
-                .pop()} - ${formData.customerName}`,
-              branchId: currentBranchId,
-              paymentSource: formData.paymentMethod,
-              reference: order.id,
-            },
-          ]);
-
-          setPaymentSources((prev: any[]) =>
-            prev.map((ps) => {
-              if (ps.id === formData.paymentMethod) {
-                return {
-                  ...ps,
-                  balance: {
-                    ...ps.balance,
-                    [currentBranchId]:
-                      (ps.balance[currentBranchId] || 0) +
-                      (depositAmount - (order.depositAmount || 0)),
-                  },
-                };
-              }
-              return ps;
-            })
-          );
-        }
-
-        if (
-          paymentTxId &&
-          totalAdditionalPayment > (order.additionalPayment || 0)
-        ) {
-          setCashTransactions((prev: any[]) => [
-            ...prev,
-            {
-              id: paymentTxId,
-              type: "income",
-              category: "service_income",
-              amount: totalAdditionalPayment - (order.additionalPayment || 0),
-              date: new Date().toISOString(),
-              description: `Thu tiền bổ sung #${(
-                formatWorkOrderId(order.id, storeSettings?.work_order_prefix) ||
-                ""
-              )
-                .split("-")
-                .pop()} - ${formData.customerName}`,
-              branchId: currentBranchId,
-              paymentSource: formData.paymentMethod,
-              reference: order.id,
-            },
-          ]);
-
-          setPaymentSources((prev: any[]) =>
-            prev.map((ps) => {
-              if (ps.id === formData.paymentMethod) {
-                return {
-                  ...ps,
-                  balance: {
-                    ...ps.balance,
-                    [currentBranchId]:
-                      (ps.balance[currentBranchId] || 0) +
-                      (totalAdditionalPayment - (order.additionalPayment || 0)),
-                  },
-                };
-              }
-              return ps;
-            })
-          );
-        }
-
-        onSave(finalOrder);
-
-        if (remainingAmount > 0) {
-          await createCustomerDebtIfNeeded(finalOrder, remainingAmount);
-        }
-      } catch (error: any) {
-        console.error("Error updating work order (atomic):", error);
+    try {
+      // 🔹 VALIDATION FRONTEND
+      // 1. Validate customer name & phone required
+      if (!formData.customerName?.trim()) {
+        showToast.error("Vui lòng nhập tên khách hàng");
+        return;
       }
-      return;
-    }
+      if (!formData.customerPhone?.trim()) {
+        showToast.error("Vui lòng nhập số điện thoại");
+        return;
+      }
 
-    // Otherwise, use old logic for updates without parts
-    const finalOrder: WorkOrder = {
-      id:
-        formData.id ||
-        `${storeSettings?.work_order_prefix || "SC"}-${Date.now()}`,
-      customerName: formData.customerName || "",
-      customerPhone: formData.customerPhone || "",
-      vehicleModel: formData.vehicleModel || "",
-      licensePlate: formData.licensePlate || "",
-      issueDescription: formData.issueDescription || "",
-      technicianName: formData.technicianName || "",
-      status: formData.status || "Tiếp nhận",
-      laborCost: formData.laborCost || 0,
-      discount: discount,
-      partsUsed: selectedParts,
-      additionalServices:
-        additionalServices.length > 0 ? additionalServices : undefined,
-      total: total,
-      branchId: currentBranchId,
+      // 2. Validate phone format (10-11 digits)
+      const phoneRegex = /^[0-9]{10,11}$/;
+      if (!phoneRegex.test(formData.customerPhone.trim())) {
+        showToast.error("Số điện thoại không hợp lệ (cần 10-11 chữ số)");
+        return;
+      }
 
-      // Deposit fields
-      depositAmount: depositAmount > 0 ? depositAmount : undefined,
-      depositDate:
-        depositAmount > 0 && !order?.depositDate
-          ? new Date().toISOString()
-          : order?.depositDate,
+      // 3. Validate total > 0
+      if (total <= 0) {
+        showToast.error("Tổng tiền phải lớn hơn 0");
+        return;
+      }
 
-      // Payment fields
-      paymentStatus: paymentStatus,
-      paymentMethod: formData.paymentMethod,
-      additionalPayment:
-        totalAdditionalPayment > 0 ? totalAdditionalPayment : undefined,
-      totalPaid: totalPaid > 0 ? totalPaid : undefined,
-      remainingAmount: remainingAmount,
+      // Add/update customer with duplicate check
+      if (formData.customerName && formData.customerPhone) {
+        const existingCustomer = customers.find(
+          (c) => c.phone === formData.customerPhone
+        );
 
-      creationDate: formData.creationDate || new Date().toISOString(),
-    };
+        // 🔹 VALIDATE DUPLICATE PHONE
+        if (!existingCustomer) {
+          // Check if phone belongs to different customer name
+          const duplicatePhone = customers.find(
+            (c) =>
+              c.phone === formData.customerPhone &&
+              formData.customerName &&
+              c.name.toLowerCase() !== formData.customerName.toLowerCase()
+          );
 
-    // Handle deposit transaction (first time only)
-    if (depositAmount > 0 && !order?.depositAmount && formData.paymentMethod) {
-      const depositTxId = `DEP-${Date.now()}`;
-      setCashTransactions((prev: any[]) => [
-        ...prev,
-        {
-          id: depositTxId,
-          type: "deposit",
-          category: "service_deposit",
-          amount: depositAmount,
-          date: new Date().toISOString(),
-          description: `Đặt cọc sửa chữa #${(
-            formatWorkOrderId(
-              finalOrder.id,
-              storeSettings?.work_order_prefix
-            ) || ""
-          )
-            .split("-")
-            .pop()} - ${formData.customerName}`,
-          branchId: currentBranchId,
-          paymentSource: formData.paymentMethod,
-          reference: finalOrder.id,
-        },
-      ]);
-
-      setPaymentSources((prev: any[]) =>
-        prev.map((ps) => {
-          if (ps.id === formData.paymentMethod) {
-            return {
-              ...ps,
-              balance: {
-                ...ps.balance,
-                [currentBranchId]:
-                  (ps.balance[currentBranchId] || 0) + depositAmount,
-              },
-            };
+          if (duplicatePhone) {
+            showToast.warning(
+              `SĐT đã tồn tại cho khách "${duplicatePhone.name}". Có thể trùng lặp?`
+            );
           }
-          return ps;
-        })
-      );
 
-      finalOrder.depositTransactionId = depositTxId;
-    }
+          upsertCustomer({
+            id: `CUST-${Date.now()}`,
+            name: formData.customerName,
+            phone: formData.customerPhone,
+            vehicleModel: formData.vehicleModel,
+            licensePlate: formData.licensePlate,
+            status: "active",
+            segment: "New",
+            loyaltyPoints: 0,
+            totalSpent: 0,
+            visitCount: 1,
+            lastVisit: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+          });
+        }
+      }
 
-    // Handle additional payment transaction (when paying more at pickup)
-    if (totalAdditionalPayment > 0 && formData.paymentMethod) {
-      const paymentTxId = `PAY-${Date.now()}`;
-      setCashTransactions((prev: any[]) => [
-        ...prev,
-        {
-          id: paymentTxId,
-          type: "income",
-          category: "service_income",
-          amount: totalAdditionalPayment,
-          date: new Date().toISOString(),
-          description: `Thu tiền sửa chữa #${(
-            formatWorkOrderId(
-              finalOrder.id,
-              storeSettings?.work_order_prefix
-            ) || ""
-          )
-            .split("-")
-            .pop()} - ${formData.customerName}`,
-          branchId: currentBranchId,
-          paymentSource: formData.paymentMethod,
-          reference: finalOrder.id,
-        },
-      ]);
+      // Determine payment status
+      let paymentStatus: "unpaid" | "paid" | "partial" = "unpaid";
+      if (totalPaid >= total) {
+        paymentStatus = "paid";
+      } else if (totalPaid > 0) {
+        paymentStatus = "partial";
+      }
 
-      setPaymentSources((prev: any[]) =>
-        prev.map((ps) => {
-          if (ps.id === formData.paymentMethod) {
-            return {
-              ...ps,
-              balance: {
-                ...ps.balance,
-                [currentBranchId]:
-                  (ps.balance[currentBranchId] || 0) + totalAdditionalPayment,
+      // If this is a NEW work order (with parts OR additionalServices OR deposit), use atomic RPC
+      if (
+        !order?.id &&
+        (selectedParts.length > 0 ||
+          additionalServices.length > 0 ||
+          depositAmount > 0)
+      ) {
+        try {
+          const orderId = `${
+            storeSettings?.work_order_prefix || "SC"
+          }-${Date.now()}`;
+
+          const responseData = await createWorkOrderAtomicAsync({
+            id: orderId,
+            customerName: formData.customerName || "",
+            customerPhone: formData.customerPhone || "",
+            vehicleModel: formData.vehicleModel || "",
+            licensePlate: formData.licensePlate || "",
+            issueDescription: formData.issueDescription || "",
+            technicianName: formData.technicianName || "",
+            status: formData.status || "Tiếp nhận",
+            laborCost: formData.laborCost || 0,
+            discount: discount,
+            partsUsed: selectedParts,
+            additionalServices:
+              additionalServices.length > 0 ? additionalServices : undefined,
+            total: total,
+            branchId: currentBranchId,
+            paymentStatus: paymentStatus,
+            paymentMethod: formData.paymentMethod,
+            depositAmount: depositAmount > 0 ? depositAmount : undefined,
+            additionalPayment:
+              totalAdditionalPayment > 0 ? totalAdditionalPayment : undefined,
+            totalPaid: totalPaid > 0 ? totalPaid : undefined,
+            remainingAmount: remainingAmount,
+            creationDate: new Date().toISOString(),
+          } as any);
+
+          // Extract transaction IDs from response
+          const depositTxId = responseData?.depositTransactionId;
+          const paymentTxId = responseData?.paymentTransactionId;
+
+          // Create the finalOrder object to update the UI state
+          const finalOrder: WorkOrder = {
+            id: orderId,
+            customerName: formData.customerName || "",
+            customerPhone: formData.customerPhone || "",
+            vehicleModel: formData.vehicleModel || "",
+            licensePlate: formData.licensePlate || "",
+            issueDescription: formData.issueDescription || "",
+            technicianName: formData.technicianName || "",
+            status: formData.status || "Tiếp nhận",
+            laborCost: formData.laborCost || 0,
+            discount: discount,
+            partsUsed: selectedParts,
+            additionalServices:
+              additionalServices.length > 0 ? additionalServices : undefined,
+            total: total,
+            branchId: currentBranchId,
+            depositAmount: depositAmount > 0 ? depositAmount : undefined,
+            depositDate:
+              depositAmount > 0 ? new Date().toISOString() : undefined,
+            depositTransactionId: depositTxId,
+            paymentStatus: paymentStatus,
+            paymentMethod: formData.paymentMethod,
+            additionalPayment:
+              totalAdditionalPayment > 0 ? totalAdditionalPayment : undefined,
+            totalPaid: totalPaid > 0 ? totalPaid : undefined,
+            remainingAmount: remainingAmount,
+            cashTransactionId: paymentTxId,
+            paymentDate: paymentTxId ? new Date().toISOString() : undefined,
+            creationDate: new Date().toISOString(),
+          };
+
+          // Update cash transactions in context (for UI consistency)
+          if (depositTxId && depositAmount > 0) {
+            setCashTransactions((prev: any[]) => [
+              ...prev,
+              {
+                id: depositTxId,
+                type: "deposit",
+                category: "service_deposit",
+                amount: depositAmount,
+                date: new Date().toISOString(),
+                description: `Đặt cọc sửa chữa #${(
+                  formatWorkOrderId(
+                    orderId,
+                    storeSettings?.work_order_prefix
+                  ) || ""
+                )
+                  .split("-")
+                  .pop()} - ${formData.customerName}`,
+                branchId: currentBranchId,
+                paymentSource: formData.paymentMethod,
+                reference: orderId,
               },
-            };
+            ]);
+
+            setPaymentSources((prev: any[]) =>
+              prev.map((ps) => {
+                if (ps.id === formData.paymentMethod) {
+                  return {
+                    ...ps,
+                    balance: {
+                      ...ps.balance,
+                      [currentBranchId]:
+                        (ps.balance[currentBranchId] || 0) + depositAmount,
+                    },
+                  };
+                }
+                return ps;
+              })
+            );
           }
-          return ps;
-        })
+
+          if (paymentTxId && totalAdditionalPayment > 0) {
+            setCashTransactions((prev: any[]) => [
+              ...prev,
+              {
+                id: paymentTxId,
+                type: "income",
+                category: "service_income",
+                amount: totalAdditionalPayment,
+                date: new Date().toISOString(),
+                description: `Thu tiền sửa chữa #${(
+                  formatWorkOrderId(
+                    orderId,
+                    storeSettings?.work_order_prefix
+                  ) || ""
+                )
+                  .split("-")
+                  .pop()} - ${formData.customerName}`,
+                branchId: currentBranchId,
+                paymentSource: formData.paymentMethod,
+                reference: orderId,
+              },
+            ]);
+
+            setPaymentSources((prev: any[]) =>
+              prev.map((ps) => {
+                if (ps.id === formData.paymentMethod) {
+                  return {
+                    ...ps,
+                    balance: {
+                      ...ps.balance,
+                      [currentBranchId]:
+                        (ps.balance[currentBranchId] || 0) +
+                        totalAdditionalPayment,
+                    },
+                  };
+                }
+                return ps;
+              })
+            );
+          }
+
+          // Call onSave to update the workOrders state
+          onSave(finalOrder);
+
+          // 🔹 Auto-create customer debt ONLY when status is "Trả máy" and there's remaining amount
+          if (formData.status === "Trả máy" && remainingAmount > 0) {
+            console.log("[handleSave] Creating debt with finalOrder:", {
+              id: finalOrder.id,
+              customerName: finalOrder.customerName,
+              customerPhone: finalOrder.customerPhone,
+              licensePlate: finalOrder.licensePlate,
+              vehicleModel: finalOrder.vehicleModel,
+            });
+            await createCustomerDebtIfNeeded(
+              finalOrder,
+              remainingAmount,
+              total,
+              totalPaid
+            );
+          }
+
+          // Close modal after successful save
+          onClose();
+        } catch (error: any) {
+          console.error("Error creating work order (atomic):", error);
+          // Error toast is already shown by the hook's onError
+        }
+        return;
+      }
+
+      // 🔹 If this is an UPDATE (with or without parts), use atomic RPC
+      if (order?.id) {
+        console.log(
+          "[handleSave] UPDATE block - Order ID:",
+          order.id,
+          "Status:",
+          formData.status
+        );
+        try {
+          console.log("[handleSave] Calling updateWorkOrderAtomicAsync...");
+          const responseData = await updateWorkOrderAtomicAsync({
+            id: order.id,
+            customerName: formData.customerName || "",
+            customerPhone: formData.customerPhone || "",
+            vehicleModel: formData.vehicleModel || "",
+            licensePlate: formData.licensePlate || "",
+            issueDescription: formData.issueDescription || "",
+            technicianName: formData.technicianName || "",
+            status: formData.status || "Tiếp nhận",
+            laborCost: formData.laborCost || 0,
+            discount: discount,
+            partsUsed: selectedParts,
+            additionalServices:
+              additionalServices.length > 0 ? additionalServices : undefined,
+            total: total,
+            branchId: currentBranchId,
+            paymentStatus: paymentStatus,
+            paymentMethod: formData.paymentMethod,
+            depositAmount: depositAmount > 0 ? depositAmount : undefined,
+            additionalPayment:
+              totalAdditionalPayment > 0 ? totalAdditionalPayment : undefined,
+            totalPaid: totalPaid > 0 ? totalPaid : undefined,
+            remainingAmount: remainingAmount,
+          } as any);
+
+          const workOrderRow = (responseData as any).workOrder;
+          const depositTxId = responseData?.depositTransactionId;
+          const paymentTxId = responseData?.paymentTransactionId;
+
+          // 🔹 Transform snake_case response to camelCase for WorkOrder interface
+          // If workOrderRow is undefined, build from formData + order
+          const finalOrder: WorkOrder = workOrderRow
+            ? {
+                id: (workOrderRow as any).id || order.id,
+                customerName:
+                  (workOrderRow as any).customername ||
+                  (workOrderRow as any).customerName ||
+                  order.customerName,
+                customerPhone:
+                  (workOrderRow as any).customerphone ||
+                  (workOrderRow as any).customerPhone ||
+                  order.customerPhone,
+                vehicleModel:
+                  (workOrderRow as any).vehiclemodel ||
+                  (workOrderRow as any).vehicleModel ||
+                  order.vehicleModel,
+                licensePlate:
+                  (workOrderRow as any).licenseplate ||
+                  (workOrderRow as any).licensePlate ||
+                  order.licensePlate,
+                issueDescription:
+                  (workOrderRow as any).issuedescription ||
+                  (workOrderRow as any).issueDescription ||
+                  order.issueDescription ||
+                  "",
+                technicianName:
+                  (workOrderRow as any).technicianname ||
+                  (workOrderRow as any).technicianName ||
+                  order.technicianName ||
+                  "",
+                status: (workOrderRow as any).status || order.status,
+                laborCost:
+                  (workOrderRow as any).laborcost ||
+                  (workOrderRow as any).laborCost ||
+                  order.laborCost ||
+                  0,
+                discount: (workOrderRow as any).discount || order.discount || 0,
+                partsUsed:
+                  (workOrderRow as any).partsused ||
+                  (workOrderRow as any).partsUsed ||
+                  order.partsUsed ||
+                  [],
+                additionalServices:
+                  (workOrderRow as any).additionalservices ||
+                  (workOrderRow as any).additionalServices ||
+                  order.additionalServices,
+                total: (workOrderRow as any).total || order.total,
+                branchId:
+                  (workOrderRow as any).branchid ||
+                  (workOrderRow as any).branchId ||
+                  order.branchId,
+                depositAmount:
+                  (workOrderRow as any).depositamount ||
+                  (workOrderRow as any).depositAmount ||
+                  order.depositAmount,
+                depositDate:
+                  (workOrderRow as any).depositdate ||
+                  (workOrderRow as any).depositDate ||
+                  order.depositDate,
+                depositTransactionId: depositTxId || order.depositTransactionId,
+                paymentStatus:
+                  (workOrderRow as any).paymentstatus ||
+                  (workOrderRow as any).paymentStatus ||
+                  order.paymentStatus,
+                paymentMethod:
+                  (workOrderRow as any).paymentmethod ||
+                  (workOrderRow as any).paymentMethod ||
+                  order.paymentMethod,
+                additionalPayment:
+                  (workOrderRow as any).additionalpayment ||
+                  (workOrderRow as any).additionalPayment ||
+                  order.additionalPayment,
+                totalPaid:
+                  (workOrderRow as any).totalpaid ||
+                  (workOrderRow as any).totalPaid ||
+                  order.totalPaid,
+                remainingAmount:
+                  (workOrderRow as any).remainingamount ||
+                  (workOrderRow as any).remainingAmount ||
+                  order.remainingAmount,
+                cashTransactionId: paymentTxId || order.cashTransactionId,
+                paymentDate:
+                  (workOrderRow as any).paymentdate ||
+                  (workOrderRow as any).paymentDate ||
+                  order.paymentDate,
+                creationDate:
+                  (workOrderRow as any).creationdate ||
+                  (workOrderRow as any).creationDate ||
+                  order.creationDate,
+              }
+            : {
+                // Build from formData when workOrderRow is undefined
+                ...order,
+                customerName: formData.customerName || order.customerName,
+                customerPhone: formData.customerPhone || order.customerPhone,
+                vehicleModel: formData.vehicleModel || order.vehicleModel,
+                licensePlate: formData.licensePlate || order.licensePlate,
+                issueDescription:
+                  formData.issueDescription || order.issueDescription,
+                technicianName: formData.technicianName || order.technicianName,
+                status: formData.status || order.status,
+                laborCost: formData.laborCost || order.laborCost,
+                discount: discount,
+                partsUsed: selectedParts,
+                additionalServices:
+                  additionalServices.length > 0
+                    ? additionalServices
+                    : order.additionalServices,
+                total: total,
+                depositAmount: depositAmount,
+                depositTransactionId: depositTxId || order.depositTransactionId,
+                paymentStatus: paymentStatus,
+                paymentMethod: formData.paymentMethod || order.paymentMethod,
+                additionalPayment: totalAdditionalPayment,
+                totalPaid: totalPaid,
+                remainingAmount: remainingAmount,
+                cashTransactionId: paymentTxId || order.cashTransactionId,
+                paymentDate: paymentTxId
+                  ? new Date().toISOString()
+                  : order.paymentDate,
+              };
+
+          // Update cash transactions in context if new transactions created
+          if (depositTxId && depositAmount > order.depositAmount!) {
+            setCashTransactions((prev: any[]) => [
+              ...prev,
+              {
+                id: depositTxId,
+                type: "deposit",
+                category: "service_deposit",
+                amount: depositAmount - (order.depositAmount || 0),
+                date: new Date().toISOString(),
+                description: `Đặt cọc bổ sung #${(
+                  formatWorkOrderId(
+                    order.id,
+                    storeSettings?.work_order_prefix
+                  ) || ""
+                )
+                  .split("-")
+                  .pop()} - ${formData.customerName}`,
+                branchId: currentBranchId,
+                paymentSource: formData.paymentMethod,
+                reference: order.id,
+              },
+            ]);
+
+            setPaymentSources((prev: any[]) =>
+              prev.map((ps) => {
+                if (ps.id === formData.paymentMethod) {
+                  return {
+                    ...ps,
+                    balance: {
+                      ...ps.balance,
+                      [currentBranchId]:
+                        (ps.balance[currentBranchId] || 0) +
+                        (depositAmount - (order.depositAmount || 0)),
+                    },
+                  };
+                }
+                return ps;
+              })
+            );
+          }
+
+          if (
+            paymentTxId &&
+            totalAdditionalPayment > (order.additionalPayment || 0)
+          ) {
+            setCashTransactions((prev: any[]) => [
+              ...prev,
+              {
+                id: paymentTxId,
+                type: "income",
+                category: "service_income",
+                amount: totalAdditionalPayment - (order.additionalPayment || 0),
+                date: new Date().toISOString(),
+                description: `Thu tiền bổ sung #${(
+                  formatWorkOrderId(
+                    order.id,
+                    storeSettings?.work_order_prefix
+                  ) || ""
+                )
+                  .split("-")
+                  .pop()} - ${formData.customerName}`,
+                branchId: currentBranchId,
+                paymentSource: formData.paymentMethod,
+                reference: order.id,
+              },
+            ]);
+
+            setPaymentSources((prev: any[]) =>
+              prev.map((ps) => {
+                if (ps.id === formData.paymentMethod) {
+                  return {
+                    ...ps,
+                    balance: {
+                      ...ps.balance,
+                      [currentBranchId]:
+                        (ps.balance[currentBranchId] || 0) +
+                        (totalAdditionalPayment -
+                          (order.additionalPayment || 0)),
+                    },
+                  };
+                }
+                return ps;
+              })
+            );
+          }
+
+          console.log(
+            "[handleSave] updateWorkOrderAtomicAsync SUCCESS - Response:",
+            responseData
+          );
+
+          onSave(finalOrder);
+
+          // 🔹 Auto-create customer debt ONLY when status is "Trả máy" and there's remaining amount
+          if (formData.status === "Trả máy" && remainingAmount > 0) {
+            await createCustomerDebtIfNeeded(
+              finalOrder,
+              remainingAmount,
+              total,
+              totalPaid
+            );
+          }
+
+          // Close modal after successful update
+          onClose();
+        } catch (error: any) {
+          console.error(
+            "[handleSave] Error updating work order (atomic):",
+            error
+          );
+        }
+        return;
+      }
+
+      // If we get here, it means this is a NEW order without going through atomic create
+      // This shouldn't happen in normal flow, but log it for debugging
+      console.warn(
+        "[handleSave] Unexpected code path - no atomic create/update was called"
       );
-
-      finalOrder.cashTransactionId = paymentTxId;
-      finalOrder.paymentDate = new Date().toISOString();
-    }
-
-    onSave(finalOrder);
-
-    if (remainingAmount > 0) {
-      await createCustomerDebtIfNeeded(finalOrder, remainingAmount);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -3139,31 +4298,69 @@ const WorkOrderModal: React.FC<{
                     />
 
                     {/* Customer Dropdown */}
-                    {showCustomerDropdown && filteredCustomers.length > 0 && (
+                    {showCustomerDropdown && (
                       <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {filteredCustomers.map((customer) => (
-                          <button
-                            key={customer.id}
-                            type="button"
-                            onClick={() => {
-                              setFormData({
-                                ...formData,
-                                customerName: customer.name,
-                                customerPhone: customer.phone,
-                              });
-                              setCustomerSearch(customer.name);
-                              setShowCustomerDropdown(false);
-                            }}
-                            className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-600 text-sm border-b border-slate-200 dark:border-slate-600 last:border-0"
-                          >
-                            <div className="font-medium text-slate-900 dark:text-slate-100">
-                              {customer.name}
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                              {customer.phone}
-                            </div>
-                          </button>
-                        ))}
+                        {filteredCustomers.length > 0 ? (
+                          filteredCustomers.map((customer) => (
+                            <button
+                              key={customer.id}
+                              type="button"
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  customerName: customer.name,
+                                  customerPhone: customer.phone,
+                                  vehicleModel: customer.vehicleModel || "",
+                                  licensePlate: customer.licensePlate || "",
+                                });
+                                setCustomerSearch(customer.name);
+                                setShowCustomerDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-600 border-b border-slate-200 dark:border-slate-600 last:border-0"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate">
+                                    {customer.name}
+                                  </div>
+                                  <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                                    📱 {customer.phone}
+                                  </div>
+                                  {(customer.vehicleModel ||
+                                    customer.licensePlate) && (
+                                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
+                                      <svg
+                                        className="w-3 h-3"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <circle cx="6" cy="17" r="2" />
+                                        <circle cx="18" cy="17" r="2" />
+                                        <path d="M4 17h2l4-6h2l2 3h4" />
+                                      </svg>
+                                      {customer.vehicleModel && (
+                                        <span>{customer.vehicleModel}</span>
+                                      )}
+                                      {customer.licensePlate && (
+                                        <span className="font-mono font-medium">
+                                          {customer.vehicleModel && "•"}{" "}
+                                          {customer.licensePlate}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                            {customers.length === 0
+                              ? "Chưa có khách hàng nào. Nhấn '+' để thêm khách hàng mới."
+                              : "Không tìm thấy khách hàng phù hợp"}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -3364,12 +4561,9 @@ const WorkOrderModal: React.FC<{
                     {employees
                       .filter(
                         (emp) =>
-                          emp.branchId === currentBranchId &&
                           emp.status === "active" &&
-                          emp.department === "Kỹ thuật" &&
-                          ["Kỹ thuật viên", "Kỹ thuật trưởng"].includes(
-                            emp.position
-                          )
+                          (emp.department?.toLowerCase().includes("kỹ thuật") ||
+                            emp.position?.toLowerCase().includes("kỹ thuật"))
                       )
                       .map((emp) => (
                         <option key={emp.id} value={emp.name}>
@@ -3942,21 +5136,80 @@ const WorkOrderModal: React.FC<{
                       <input
                         type="number"
                         placeholder="0"
-                        value={formData.discount || ""}
-                        onChange={(e) =>
+                        value={
+                          discountType === "amount"
+                            ? formData.discount || ""
+                            : discountPercent
+                        }
+                        onChange={(e) => {
+                          const value = Number(e.target.value) || 0;
+                          if (discountType === "amount") {
+                            const maxDiscount = subtotal;
+                            setFormData({
+                              ...formData,
+                              discount: Math.min(value, maxDiscount),
+                            });
+                          } else {
+                            const percent = Math.min(value, 100);
+                            setDiscountPercent(percent);
+                            setFormData({
+                              ...formData,
+                              discount: Math.round((subtotal * percent) / 100),
+                            });
+                          }
+                        }}
+                        className="w-20 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                        min="0"
+                        max={discountType === "amount" ? subtotal : 100}
+                      />
+                      <select
+                        value={discountType}
+                        onChange={(e) => {
+                          const newType = e.target.value as
+                            | "amount"
+                            | "percent";
+                          setDiscountType(newType);
                           setFormData({
                             ...formData,
-                            discount: Number(e.target.value),
-                          })
-                        }
-                        className="w-20 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
-                      />
-                      <select className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm">
-                        <option>₫</option>
-                        <option>%</option>
+                            discount: 0,
+                          });
+                          setDiscountPercent(0);
+                        }}
+                        className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                      >
+                        <option value="amount">₫</option>
+                        <option value="percent">%</option>
                       </select>
                     </div>
                   </div>
+
+                  {/* Quick percent buttons */}
+                  {discountType === "percent" && (
+                    <div className="flex gap-1 justify-end mt-2">
+                      {[5, 10, 15, 20].map((percent) => (
+                        <button
+                          key={percent}
+                          onClick={() => {
+                            setDiscountPercent(percent);
+                            setFormData({
+                              ...formData,
+                              discount: Math.round((subtotal * percent) / 100),
+                            });
+                          }}
+                          className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-300 rounded transition-colors"
+                        >
+                          {percent}%
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Show amount if percent mode */}
+                  {discountType === "percent" && discountPercent > 0 && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 text-right mt-1">
+                      = {formatCurrency(formData.discount || 0)}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-2 border-t-2 border-slate-400 dark:border-slate-500">
@@ -4024,12 +5277,60 @@ const WorkOrderModal: React.FC<{
           >
             Hủy
           </button>
+
+          {/* Always show "Lưu Phiếu" */}
           <button
-            onClick={handleSave}
-            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium"
+            onClick={handleSaveOnly}
+            className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg font-medium"
           >
             Lưu Phiếu
           </button>
+
+          {/* Show "Đặt cọc" button only when status is NOT "Trả máy" and deposit input is shown */}
+          {formData.status !== "Trả máy" && showDepositInput && (
+            <button
+              onClick={handleSave}
+              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium flex items-center gap-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Đặt cọc
+            </button>
+          )}
+
+          {/* Show "Thanh toán" button only when status is "Trả máy" */}
+          {formData.status === "Trả máy" && (
+            <button
+              onClick={handleSave}
+              className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium flex items-center gap-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+              Thanh toán
+            </button>
+          )}
         </div>
       </div>
 
@@ -4103,22 +5404,50 @@ const WorkOrderModal: React.FC<{
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="relative vehicle-search-container">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Xe
+                    Dòng xe
                   </label>
                   <input
                     type="text"
-                    placeholder="Dòng xe"
+                    placeholder="Chọn hoặc nhập dòng xe"
                     value={newCustomer.vehicleModel}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setNewCustomer({
                         ...newCustomer,
                         vehicleModel: e.target.value,
-                      })
-                    }
+                      });
+                      setShowVehicleDropdown(true);
+                    }}
+                    onFocus={() => setShowVehicleDropdown(true)}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                   />
+
+                  {/* Vehicle Model Dropdown */}
+                  {showVehicleDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                      {POPULAR_MOTORCYCLES.filter((model) =>
+                        model
+                          .toLowerCase()
+                          .includes(newCustomer.vehicleModel.toLowerCase())
+                      ).map((model: string) => (
+                        <button
+                          key={model}
+                          type="button"
+                          onClick={() => {
+                            setNewCustomer({
+                              ...newCustomer,
+                              vehicleModel: model,
+                            });
+                            setShowVehicleDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-600 text-sm border-b border-slate-200 dark:border-slate-600 last:border-0 text-slate-900 dark:text-slate-100"
+                        >
+                          {model}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">

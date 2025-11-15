@@ -45,11 +45,18 @@ export async function fetchCustomerDebts(): Promise<
 }
 
 export async function createCustomerDebt(
-  debt: Omit<CustomerDebt, "id">
+  debt: Omit<CustomerDebt, "id"> & { workOrderId?: string; saleId?: string }
 ): Promise<RepoResult<CustomerDebt>> {
   try {
+    // 🔹 Generate ID based on source (work order or sale)
+    const debtId = (debt as any).workOrderId
+      ? `CDEBT-WO-${(debt as any).workOrderId}`
+      : (debt as any).saleId
+      ? `CDEBT-SALE-${(debt as any).saleId}`
+      : `CDEBT-${Date.now()}`;
+
     const newDebt = {
-      id: `CDEBT-${Date.now()}`,
+      id: debtId,
       customer_id: debt.customerId,
       customer_name: debt.customerName,
       phone: debt.phone,
@@ -60,18 +67,33 @@ export async function createCustomerDebt(
       remaining_amount: debt.totalAmount - (debt.paidAmount || 0),
       created_date: debt.createdDate,
       branch_id: debt.branchId || "CN1",
+      work_order_id: (debt as any).workOrderId || null,
+      sale_id: (debt as any).saleId || null,
     };
+
+    console.log("[debtsRepository] Upserting debt:", newDebt);
+
+    // 🔹 UPSERT by work_order_id, sale_id, or id
+    let conflictKey = "id";
+    if ((debt as any).workOrderId) {
+      conflictKey = "work_order_id,branch_id";
+    } else if ((debt as any).saleId) {
+      conflictKey = "sale_id,branch_id";
+    }
 
     const { data, error } = await supabase
       .from("customer_debts")
-      .insert(newDebt)
+      .upsert(newDebt, {
+        onConflict: conflictKey,
+        ignoreDuplicates: false,
+      })
       .select()
       .single();
 
     if (error || !data)
       return failure({
         code: "supabase",
-        message: error?.message || "Không thể thêm công nợ",
+        message: error?.message || "Không thể thêm/cập nhật công nợ",
         cause: error || new Error("No data returned"),
       });
 
@@ -91,7 +113,7 @@ export async function createCustomerDebt(
   } catch (e: any) {
     return failure({
       code: "network",
-      message: "Lỗi kết nối khi thêm công nợ",
+      message: "Lỗi kết nối khi thêm/cập nhật công nợ",
       cause: e,
     });
   }

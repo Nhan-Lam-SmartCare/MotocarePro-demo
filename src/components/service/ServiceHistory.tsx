@@ -737,26 +737,26 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
         {/* Table Header */}
         <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-600">
           <div className="flex items-center gap-4">
-            {/* Left: Checkbox + Icon */}
+            {/* Left: Checkbox */}
             <div className="w-16 text-center">
               <input type="checkbox" className="rounded border-slate-400" />
             </div>
 
-            {/* Column 1: Device Info */}
+            {/* Column 1: Mã phiếu */}
             <div className="flex-1 min-w-[180px]">
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
-                Tên thiết bị
+                Mã phiếu
               </span>
             </div>
 
-            {/* Column 2: Customer Info */}
+            {/* Column 2: Khách hàng */}
             <div className="flex-1 min-w-[180px]">
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
                 Khách hàng
               </span>
             </div>
 
-            {/* Column 3: Details & Parts */}
+            {/* Column 3: Chi tiết */}
             <div className="flex-1 min-w-[200px]">
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
                 Chi tiết
@@ -819,20 +819,26 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                       </div>
                     </div>
 
-                    {/* Column 1: Device Info */}
+                    {/* Column 1: Mã phiếu */}
                     <div className="flex-1 min-w-[180px]">
-                      <div className="font-semibold text-base text-white mb-1">
-                        {order.vehicleModel || "N/A"}
+                      <div className="font-mono font-bold text-blue-400 text-sm mb-1">
+                        {formatWorkOrderId(
+                          order.id,
+                          storeSettings?.work_order_prefix
+                        )}
                       </div>
-                      <div className="text-xs text-slate-400 mb-0.5">
-                        Biển số: {order.licensePlate || "Chưa nhập biển số"}
+                      <div className="text-xs text-slate-400">
+                        <span>Ngày: </span>
+                        <span className="text-slate-300">
+                          {formatDate(order.creationDate, true)}
+                        </span>
                       </div>
-                      <div className="text-xs text-slate-500">
-                        Lúc: {formatDate(order.creationDate, true)}
+                      <div className="text-xs text-cyan-400">
+                        NV: {order.technicianName || "Chưa phân công"}
                       </div>
                     </div>
 
-                    {/* Column 2: Customer Info */}
+                    {/* Column 2: Khách hàng */}
                     <div className="flex-1 min-w-[180px]">
                       <div className="font-semibold text-base text-white mb-1">
                         {order.customerName}
@@ -840,29 +846,73 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                       <div className="text-xs text-slate-400">
                         {order.customerPhone}
                       </div>
+                      <div className="text-xs text-slate-400">
+                        <span className="font-medium">Xe: </span>
+                        <span>{order.vehicleModel || "N/A"}</span>
+                        {order.licensePlate && (
+                          <span className="ml-1">- {order.licensePlate}</span>
+                        )}
+                      </div>
                       <div className="text-xs text-slate-500 italic mt-1">
-                        {order.issueDescription || "Không có ghi chú"}
+                        {order.issueDescription || "Không có mô tả"}
                       </div>
                     </div>
 
-                    {/* Column 3: Details & Parts */}
+                    {/* Column 3: Chi tiết */}
                     <div className="flex-1 min-w-[200px]">
-                      {order.partsUsed && order.partsUsed.length > 0 ? (
-                        <div className="space-y-0.5 mb-2">
-                          {order.partsUsed.map((part, idx) => (
-                            <div key={idx} className="text-xs text-slate-300">
-                              • {part.partName} ({part.quantity})
+                      <div className="space-y-1">
+                        {/* Phụ tùng */}
+                        {order.partsUsed && order.partsUsed.length > 0 && (
+                          <div className="mb-2">
+                            <div className="text-xs font-medium text-slate-400 mb-0.5">
+                              Phụ tùng:
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-slate-500 italic mb-2">
-                          Chưa có phụ tùng
-                        </div>
-                      )}
+                            <div className="space-y-0.5">
+                              {order.partsUsed.map((part, idx) => (
+                                <div
+                                  key={idx}
+                                  className="text-xs text-slate-300"
+                                >
+                                  • {part.partName} x{part.quantity}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
-                      <div className="mt-2">
-                        <StatusBadge status={order.status || "Tiếp nhận"} />
+                        {/* Gia công/Đặt hàng */}
+                        {order.additionalServices &&
+                          order.additionalServices.length > 0 && (
+                            <div className="mb-2">
+                              <div className="text-xs font-medium text-slate-400 mb-0.5">
+                                Gia công/Đặt hàng:
+                              </div>
+                              <div className="space-y-0.5">
+                                {order.additionalServices.map((svc, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="text-xs text-slate-300"
+                                  >
+                                    • {svc.name} x{svc.quantity || 1}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                        {/* Trạng thái */}
+                        <div className="mt-2">
+                          <StatusBadge status={order.status || "Tiếp nhận"} />
+                        </div>
+
+                        {/* Nếu không có gì */}
+                        {(!order.partsUsed || order.partsUsed.length === 0) &&
+                          (!order.additionalServices ||
+                            order.additionalServices.length === 0) && (
+                            <div className="text-xs text-slate-500 italic mb-2">
+                              Chưa có chi tiết
+                            </div>
+                          )}
                       </div>
                     </div>
 

@@ -27,13 +27,14 @@ import {
   UseSalesPagedParams,
 } from "../../hooks/useSalesRepository";
 import { useLowStock } from "../../hooks/useLowStock";
-import { formatCurrency, formatDate } from "../../utils/format";
+import { formatCurrency, formatDate, formatAnyId } from "../../utils/format";
 import { printElementById } from "../../utils/print";
 import { showToast } from "../../utils/toast";
 import { PlusIcon, XMarkIcon } from "../Icons";
 import type { CartItem, Part, Customer, Sale } from "../../types";
 import { safeAudit } from "../../lib/repository/auditLogsRepository";
 import { supabase } from "../../supabaseClient";
+import { useCreateCustomerDebtRepo } from "../../hooks/useDebtsRepository";
 
 interface StoreSettings {
   store_name?: string;
@@ -95,8 +96,7 @@ const SaleDetailModal: React.FC<SaleDetailModalProps> = ({
                 Mã đơn hàng
               </label>
               <div className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                {formatAnyId(sale.id, storeSettings?.work_order_prefix) ||
-                  sale.id}
+                {formatAnyId(sale.id) || sale.id}
               </div>
             </div>
             <div>
@@ -1581,6 +1581,7 @@ const SalesManager: React.FC = () => {
     }
   }, [useKeysetMode, pagedSalesData]);
   const { mutateAsync: createSaleAtomicAsync } = useCreateSaleAtomicRepo();
+  const createCustomerDebt = useCreateCustomerDebtRepo();
 
   // Pagination handlers
   const goPrevPage = useCallback(
@@ -1893,10 +1894,7 @@ const SalesManager: React.FC = () => {
     if (!printSale) return;
 
     // Set receipt data for hidden element
-    setReceiptId(
-      formatAnyId(printSale.id, storeSettings?.work_order_prefix) ||
-        printSale.id
-    );
+    setReceiptId(formatAnyId(printSale.id) || printSale.id);
     setCustomerName(printSale.customer.name);
     setCustomerPhone(printSale.customer.phone || "");
 
@@ -2029,6 +2027,92 @@ const SalesManager: React.FC = () => {
     }
   };
 
+  // Create customer debt if there's remaining amount (similar to ServiceManager)
+  const createCustomerDebtIfNeeded = async (
+    sale: Sale,
+    remainingAmount: number,
+    totalAmount: number,
+    paidAmount: number
+  ) => {
+    if (remainingAmount <= 0) return;
+
+    console.log("[createCustomerDebtIfNeeded] CALLED with:", {
+      saleId: sale.id,
+      totalAmount,
+      paidAmount,
+      remainingAmount,
+      customerName: sale.customer.name,
+      timestamp: new Date().toISOString(),
+    });
+
+    try {
+      const safeCustomerId =
+        sale.customer.id || sale.customer.phone || `CUST-ANON-${Date.now()}`;
+      const safeCustomerName =
+        sale.customer.name?.trim() || sale.customer.phone || "Khách lẻ";
+
+      // Tạo nội dung chi tiết từ hóa đơn bán hàng
+      const saleNumber = sale.id.split("-").pop() || "";
+      let description = `Bán hàng - Hóa đơn #${saleNumber}`;
+
+      // Danh sách sản phẩm đã mua
+      if (sale.items && sale.items.length > 0) {
+        description += "\n\nSản phẩm đã mua:";
+        sale.items.forEach((item: any) => {
+          const itemTotal = item.quantity * item.sellingPrice;
+          const itemDiscount = item.discount || 0;
+          description += `\n  • ${item.quantity} x ${
+            item.partName
+          } - ${formatCurrency(itemTotal)}`;
+          if (itemDiscount > 0) {
+            description += ` (Giảm: ${formatCurrency(itemDiscount)})`;
+          }
+        });
+      }
+
+      // Giảm giá đơn hàng (nếu có)
+      if (sale.discount && sale.discount > 0) {
+        description += `\n\nGiảm giá đơn hàng: -${formatCurrency(
+          sale.discount
+        )}`;
+      }
+
+      // Phương thức thanh toán
+      const paymentMethodText =
+        sale.paymentMethod === "cash" ? "Tiền mặt" : "Chuyển khoản";
+      description += `\n\nPhương thức: ${paymentMethodText}`;
+
+      // Thông tin nhân viên
+      description += `\n\nNV: ${sale.userName || "N/A"}`;
+
+      const payload = {
+        customerId: safeCustomerId,
+        customerName: safeCustomerName,
+        phone: sale.customer.phone || null,
+        licensePlate: null, // Sales không có biển số xe
+        description: description,
+        totalAmount: totalAmount,
+        paidAmount: paidAmount,
+        remainingAmount: remainingAmount,
+        createdDate: new Date().toISOString().split("T")[0],
+        branchId: currentBranchId,
+        saleId: sale.id, // 🔹 Link debt với sale
+      };
+
+      console.log("[SalesManager] createCustomerDebt payload:", payload);
+      const result = await createCustomerDebt.mutateAsync(payload as any);
+      console.log("[SalesManager] createCustomerDebt result:", result);
+      showToast.success(
+        `Đã tạo công nợ ${formatCurrency(remainingAmount)} (Mã: ${
+          result?.id || "N/A"
+        })`
+      );
+    } catch (error) {
+      console.error("Error creating customer debt:", error);
+      showToast.error("Không thể tạo công nợ tự động");
+    }
+  };
+
   // Handle finalize sale
   const handleFinalize = async () => {
     if (cartItems.length === 0) {
@@ -2120,6 +2204,39 @@ const SalesManager: React.FC = () => {
         branchId: currentBranchId,
       } as any);
       if ((rpcRes as any)?.error) throw (rpcRes as any).error;
+
+      // Calculate paid amount based on payment type
+      const paidAmount =
+        paymentType === "full"
+          ? total
+          : paymentType === "partial"
+          ? partialAmount
+          : 0; // paymentType === "note" (ghi nợ)
+
+      const remainingAmount = total - paidAmount;
+
+      // Create customer debt if there's remaining amount
+      if (
+        remainingAmount > 0 &&
+        (selectedCustomer || customerName || customerPhone)
+      ) {
+        const saleData = (rpcRes as any)?.sale || {
+          id: saleId,
+          items: cartItems,
+          discount: orderDiscount + lineDiscounts,
+          total: total,
+          customer: customerObj,
+          paymentmethod: paymentMethod,
+          username: profile?.email || profile?.full_name || "Local User",
+        };
+
+        await createCustomerDebtIfNeeded(
+          saleData,
+          remainingAmount,
+          total,
+          paidAmount
+        );
+      }
 
       // Clear form
       setSelectedCustomer(null);
@@ -3478,11 +3595,7 @@ const SalesManager: React.FC = () => {
                         marginTop: "0.5mm",
                       }}
                     >
-                      Mã:{" "}
-                      {formatAnyId(
-                        printSale.id,
-                        storeSettings?.work_order_prefix
-                      ) || printSale.id}
+                      Mã: {formatAnyId(printSale.id) || printSale.id}
                     </div>
                   </div>
 
