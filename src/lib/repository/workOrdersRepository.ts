@@ -519,6 +519,11 @@ export async function refundWorkOrder(
     });
 
     if (error || !data) {
+      console.error("[refundWorkOrder] RPC error:", error);
+      console.error("[refundWorkOrder] Error code:", error?.code);
+      console.error("[refundWorkOrder] Error message:", error?.message);
+      console.error("[refundWorkOrder] Error details:", error?.details);
+
       const rawDetails = error?.details || error?.message || "";
       const upper = rawDetails.toUpperCase();
 
@@ -548,7 +553,7 @@ export async function refundWorkOrder(
         });
       return failure({
         code: "supabase",
-        message: "Hoàn tiền thất bại",
+        message: `Hoàn tiền thất bại: ${error?.message || "Unknown error"}`,
         cause: error,
       });
     }

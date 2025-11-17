@@ -360,8 +360,10 @@ export default function ServiceManager() {
   ];
 
   const filteredOrders = useMemo(() => {
-    // Exclude "Trả máy" - those show in ServiceHistory
-    let filtered = displayWorkOrders.filter((o) => o.status !== "Trả máy");
+    // Exclude "Trả máy" (shown in ServiceHistory) and "Đã hủy" (cancelled orders)
+    let filtered = displayWorkOrders.filter(
+      (o) => o.status !== "Trả máy" && o.status !== "Đã hủy"
+    );
 
     console.log(
       "[ServiceManager] Total displayWorkOrders:",
@@ -669,10 +671,25 @@ export default function ServiceManager() {
     }
 
     try {
+      console.log(
+        "[handleConfirmRefund] Starting refund for order:",
+        refundingOrder.id
+      );
+      console.log("[handleConfirmRefund] Refund reason:", refundReason);
+
       const result = await refundWorkOrderAsync({
         orderId: refundingOrder.id,
         refundReason: refundReason,
       });
+
+      console.log("[handleConfirmRefund] Refund result:", result);
+
+      // Check if mutation succeeded
+      if (!result || (result as any).error) {
+        console.error("[handleConfirmRefund] Refund failed:", result);
+        showToast.error("Không thể hủy đơn sửa chữa");
+        return;
+      }
 
       // Update context cash transactions and payment sources
       if (
@@ -733,10 +750,13 @@ export default function ServiceManager() {
         )
       );
 
+      showToast.success("Đã hủy đơn sửa chữa thành công");
       setShowRefundModal(false);
       setRefundingOrder(null);
+      setRefundReason("");
     } catch (error) {
       console.error("Error refunding work order:", error);
+      showToast.error("Lỗi khi hủy đơn sửa chữa");
     }
   };
 
@@ -3070,6 +3090,7 @@ const WorkOrderModal: React.FC<{
       customerPhone: order?.customerPhone || "",
       vehicleModel: order?.vehicleModel || "",
       licensePlate: order?.licensePlate || "",
+      vehicleId: order?.vehicleId || "",
       issueDescription: order?.issueDescription || "",
       technicianName: order?.technicianName || "",
       status: order?.status || "Tiếp nhận",
@@ -3088,6 +3109,7 @@ const WorkOrderModal: React.FC<{
   const [showPartSearch, setShowPartSearch] = useState(false);
   const [partialPayment, setPartialPayment] = useState(0);
   const [showPartialPayment, setShowPartialPayment] = useState(false);
+  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
   const [depositAmount, setDepositAmount] = useState(0);
   const [showDepositInput, setShowDepositInput] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -3099,7 +3121,13 @@ const WorkOrderModal: React.FC<{
   });
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+
+  // Get customer's vehicles
+  const currentCustomer = customers.find(
+    (c) => c.phone === formData.customerPhone
+  );
+  const customerVehicles = currentCustomer?.vehicles || [];
+  const hasMultipleVehicles = customerVehicles.length > 1;
 
   // Discount state
   const [discountType, setDiscountType] = useState<"amount" | "percent">(
@@ -3117,12 +3145,14 @@ const WorkOrderModal: React.FC<{
       description: string;
       quantity: number;
       price: number;
+      costPrice?: number; // Giá nhập (chi phí gia công bên ngoài)
     }>
   >([]);
   const [newService, setNewService] = useState({
     description: "",
     quantity: 1,
     price: 0,
+    costPrice: 0,
   });
 
   // Sync selectedParts and deposit with formData on order change
@@ -3199,6 +3229,17 @@ const WorkOrderModal: React.FC<{
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Handle vehicle selection
+  const handleSelectVehicle = (vehicle: any) => {
+    setFormData({
+      ...formData,
+      vehicleId: vehicle.id,
+      vehicleModel: vehicle.model,
+      licensePlate: vehicle.licensePlate,
+    });
+    setShowVehicleDropdown(false);
+  };
 
   // Calculate totals
   const partsTotal = selectedParts.reduce(
@@ -3306,9 +3347,14 @@ const WorkOrderModal: React.FC<{
         description += `\nGiảm giá: -${formatCurrency(workOrder.discount)}`;
       }
 
+      // Thông tin nhân viên tạo phiếu
+      description += `\n\nNV: ${
+        workOrder.createdByName || profile?.full_name || "N/A"
+      }`;
+
       // Thông tin nhân viên kỹ thuật
       if (workOrder.technicianName) {
-        description += `\n\nNVKỹ thuật: ${workOrder.technicianName}`;
+        description += `\nNVKỹ thuật: ${workOrder.technicianName}`;
       }
 
       const payload = {
@@ -3870,6 +3916,86 @@ const WorkOrderModal: React.FC<{
                 return ps;
               })
             );
+          }
+
+          // 🔹 Create cash transactions for outsourcing costs (Giá nhập từ gia công bên ngoài)
+          if (additionalServices.length > 0) {
+            const totalOutsourcingCost = additionalServices.reduce(
+              (sum, service) =>
+                sum + (service.costPrice || 0) * service.quantity,
+              0
+            );
+
+            if (totalOutsourcingCost > 0) {
+              const outsourcingTxId = `EXPENSE-${Date.now()}`;
+
+              // Create expense transaction
+              try {
+                const { error: expenseError } = await supabase
+                  .from("cash_transactions")
+                  .insert({
+                    id: outsourcingTxId,
+                    type: "expense",
+                    category: "outsourcing",
+                    amount: -totalOutsourcingCost, // Negative for expense
+                    date: new Date().toISOString(),
+                    description: `Chi phí gia công bên ngoài - Phiếu #${orderId
+                      .split("-")
+                      .pop()} - ${additionalServices
+                      .map((s) => s.description)
+                      .join(", ")}`,
+                    branchid: currentBranchId,
+                    paymentsource: "cash",
+                    reference: orderId,
+                  });
+
+                if (!expenseError) {
+                  // Update context
+                  setCashTransactions((prev: any[]) => [
+                    ...prev,
+                    {
+                      id: outsourcingTxId,
+                      type: "expense",
+                      category: "outsourcing",
+                      amount: -totalOutsourcingCost,
+                      date: new Date().toISOString(),
+                      description: `Chi phí gia công bên ngoài - Phiếu #${orderId
+                        .split("-")
+                        .pop()}`,
+                      branchId: currentBranchId,
+                      paymentSource: "cash",
+                      reference: orderId,
+                    },
+                  ]);
+
+                  // Update payment sources balance
+                  setPaymentSources((prev: any[]) =>
+                    prev.map((ps) => {
+                      if (ps.id === "cash") {
+                        return {
+                          ...ps,
+                          balance: {
+                            ...ps.balance,
+                            [currentBranchId]:
+                              (ps.balance[currentBranchId] || 0) -
+                              totalOutsourcingCost,
+                          },
+                        };
+                      }
+                      return ps;
+                    })
+                  );
+
+                  showToast.info(
+                    `Đã tạo phiếu chi ${formatCurrency(
+                      totalOutsourcingCost
+                    )} cho gia công bên ngoài`
+                  );
+                }
+              } catch (err) {
+                console.error("Error creating outsourcing expense:", err);
+              }
+            }
           }
 
           // Call onSave to update the workOrders state
@@ -4773,6 +4899,9 @@ const WorkOrderModal: React.FC<{
                       SL
                     </th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
+                      Giá nhập
+                    </th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
                       Đơn giá
                     </th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
@@ -4790,6 +4919,7 @@ const WorkOrderModal: React.FC<{
                               description: "",
                               quantity: 1,
                               price: 0,
+                              costPrice: 0,
                             });
                           }
                         }}
@@ -4812,6 +4942,11 @@ const WorkOrderModal: React.FC<{
                       </td>
                       <td className="px-4 py-2 text-center text-sm text-slate-900 dark:text-slate-100">
                         {service.quantity}
+                      </td>
+                      <td className="px-4 py-2 text-right text-sm text-orange-600 dark:text-orange-400">
+                        {service.costPrice
+                          ? formatCurrency(service.costPrice)
+                          : "-"}
                       </td>
                       <td className="px-4 py-2 text-right text-sm text-slate-900 dark:text-slate-100">
                         {formatCurrency(service.price)}
@@ -4877,6 +5012,20 @@ const WorkOrderModal: React.FC<{
                           })
                         }
                         className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="number"
+                        placeholder="Giá nhập"
+                        value={newService.costPrice || ""}
+                        onChange={(e) =>
+                          setNewService({
+                            ...newService,
+                            costPrice: Number(e.target.value),
+                          })
+                        }
+                        className="w-full px-2 py-1 border border-orange-300 dark:border-orange-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
                       />
                     </td>
                     <td className="px-4 py-2">

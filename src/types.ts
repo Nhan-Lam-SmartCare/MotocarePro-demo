@@ -6,13 +6,21 @@ export interface UserSession {
 }
 
 // Domain Types (subset adapted from original repo for standalone needs)
+export interface Vehicle {
+  id: string;
+  model: string; // Dòng xe: Exciter, Wave, SH...
+  licensePlate: string; // Biển số
+  isPrimary?: boolean; // Xe chính (mặc định)
+}
+
 export interface Customer {
   id: string;
   name: string;
   phone?: string;
   email?: string;
-  vehicleModel?: string; // Xe (Dòng xe)
-  licensePlate?: string; // Biển số
+  vehicleModel?: string; // Xe (Dòng xe) - DEPRECATED: Giữ để tương thích
+  licensePlate?: string; // Biển số - DEPRECATED: Giữ để tương thích
+  vehicles?: Vehicle[]; // Danh sách xe của khách hàng
   created_at?: string;
   status?: "active" | "inactive";
   segment?: "VIP" | "Loyal" | "Potential" | "At Risk" | "Lost" | "New";
@@ -99,6 +107,7 @@ export interface WorkOrder {
   customerPhone?: string;
   vehicleModel?: string;
   licensePlate?: string;
+  vehicleId?: string; // NEW: Link to specific vehicle from customer.vehicles[]
   issueDescription?: string;
   technicianName?: string;
   status: "Tiếp nhận" | "Đang sửa" | "Đã sửa xong" | "Trả máy";
@@ -110,6 +119,7 @@ export interface WorkOrder {
     description: string;
     quantity: number;
     price: number;
+    costPrice?: number; // Giá nhập
   }>; // Báo giá (Gia công, Đặt hàng)
   notes?: string;
   total: number; // labor + parts - discount

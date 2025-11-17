@@ -1,9 +1,295 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { User, Bike } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
-import { formatDate } from "../../utils/format";
+import { formatDate, formatCurrency, formatAnyId } from "../../utils/format";
 import { PlusIcon, TrashIcon, XMarkIcon, UsersIcon } from "../Icons";
-import type { Customer } from "../../types";
+import type { Customer, Sale, WorkOrder, Vehicle } from "../../types";
+import { useSalesRepo } from "../../hooks/useSalesRepository";
+import { useWorkOrdersRepo } from "../../hooks/useWorkOrdersRepository";
+
+// Customer History Modal Component
+interface CustomerHistoryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  customer: Customer | null;
+  sales: Sale[];
+  workOrders: WorkOrder[];
+}
+
+const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
+  isOpen,
+  onClose,
+  customer,
+  sales,
+  workOrders,
+}) => {
+  const [activeTab, setActiveTab] = useState<"sales" | "workorders">("sales");
+
+  if (!isOpen || !customer) return null;
+
+  // Filter by customer
+  const customerSales = sales.filter(
+    (s) =>
+      s.customer?.id === customer.id || s.customer?.phone === customer.phone
+  );
+  const customerWorkOrders = workOrders.filter(
+    (wo) => wo.customerPhone === customer.phone
+  );
+
+  // Calculate actual total spent from sales and work orders
+  const totalSpentFromSales = customerSales.reduce(
+    (sum, sale) => sum + (sale.total || 0),
+    0
+  );
+  const totalSpentFromWorkOrders = customerWorkOrders.reduce(
+    (sum, wo) => sum + (wo.total || 0),
+    0
+  );
+  const actualTotalSpent = totalSpentFromSales + totalSpentFromWorkOrders;
+
+  // Calculate actual visit count from unique dates
+  const allVisitDates = [
+    ...customerSales.map((s) => new Date(s.date).toDateString()),
+    ...customerWorkOrders.map((wo) =>
+      new Date(wo.createdAt || wo.id).toDateString()
+    ),
+  ];
+  const uniqueVisitDates = new Set(allVisitDates);
+  const actualVisitCount = uniqueVisitDates.size;
+
+  // Calculate loyalty points: 1 point = 10,000đ
+  const actualLoyaltyPoints = Math.floor(actualTotalSpent / 10000);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+              Lịch sử: {customer.name}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              📞 {customer.phone}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Stats Summary */}
+        <div className="grid grid-cols-5 gap-4 p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {customerSales.length}
+            </div>
+            <div className="text-xs text-slate-600 dark:text-slate-400">
+              Hóa đơn
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {customerWorkOrders.length}
+            </div>
+            <div className="text-xs text-slate-600 dark:text-slate-400">
+              Phiếu SC
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {formatCurrency(actualTotalSpent)}
+            </div>
+            <div className="text-xs text-slate-600 dark:text-slate-400">
+              Tổng chi
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              {actualVisitCount}
+            </div>
+            <div className="text-xs text-slate-600 dark:text-slate-400">
+              Lần đến
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+              ⭐ {actualLoyaltyPoints.toLocaleString()}
+            </div>
+            <div className="text-xs text-slate-600 dark:text-slate-400">
+              Điểm TL
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-4 px-6 pt-4 border-b border-slate-200 dark:border-slate-700">
+          <button
+            onClick={() => setActiveTab("sales")}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === "sales"
+                ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+            }`}
+          >
+            🛒 Hóa đơn ({customerSales.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("workorders")}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === "workorders"
+                ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+            }`}
+          >
+            🔧 Phiếu sửa chữa ({customerWorkOrders.length})
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-auto p-6">
+          {activeTab === "sales" ? (
+            <div className="space-y-3">
+              {customerSales.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  Chưa có hóa đơn nào
+                </div>
+              ) : (
+                customerSales.map((sale) => (
+                  <div
+                    key={sale.id}
+                    className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="font-bold text-blue-600 dark:text-blue-400">
+                          {sale.sale_code || sale.id}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          {formatDate(sale.date)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                          {formatCurrency(sale.total)}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {sale.paymentMethod === "cash"
+                            ? "💵 Tiền mặt"
+                            : "🏦 CK"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      {sale.items.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="text-sm text-slate-700 dark:text-slate-300 flex justify-between"
+                        >
+                          <span>
+                            {item.quantity} x {item.partName}
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(item.quantity * item.sellingPrice)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {customerWorkOrders.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  Chưa có phiếu sửa chữa nào
+                </div>
+              ) : (
+                customerWorkOrders.map((wo) => (
+                  <div
+                    key={wo.id}
+                    className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="font-bold text-green-600 dark:text-green-400">
+                          {formatAnyId(wo.id)}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          {wo.vehicleModel} - {wo.licensePlate}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                          {formatCurrency(wo.total)}
+                        </div>
+                        <div
+                          className={`text-xs px-2 py-1 rounded inline-block ${
+                            wo.status === "completed"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                              : wo.status === "in_progress"
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                              : "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+                          }`}
+                        >
+                          {wo.status === "completed"
+                            ? "Hoàn thành"
+                            : wo.status === "in_progress"
+                            ? "Đang SC"
+                            : "Chờ xử lý"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-slate-700 dark:text-slate-300">
+                      <div className="mb-2">
+                        <span className="font-medium">Vấn đề:</span>{" "}
+                        {wo.issueDescription}
+                      </div>
+                      {wo.partsUsed && wo.partsUsed.length > 0 && (
+                        <div>
+                          <span className="font-medium">Phụ tùng:</span>
+                          <div className="ml-4 space-y-1 mt-1">
+                            {wo.partsUsed.map((part: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className="text-xs flex justify-between"
+                              >
+                                <span>
+                                  {part.quantity} x {part.name}
+                                </span>
+                                <span>
+                                  {formatCurrency(part.price * part.quantity)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Auto-classify customer segment based on business rules
 const classifyCustomer = (customer: Customer): Customer["segment"] => {
@@ -55,6 +341,36 @@ const CustomerManager: React.FC = () => {
     "customers"
   );
   const [activeFilter, setActiveFilter] = useState("all");
+  const [viewHistoryCustomer, setViewHistoryCustomer] =
+    useState<Customer | null>(null);
+
+  // Fetch sales and work orders for history
+  const { data: allSales = [] } = useSalesRepo();
+  const { data: allWorkOrders = [] } = useWorkOrdersRepo();
+
+  // Helper function to calculate actual loyalty points for a customer
+  const calculateLoyaltyPoints = (customer: Customer) => {
+    const customerSales = allSales.filter(
+      (s) =>
+        s.customer?.id === customer.id || s.customer?.phone === customer.phone
+    );
+    const customerWorkOrders = allWorkOrders.filter(
+      (wo) => wo.customerPhone === customer.phone
+    );
+
+    const totalFromSales = customerSales.reduce(
+      (sum, s) => sum + (s.total || 0),
+      0
+    );
+    const totalFromWorkOrders = customerWorkOrders.reduce(
+      (sum, wo) => sum + (wo.total || 0),
+      0
+    );
+    const totalSpent = totalFromSales + totalFromWorkOrders;
+
+    // 1 điểm = 10,000đ
+    return Math.floor(totalSpent / 10000);
+  };
 
   // Auto-classify customers on mount only (not on every change to avoid conflicts)
   useEffect(() => {
@@ -675,7 +991,7 @@ const CustomerManager: React.FC = () => {
                       text: "Khách hàng",
                       icon: <User className="w-6 h-6" />,
                     };
-                const points = customer.loyaltyPoints || 0;
+                const points = calculateLoyaltyPoints(customer);
                 const pointsPercent = Math.min((points / 10000) * 100, 100);
 
                 return (
@@ -695,6 +1011,25 @@ const CustomerManager: React.FC = () => {
                           </span>
                         </div>
                         <div className="flex gap-1">
+                          <button
+                            onClick={() => setViewHistoryCustomer(customer)}
+                            className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors backdrop-blur"
+                            title="Xem lịch sử"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                          </button>
                           <button
                             onClick={() => setEditCustomer(customer)}
                             className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors backdrop-blur"
@@ -752,8 +1087,45 @@ const CustomerManager: React.FC = () => {
 
                     {/* Card Body */}
                     <div className="p-4 space-y-3">
-                      {/* Vehicle Info */}
-                      {customer.vehicleModel && (
+                      {/* Vehicle Info - Show all vehicles or legacy field */}
+                      {customer.vehicles && customer.vehicles.length > 0 ? (
+                        <div className="space-y-2">
+                          {customer.vehicles.map((vehicle) => (
+                            <div
+                              key={vehicle.id}
+                              className="flex items-center gap-2 text-sm"
+                            >
+                              {vehicle.isPrimary && (
+                                <span
+                                  className="text-yellow-500"
+                                  title="Xe chính"
+                                >
+                                  <svg
+                                    className="w-3 h-3"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                </span>
+                              )}
+                              <span className="text-slate-400 dark:text-slate-500">
+                                <Bike className="w-4 h-4" />
+                              </span>
+                              <div>
+                                <div className="font-medium text-slate-900 dark:text-slate-100">
+                                  {vehicle.model}
+                                </div>
+                                {vehicle.licensePlate && (
+                                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    Biển số: {vehicle.licensePlate}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : customer.vehicleModel ? (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-slate-400 dark:text-slate-500">
                             <Bike className="w-4 h-4" />
@@ -769,7 +1141,7 @@ const CustomerManager: React.FC = () => {
                             )}
                           </div>
                         </div>
-                      )}
+                      ) : null}
 
                       {/* Loyalty Points Section */}
                       <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
@@ -912,6 +1284,15 @@ const CustomerManager: React.FC = () => {
         </div>
       )}
 
+      {/* Customer History Modal */}
+      <CustomerHistoryModal
+        isOpen={!!viewHistoryCustomer}
+        onClose={() => setViewHistoryCustomer(null)}
+        customer={viewHistoryCustomer}
+        sales={allSales}
+        workOrders={allWorkOrders}
+      />
+
       {editCustomer && (
         <CustomerModal
           customer={editCustomer}
@@ -931,18 +1312,70 @@ const CustomerModal: React.FC<{
 }> = ({ customer, onSave, onClose }) => {
   const [name, setName] = useState(customer.name || "");
   const [phone, setPhone] = useState(customer.phone || "");
-  const [vehicleModel, setVehicleModel] = useState(customer.vehicleModel || "");
-  const [licensePlate, setLicensePlate] = useState(customer.licensePlate || "");
+
+  // Initialize vehicles from customer data or legacy fields
+  const initVehicles = () => {
+    if (customer.vehicles && customer.vehicles.length > 0) {
+      return customer.vehicles;
+    }
+    // Migration: convert old fields to new format
+    if (customer.vehicleModel || customer.licensePlate) {
+      return [
+        {
+          id: `VEH-${Date.now()}`,
+          model: customer.vehicleModel || "",
+          licensePlate: customer.licensePlate || "",
+          isPrimary: true,
+        },
+      ];
+    }
+    return [];
+  };
+
+  const [vehicles, setVehicles] = useState<Vehicle[]>(initVehicles());
+  const [newVehicle, setNewVehicle] = useState({ model: "", licensePlate: "" });
+
+  const addVehicle = () => {
+    if (!newVehicle.model.trim() && !newVehicle.licensePlate.trim()) return;
+
+    const vehicle: Vehicle = {
+      id: `VEH-${Date.now()}`,
+      model: newVehicle.model.trim(),
+      licensePlate: newVehicle.licensePlate.trim(),
+      isPrimary: vehicles.length === 0, // First vehicle is primary
+    };
+
+    setVehicles([...vehicles, vehicle]);
+    setNewVehicle({ model: "", licensePlate: "" });
+  };
+
+  const removeVehicle = (id: string) => {
+    setVehicles(vehicles.filter((v) => v.id !== id));
+  };
+
+  const setPrimaryVehicle = (id: string) => {
+    setVehicles(
+      vehicles.map((v) => ({
+        ...v,
+        isPrimary: v.id === id,
+      }))
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+
+    const primaryVehicle = vehicles.find((v) => v.isPrimary) || vehicles[0];
+
     onSave({
       id: customer.id,
       name: name.trim(),
       phone: phone.trim(),
-      vehicleModel: vehicleModel.trim(),
-      licensePlate: licensePlate.trim(),
+      vehicles: vehicles,
+      // Keep legacy fields for backward compatibility
+      vehicleModel: primaryVehicle?.model || "",
+      licensePlate: primaryVehicle?.licensePlate || "",
     });
     onClose();
   };
@@ -1003,32 +1436,93 @@ const CustomerModal: React.FC<{
             />
           </div>
 
-          {/* Xe và Biển số */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-secondary-text mb-2">
-                Xe
-              </label>
+          {/* Danh sách xe */}
+          <div>
+            <label className="block text-sm font-medium text-secondary-text mb-2">
+              Danh sách xe
+            </label>
+
+            {/* List of vehicles */}
+            {vehicles.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {vehicles.map((vehicle) => (
+                  <div
+                    key={vehicle.id}
+                    className="flex items-center gap-2 p-2 bg-slate-700 rounded-lg"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryVehicle(vehicle.id)}
+                      className={`flex-shrink-0 ${
+                        vehicle.isPrimary
+                          ? "text-yellow-400"
+                          : "text-slate-500 hover:text-yellow-400"
+                      }`}
+                      title={
+                        vehicle.isPrimary ? "Xe chính" : "Đặt làm xe chính"
+                      }
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </button>
+                    <Bike className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                    <div className="flex-1 text-sm text-white">
+                      <span className="font-medium">
+                        {vehicle.model || "—"}
+                      </span>
+                      {vehicle.licensePlate && (
+                        <span className="text-slate-400 ml-2">
+                          • {vehicle.licensePlate}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeVehicle(vehicle.id)}
+                      className="flex-shrink-0 text-red-400 hover:text-red-300"
+                      title="Xóa xe"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add vehicle form */}
+            <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
                 placeholder="Dòng xe"
-                value={vehicleModel}
-                onChange={(e) => setVehicleModel(e.target.value)}
-                className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                value={newVehicle.model}
+                onChange={(e) =>
+                  setNewVehicle({ ...newVehicle, model: e.target.value })
+                }
+                className="px-3 py-2 bg-primary-bg border border-secondary-border rounded-lg text-primary-text placeholder-tertiary-text text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-secondary-text mb-2">
-                Biển số
-              </label>
               <input
                 type="text"
-                placeholder="VD: 59A1-123.45"
-                value={licensePlate}
-                onChange={(e) => setLicensePlate(e.target.value)}
-                className="w-full px-4 py-3 bg-primary-bg border border-secondary-border rounded-lg text-primary-text placeholder-tertiary-text focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Biển số"
+                value={newVehicle.licensePlate}
+                onChange={(e) =>
+                  setNewVehicle({ ...newVehicle, licensePlate: e.target.value })
+                }
+                className="px-3 py-2 bg-primary-bg border border-secondary-border rounded-lg text-primary-text placeholder-tertiary-text text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+            <button
+              type="button"
+              onClick={addVehicle}
+              className="mt-2 w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Thêm xe
+            </button>
           </div>
 
           {/* Buttons */}

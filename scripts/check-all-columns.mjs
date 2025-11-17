@@ -27,8 +27,16 @@ async function checkAllColumns() {
   if (sales && sales[0]) console.log(Object.keys(sales[0]));
   else console.log("Error or empty:", e1?.message);
 
+  console.log("\n=== CUSTOMER_DEBTS TABLE ===");
+  const { data: debts, error: e2 } = await supabase
+    .from("customer_debts")
+    .select("*")
+    .limit(1);
+  if (debts && debts[0]) console.log(Object.keys(debts[0]));
+  else console.log("Error or empty:", e2?.message);
+
   console.log("\n=== CASH_TRANSACTIONS TABLE ===");
-  const { data: cash, error: e2 } = await supabase
+  const { data: cash, error: e3 } = await supabase
     .from("cash_transactions")
     .select("*")
     .limit(1);
@@ -36,7 +44,7 @@ async function checkAllColumns() {
   else console.log("Error or empty:", e2?.message);
 
   console.log("\n=== INVENTORY_TRANSACTIONS TABLE ===");
-  const { data: inv, error: e3 } = await supabase
+  const { data: inv, error: e4 } = await supabase
     .from("inventory_transactions")
     .select("*")
     .limit(1);

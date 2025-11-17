@@ -20,19 +20,53 @@ export async function fetchCustomerDebts(): Promise<
         cause: error,
       });
 
-    const debts = (data || []).map((row: any) => ({
-      id: row.id,
-      customerId: row.customer_id,
-      customerName: row.customer_name,
-      phone: row.phone,
-      licensePlate: row.license_plate,
-      description: row.description,
-      totalAmount: row.total_amount,
-      paidAmount: row.paid_amount,
-      remainingAmount: row.remaining_amount,
-      createdDate: row.created_date,
-      branchId: row.branch_id,
-    }));
+    // Fetch sale_codes for debts that have sale_id
+    const saleIds = (data || [])
+      .filter((row: any) => row.sale_id)
+      .map((row: any) => row.sale_id);
+
+    let salesMap = new Map<string, string>();
+    if (saleIds.length > 0) {
+      const { data: salesData } = await supabase
+        .from("sales")
+        .select("id, sale_code")
+        .in("id", saleIds);
+
+      if (salesData) {
+        salesData.forEach((sale: any) => {
+          if (sale.sale_code) {
+            salesMap.set(sale.id, sale.sale_code);
+          }
+        });
+      }
+    }
+
+    const debts = (data || []).map((row: any) => {
+      let description = row.description;
+
+      // If this debt has a sale_id and we found the sale_code, update description
+      if (row.sale_id && salesMap.has(row.sale_id)) {
+        const saleCode = salesMap.get(row.sale_id);
+        // Replace various UUID patterns with the actual sale_code
+        description = description
+          .replace(/Hóa đơn SALE-\d+/g, `Hóa đơn ${saleCode}`)
+          .replace(/Hóa đơn #\d+/g, `Hóa đơn ${saleCode}`);
+      }
+
+      return {
+        id: row.id,
+        customerId: row.customer_id,
+        customerName: row.customer_name,
+        phone: row.phone,
+        licensePlate: row.license_plate,
+        description: description,
+        totalAmount: row.total_amount,
+        paidAmount: row.paid_amount,
+        remainingAmount: row.remaining_amount,
+        createdDate: row.created_date,
+        branchId: row.branch_id,
+      };
+    });
 
     return success(debts as CustomerDebt[]);
   } catch (e: any) {

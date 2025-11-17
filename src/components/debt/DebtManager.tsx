@@ -324,7 +324,7 @@ const DebtManager: React.FC = () => {
 
                 {filteredCustomerDebts.map((debt) => (
                   <div
-                    key={debt.customerId}
+                    key={debt.id}
                     className="grid grid-cols-12 gap-4 items-start bg-primary-bg border border-primary-border rounded-lg p-4 hover:border-cyan-500 hover:shadow-md transition-all cursor-pointer group"
                     onClick={() => {
                       setSelectedDebt(debt);
@@ -430,8 +430,12 @@ const DebtManager: React.FC = () => {
                             <span>
                               NV:{" "}
                               {debt.description
-                                .match(/NV:([^-]+)/)?.[1]
-                                ?.trim() || "N/A"}
+                                .match(/NVKỹ thuật:([^\n]+)/)?.[1]
+                                ?.trim() ||
+                                debt.description
+                                  .match(/NV:([^\n]+)/)?.[1]
+                                  ?.trim() ||
+                                "N/A"}
                             </span>
                           </div>
                         </div>
