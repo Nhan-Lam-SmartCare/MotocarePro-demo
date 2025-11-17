@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAppContext } from "../../contexts/AppContext";
-import type { WorkOrder, Part, WorkOrderPart } from "../../types";
+import type { WorkOrder, Part, WorkOrderPart, Vehicle } from "../../types";
 import {
   formatCurrency,
   formatDate,
@@ -3121,6 +3121,11 @@ const WorkOrderModal: React.FC<{
   });
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
+  const [newVehicle, setNewVehicle] = useState({
+    model: "",
+    licensePlate: "",
+  });
 
   // Get customer's vehicles
   const currentCustomer = customers.find(
@@ -3239,6 +3244,47 @@ const WorkOrderModal: React.FC<{
       licensePlate: vehicle.licensePlate,
     });
     setShowVehicleDropdown(false);
+  };
+
+  // Handler: Add new vehicle to current customer
+  const handleAddVehicle = () => {
+    if (!currentCustomer) return;
+    if (!newVehicle.model.trim() || !newVehicle.licensePlate.trim()) {
+      showToast.error("Vui lòng nhập đầy đủ loại xe và biển số");
+      return;
+    }
+
+    const vehicleId = `VEH-${Date.now()}`;
+    const existingVehicles = currentCustomer.vehicles || [];
+
+    const updatedVehicles = [
+      ...existingVehicles,
+      {
+        id: vehicleId,
+        model: newVehicle.model.trim(),
+        licensePlate: newVehicle.licensePlate.trim(),
+        isPrimary: existingVehicles.length === 0, // First vehicle is primary
+      },
+    ];
+
+    // Update customer with new vehicle
+    upsertCustomer({
+      ...currentCustomer,
+      vehicles: updatedVehicles,
+    });
+
+    // Auto-select the newly added vehicle
+    setFormData({
+      ...formData,
+      vehicleId: vehicleId,
+      vehicleModel: newVehicle.model.trim(),
+      licensePlate: newVehicle.licensePlate.trim(),
+    });
+
+    // Reset and close modal
+    setNewVehicle({ model: "", licensePlate: "" });
+    setShowAddVehicleModal(false);
+    showToast.success("Đã thêm xe mới");
   };
 
   // Calculate totals
@@ -3417,6 +3463,7 @@ const WorkOrderModal: React.FC<{
         id: orderId,
         customerName: formData.customerName || "",
         customerPhone: formData.customerPhone || "",
+        vehicleId: formData.vehicleId,
         vehicleModel: formData.vehicleModel || "",
         licensePlate: formData.licensePlate || "",
         issueDescription: formData.issueDescription || "",
@@ -3446,6 +3493,7 @@ const WorkOrderModal: React.FC<{
           .update({
             customername: workOrderData.customerName,
             customerphone: workOrderData.customerPhone,
+            vehicleid: workOrderData.vehicleId,
             vehiclemodel: workOrderData.vehicleModel,
             licenseplate: workOrderData.licensePlate,
             issuedescription: workOrderData.issueDescription,
@@ -3470,6 +3518,7 @@ const WorkOrderModal: React.FC<{
           id: workOrderData.id,
           customername: workOrderData.customerName,
           customerphone: workOrderData.customerPhone,
+          vehicleid: workOrderData.vehicleId,
           vehiclemodel: workOrderData.vehicleModel,
           licenseplate: workOrderData.licensePlate,
           issuedescription: workOrderData.issueDescription,
@@ -3577,10 +3626,22 @@ const WorkOrderModal: React.FC<{
           );
         }
 
+        const vehicleId = `VEH-${Date.now()}`;
+        const vehicles = [];
+        if (formData.vehicleModel || formData.licensePlate) {
+          vehicles.push({
+            id: vehicleId,
+            model: formData.vehicleModel || "",
+            licensePlate: formData.licensePlate || "",
+            isPrimary: true,
+          });
+        }
+
         upsertCustomer({
           id: `CUST-${Date.now()}`,
           name: formData.customerName,
           phone: formData.customerPhone,
+          vehicles: vehicles.length > 0 ? vehicles : undefined,
           vehicleModel: formData.vehicleModel,
           licensePlate: formData.licensePlate,
           status: "active",
@@ -3613,6 +3674,7 @@ const WorkOrderModal: React.FC<{
         id: orderId,
         customername: formData.customerName || "",
         customerphone: formData.customerPhone || "",
+        vehicleid: formData.vehicleId,
         vehiclemodel: formData.vehicleModel || "",
         licenseplate: formData.licensePlate || "",
         issuedescription: formData.issueDescription || "",
@@ -3737,10 +3799,22 @@ const WorkOrderModal: React.FC<{
             );
           }
 
+          const vehicleId = `VEH-${Date.now()}`;
+          const vehicles = [];
+          if (formData.vehicleModel || formData.licensePlate) {
+            vehicles.push({
+              id: vehicleId,
+              model: formData.vehicleModel || "",
+              licensePlate: formData.licensePlate || "",
+              isPrimary: true,
+            });
+          }
+
           upsertCustomer({
             id: `CUST-${Date.now()}`,
             name: formData.customerName,
             phone: formData.customerPhone,
+            vehicles: vehicles.length > 0 ? vehicles : undefined,
             vehicleModel: formData.vehicleModel,
             licensePlate: formData.licensePlate,
             status: "active",
@@ -4432,12 +4506,25 @@ const WorkOrderModal: React.FC<{
                               key={customer.id}
                               type="button"
                               onClick={() => {
+                                // Find primary vehicle or first vehicle
+                                const primaryVehicle =
+                                  customer.vehicles?.find(
+                                    (v: Vehicle) => v.isPrimary
+                                  ) || customer.vehicles?.[0];
+
                                 setFormData({
                                   ...formData,
                                   customerName: customer.name,
                                   customerPhone: customer.phone,
-                                  vehicleModel: customer.vehicleModel || "",
-                                  licensePlate: customer.licensePlate || "",
+                                  vehicleId: primaryVehicle?.id,
+                                  vehicleModel:
+                                    primaryVehicle?.model ||
+                                    customer.vehicleModel ||
+                                    "",
+                                  licensePlate:
+                                    primaryVehicle?.licensePlate ||
+                                    customer.licensePlate ||
+                                    "",
                                 });
                                 setCustomerSearch(customer.name);
                                 setShowCustomerDropdown(false);
@@ -4557,6 +4644,7 @@ const WorkOrderModal: React.FC<{
                             ...formData,
                             customerName: "",
                             customerPhone: "",
+                            vehicleId: undefined,
                             vehicleModel: "",
                             licensePlate: "",
                           });
@@ -4580,6 +4668,81 @@ const WorkOrderModal: React.FC<{
                           />
                         </svg>
                       </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Vehicle Selection Dropdown (for customers with multiple vehicles) */}
+                {currentCustomer && customerVehicles.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Chọn xe
+                        {hasMultipleVehicles && (
+                          <span className="text-xs text-slate-500 ml-1">
+                            (Khách có {customerVehicles.length} xe)
+                          </span>
+                        )}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddVehicleModal(true)}
+                        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium"
+                        title="Thêm xe mới"
+                      >
+                        + Thêm xe
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {customerVehicles.map((vehicle: Vehicle) => {
+                        const isSelected = formData.vehicleId === vehicle.id;
+                        const isPrimary = vehicle.isPrimary;
+
+                        return (
+                          <button
+                            key={vehicle.id}
+                            type="button"
+                            onClick={() => handleSelectVehicle(vehicle)}
+                            className={`w-full text-left px-3 py-2.5 rounded-lg border-2 transition-all ${
+                              isSelected
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                                : "border-slate-200 dark:border-slate-600 hover:border-blue-300 dark:hover:border-blue-700 bg-white dark:bg-slate-700"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {isPrimary && (
+                                <span
+                                  className="text-yellow-500"
+                                  title="Xe chính"
+                                >
+                                  ⭐
+                                </span>
+                              )}
+                              <div className="flex-1">
+                                <div className="font-medium text-sm text-slate-900 dark:text-slate-100">
+                                  {vehicle.model}
+                                </div>
+                                <div className="text-xs font-mono text-slate-600 dark:text-slate-400 mt-0.5">
+                                  {vehicle.licensePlate}
+                                </div>
+                              </div>
+                              {isSelected && (
+                                <svg
+                                  className="w-5 h-5 text-blue-500"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -5637,10 +5800,22 @@ const WorkOrderModal: React.FC<{
                 onClick={() => {
                   if (newCustomer.name && newCustomer.phone) {
                     const customerId = `CUST-${Date.now()}`;
+                    const vehicleId = `VEH-${Date.now()}`;
+                    const vehicles = [];
+                    if (newCustomer.vehicleModel || newCustomer.licensePlate) {
+                      vehicles.push({
+                        id: vehicleId,
+                        model: newCustomer.vehicleModel || "",
+                        licensePlate: newCustomer.licensePlate || "",
+                        isPrimary: true,
+                      });
+                    }
+
                     upsertCustomer({
                       id: customerId,
                       name: newCustomer.name,
                       phone: newCustomer.phone,
+                      vehicles: vehicles.length > 0 ? vehicles : undefined,
                       vehicleModel: newCustomer.vehicleModel,
                       licensePlate: newCustomer.licensePlate,
                       status: "active",
@@ -5657,6 +5832,7 @@ const WorkOrderModal: React.FC<{
                       ...formData,
                       customerName: newCustomer.name,
                       customerPhone: newCustomer.phone,
+                      vehicleId: vehicles.length > 0 ? vehicleId : undefined,
                       vehicleModel: newCustomer.vehicleModel,
                       licensePlate: newCustomer.licensePlate,
                     });
@@ -5678,6 +5854,78 @@ const WorkOrderModal: React.FC<{
                 disabled={!newCustomer.name || !newCustomer.phone}
               >
                 Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Vehicle Modal */}
+      {showAddVehicleModal && currentCustomer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+              Thêm xe cho {currentCustomer.name}
+            </h3>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Loại xe <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="VD: Exciter, Vision, Wave..."
+                  value={newVehicle.model}
+                  onChange={(e) =>
+                    setNewVehicle({ ...newVehicle, model: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Biển số <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="VD: 29A 12345"
+                  value={newVehicle.licensePlate}
+                  onChange={(e) =>
+                    setNewVehicle({
+                      ...newVehicle,
+                      licensePlate: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="text-xs text-slate-500 dark:text-slate-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+                💡 Xe mới sẽ tự động được chọn sau khi thêm
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowAddVehicleModal(false);
+                  setNewVehicle({ model: "", licensePlate: "" });
+                }}
+                className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleAddVehicle}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium"
+                disabled={
+                  !newVehicle.model.trim() || !newVehicle.licensePlate.trim()
+                }
+              >
+                Thêm xe
               </button>
             </div>
           </div>
