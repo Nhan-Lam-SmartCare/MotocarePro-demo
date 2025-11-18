@@ -4431,10 +4431,10 @@ const WorkOrderModal: React.FC<{
   }, [availableParts, searchPart]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+      <div className="bg-white dark:bg-slate-800 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-5xl rounded-t-3xl md:rounded-xl shadow-2xl md:shadow-lg flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-t-xl flex-shrink-0">
+        <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 md:px-6 md:py-4 flex items-center justify-between rounded-t-3xl md:rounded-t-xl flex-shrink-0">
           <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
             {formData.id
               ? `Chi tiết phiếu sửa chữa - ${formatWorkOrderId(
@@ -4466,7 +4466,7 @@ const WorkOrderModal: React.FC<{
         </div>
 
         {/* Scrollable Content */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="px-4 py-5 md:px-6 md:py-6 space-y-6 overflow-y-auto flex-1 pb-24 md:pb-6">
           {/* Customer & Vehicle Info */}
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="space-y-4">
@@ -5592,7 +5592,7 @@ const WorkOrderModal: React.FC<{
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-end gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-b-xl flex-shrink-0">
+        <div className="border-t border-slate-200 dark:border-slate-700 px-4 py-4 md:px-6 flex items-center justify-end gap-3 bg-white md:bg-slate-50 dark:bg-slate-800/70 md:dark:bg-slate-800/50 rounded-b-3xl md:rounded-b-xl flex-shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg"

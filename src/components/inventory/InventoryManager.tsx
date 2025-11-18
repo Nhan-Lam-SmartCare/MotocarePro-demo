@@ -1,7 +1,19 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { canDo } from "../../utils/permissions";
-import { Boxes, Package, Search, FileText } from "lucide-react";
+import {
+  Boxes,
+  Package,
+  Search,
+  FileText,
+  Edit,
+  Trash2,
+  Plus,
+  Repeat,
+  UploadCloud,
+  DownloadCloud,
+  MoreHorizontal,
+} from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { safeAudit } from "../../lib/repository/auditLogsRepository";
 import { supabase } from "../../supabaseClient";
@@ -3186,6 +3198,20 @@ const InventoryManager: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [editingPart, setEditingPart] = useState<Part | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [mobileMenuOpenIndex, setMobileMenuOpenIndex] = useState<number | null>(
+    null
+  );
+
+  // Generate a color from category string for placeholder avatar
+  const getCategoryColor = (name: string) => {
+    if (!name) return "#94a3b8"; // slate-400
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const c = (hash & 0x00ffffff).toString(16).toUpperCase();
+    return `#${"00000".substring(0, 6 - c.length) + c}`;
+  };
 
   // Confirm dialog hook
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
@@ -3569,10 +3595,9 @@ const InventoryManager: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-secondary-bg">
-      {/* Header */}
-      <div className="bg-primary-bg border-b border-primary-border px-6 py-4">
-        {/* Tabs and Buttons Row */}
+    <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900 sm:bg-[#1e293b]">
+      {/* Desktop Header - Giữ nguyên như cũ */}
+      <div className="hidden sm:block bg-primary-bg border-b border-primary-border px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Tabs */}
           <div className="flex gap-2">
@@ -3621,141 +3646,184 @@ const InventoryManager: React.FC = () => {
               onClick={() => setShowGoodsReceipt(true)}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
             >
-              <span className="text-xl">+</span>
-              <span>Tạo phiếu nhập</span>
+              <Plus className="w-4 h-4" />
+              Tạo phiếu nhập
             </button>
             <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
-              <span className="text-xl">🔄</span>
-              <span>Chuyển kho</span>
+              <Repeat className="w-4 h-4" />
+              Chuyển kho
             </button>
             <button
               onClick={handleExportExcel}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
             >
-              <span className="text-xl">📤</span>
-              <span>Xuất Excel</span>
+              <UploadCloud className="w-4 h-4" />
+              Xuất Excel
             </button>
             <button
               onClick={() => setShowImportModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >
-              <span className="text-xl">📥</span>
-              <span>Nhập CSV</span>
+              <DownloadCloud className="w-4 h-4" />
+              Nhập CSV
             </button>
           </div>
         </div>
       </div>
 
+      {/* Mobile Header - Compact & Clean */}
+      <div className="sm:hidden bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-3 py-3">
+        {/* Search and Create Button Row */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên hoặc SKU..."
+              value={search}
+              onChange={(e) => {
+                setPage(1);
+                setSearch(e.target.value);
+              }}
+              className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Create Button */}
+          <button
+            onClick={() => setShowGoodsReceipt(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            Tạo phiếu
+          </button>
+        </div>
+
+        {/* Inline Stats */}
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <span className="text-slate-600 dark:text-slate-400">Tổng:</span>
+              <span className="font-semibold text-blue-600 dark:text-blue-400">
+                {totalStockQuantity.toLocaleString()} sp
+              </span>
+            </div>
+            <div className="h-3 w-px bg-slate-300 dark:bg-slate-600"></div>
+            <div className="flex items-center gap-1">
+              <span className="text-slate-600 dark:text-slate-400">
+                Giá trị:
+              </span>
+              <span className="font-semibold text-green-600 dark:text-green-400">
+                {formatCurrency(totalStockValue)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Filters - Hidden on Mobile */}
+      <div className="hidden sm:block bg-primary-bg border-b border-primary-border px-4 py-4">
+        <div className="flex items-start gap-4">
+          {/* Left Side - Stats Cards */}
+          <div className="flex gap-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 min-w-[140px]">
+              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">
+                Tổng SL tồn
+              </p>
+              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                {totalStockQuantity.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 min-w-[140px]">
+              <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">
+                Tổng giá trị tồn
+              </p>
+              <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                {formatCurrency(totalStockValue)}
+              </p>
+            </div>
+          </div>
+
+          {/* Right Side - Search and Filters */}
+          <div className="flex-1 flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tên hoặc SKU..."
+                value={search}
+                onChange={(e) => {
+                  setPage(1);
+                  setSearch(e.target.value);
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-primary-border rounded-lg bg-primary-bg text-primary-text focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <select
+              value={stockFilter}
+              onChange={(e) => {
+                setPage(1);
+                setStockFilter(e.target.value);
+              }}
+              className="px-4 py-2.5 border border-primary-border rounded-lg bg-primary-bg text-primary-text focus:ring-2 focus:ring-blue-500 focus:border-transparent whitespace-nowrap"
+            >
+              <option value="all">Tất cả tồn kho</option>
+              <option value="in-stock">Còn hàng</option>
+              <option value="low-stock">Sắp hết</option>
+              <option value="out-of-stock">Hết hàng</option>
+            </select>
+
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                setPage(1);
+                setCategoryFilter(e.target.value);
+              }}
+              className="px-4 py-2.5 border border-primary-border rounded-lg bg-primary-bg text-primary-text focus:ring-2 focus:ring-blue-500 focus:border-transparent whitespace-nowrap"
+            >
+              <option value="all">Tất cả danh mục</option>
+              {allCategories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4">
         {activeTab === "stock" && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Duplicate Warning Banner */}
             {duplicateNames.size > 0 && (
-              <div className="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 p-4 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">⚠️</span>
+              <div className="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 p-3 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <span className="text-lg">⚠️</span>
                   <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-1">
-                      Phát hiện {duplicateNames.size} sản phẩm có tên trùng lặp
+                    <h3 className="text-xs font-semibold text-orange-800 dark:text-orange-300 mb-1">
+                      Phát hiện {duplicateNames.size} sản phẩm trùng tên
                     </h3>
-                    <p className="text-sm text-orange-700 dark:text-orange-400 mb-2">
-                      Các sản phẩm có tên giống nhau nhưng SKU khác nhau có thể
-                      gây nhầm lẫn khi bán hàng. Các dòng trùng lặp được đánh
-                      dấu màu cam với nhãn "⚠️ Trùng".
-                    </p>
-                    <p className="text-xs text-orange-600 dark:text-orange-500">
-                      💡 Khuyến nghị: Chọn các sản phẩm trùng tên và xóa hoặc
-                      đổi tên để phân biệt (VD: thêm mã nhà cung cấp, thêm phiên
-                      bản)
-                    </p>
                     <button
                       onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
-                      className={`mt-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      className={`mt-1 px-2 py-1 rounded text-xs font-medium transition ${
                         showDuplicatesOnly
-                          ? "bg-orange-600 text-white hover:bg-orange-700"
-                          : "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/60"
+                          ? "bg-orange-600 text-white"
+                          : "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300"
                       }`}
                     >
-                      {showDuplicatesOnly
-                        ? "✓ Đang lọc sản phẩm trùng"
-                        : "🔍 Chỉ hiển thị sản phẩm trùng"}
+                      {showDuplicatesOnly ? "✓ Đang lọc" : "🔍 Lọc"}
                     </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Stats Cards and Search/Filters in One Row */}
-            <div className="flex gap-4 items-center">
-              {/* Stats Cards */}
-              <div className="flex gap-3">
-                <div className="bg-accent-blue-bg rounded-lg px-5 py-3 border border-accent-blue-border min-w-[140px]">
-                  <div className="text-xs text-accent-blue-text mb-1">
-                    Tổng SL tồn
-                  </div>
-                  <div className="text-xl font-bold text-primary-text">
-                    {totalStockQuantity.toLocaleString()}
-                  </div>
-                </div>
-
-                <div className="bg-accent-green-bg rounded-lg px-5 py-3 border border-accent-green-border min-w-[180px]">
-                  <div className="text-xs text-accent-green-text mb-1">
-                    Tổng giá trị tồn
-                  </div>
-                  <div className="text-xl font-bold text-accent-green-text">
-                    {formatCurrency(totalStockValue)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Search and Filters */}
-              <div className="flex gap-3 flex-1">
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm theo tên hoặc SKU..."
-                  value={search}
-                  onChange={(e) => {
-                    setPage(1); // reset page khi thay đổi search
-                    setSearch(e.target.value);
-                  }}
-                  className="flex-1 px-4 py-2.5 border border-secondary-border rounded-lg bg-primary-bg text-primary-text placeholder-tertiary-text focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
-                />
-                {/* Tồn kho filter (stock status) */}
-                <select
-                  value={stockFilter}
-                  onChange={(e) => {
-                    setPage(1);
-                    setStockFilter(e.target.value);
-                  }}
-                  className="px-4 py-2.5 border border-secondary-border rounded-lg bg-primary-bg text-secondary-text focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
-                >
-                  <option value="all">Tất cả tồn kho</option>
-                  <option value="low">Sắp hết (&lt;10)</option>
-                  <option value="out">Hết hàng (=0)</option>
-                </select>
-
-                {/* Danh mục filter */}
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => {
-                    setPage(1);
-                    setCategoryFilter(e.target.value);
-                  }}
-                  className="px-4 py-2.5 border border-secondary-border rounded-lg bg-primary-bg text-secondary-text focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
-                >
-                  <option value="all">Tất cả danh mục</option>
-                  {allCategories.map((c: any) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
             {/* Stock Table + Pagination */}
-            <div className="rounded-lg overflow-hidden border border-primary-border">
+            <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
               {/* Bulk Actions Bar */}
               {selectedItems.length > 0 && (
                 <div className="px-6 py-3 bg-blue-100 dark:bg-blue-900/30 border-b border-primary-border flex items-center justify-between">
@@ -3784,7 +3852,122 @@ const InventoryManager: React.FC = () => {
                 </div>
               )}
 
-              <div className="overflow-x-auto">
+              {/* Mobile: stacked cards (visible on small screens) */}
+              <div className="block sm:hidden">
+                <div className="space-y-3 p-3">
+                  {filteredParts.map((part, index) => {
+                    const stock = part.stock[currentBranchId] || 0;
+                    const retailPrice = part.retailPrice[currentBranchId] || 0;
+                    const value = stock * retailPrice;
+                    const isDuplicate = hasDuplicateName(part.name);
+                    return (
+                      <div
+                        key={part.id}
+                        className={`flex items-center gap-3 p-3 rounded-xl bg-[#2d3748] border border-slate-600 transition ${
+                          isDuplicate ? "border-l-4 border-l-orange-500" : ""
+                        }`}
+                        role="listitem"
+                      >
+                        <div className="w-14 h-14 bg-slate-600 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+                          {part.imageUrl ? (
+                            <img
+                              src={part.imageUrl}
+                              alt={part.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div
+                              className="w-full h-full flex items-center justify-center"
+                              style={{
+                                backgroundColor: getCategoryColor(
+                                  part.category
+                                ),
+                              }}
+                            >
+                              <Package className="w-6 h-6 text-white opacity-90" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[15px] font-medium text-white truncate">
+                                {part.name}
+                              </div>
+                              <div className="text-[13px] text-slate-400 mt-0.5">
+                                SKU: {part.sku} • {part.category}
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <div className="text-[13px] text-slate-300">
+                                {formatCurrency(value)} ₫
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between">
+                            <span
+                              className={`inline-flex px-2 py-0.5 text-sm font-bold rounded ${
+                                stock === 0
+                                  ? "text-red-400 bg-red-900/30"
+                                  : stock < 10
+                                  ? "text-yellow-400 bg-yellow-900/30"
+                                  : "text-emerald-400 bg-emerald-900/30"
+                              }`}
+                            >
+                              {stock}
+                            </span>
+                            <div className="relative">
+                              <button
+                                onClick={() =>
+                                  setMobileMenuOpenIndex(
+                                    mobileMenuOpenIndex === index ? null : index
+                                  )
+                                }
+                                aria-haspopup="true"
+                                aria-expanded={mobileMenuOpenIndex === index}
+                                aria-label="Thêm hành động"
+                                className="p-1.5 text-slate-400 hover:bg-slate-600 rounded transition"
+                              >
+                                <MoreHorizontal className="w-5 h-5" />
+                              </button>
+
+                              {mobileMenuOpenIndex === index && (
+                                <div className="absolute right-0 mt-2 w-40 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
+                                  <button
+                                    onClick={() => {
+                                      setEditingPart(part);
+                                      setMobileMenuOpenIndex(null);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-700 flex items-center gap-2 text-white"
+                                    aria-label={`Chỉnh sửa ${part.name}`}
+                                  >
+                                    <Edit className="w-4 h-4 text-blue-400" />
+                                    <span>Chỉnh sửa</span>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      handleDeleteItem(part.id);
+                                      setMobileMenuOpenIndex(null);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-700 flex items-center gap-2 text-red-400"
+                                    aria-label={`Xóa ${part.name}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>Xóa</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Desktop / tablet: wide table (hidden on small screens) */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-tertiary-bg">
                     <tr className="border-b border-primary-border">
@@ -4352,6 +4535,74 @@ const InventoryManager: React.FC = () => {
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
+
+      {/* Mobile Floating Action Buttons */}
+      <div className="sm:hidden fixed bottom-20 right-4 z-40 flex flex-col gap-3">
+        <button
+          onClick={() => setShowGoodsReceipt(true)}
+          className="w-14 h-14 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all transform hover:scale-110"
+          aria-label="Tạo phiếu nhập"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+        <button
+          onClick={handleExportExcel}
+          className="w-14 h-14 bg-orange-600 hover:bg-orange-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all transform hover:scale-110"
+          aria-label="Xuất Excel"
+        >
+          <Repeat className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Custom Bottom Navigation for Inventory */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-50 safe-area-bottom">
+        <div className="grid grid-cols-4 gap-1 px-2 py-2">
+          <button
+            onClick={() => setActiveTab("stock")}
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition ${
+              activeTab === "stock"
+                ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+                : "text-slate-600 dark:text-slate-400"
+            }`}
+          >
+            <Boxes className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Tồn kho</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("categories")}
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition ${
+              activeTab === "categories"
+                ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                : "text-slate-600 dark:text-slate-400"
+            }`}
+          >
+            <Package className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Danh mục</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("lookup")}
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition ${
+              activeTab === "lookup"
+                ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                : "text-slate-600 dark:text-slate-400"
+            }`}
+          >
+            <Search className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Tra cứu</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition ${
+              activeTab === "history"
+                ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                : "text-slate-600 dark:text-slate-400"
+            }`}
+          >
+            <FileText className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Lịch sử</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
