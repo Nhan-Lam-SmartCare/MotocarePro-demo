@@ -1,6 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { User, Bike } from "lucide-react";
-import { useAppContext } from "../../contexts/AppContext";
+import {
+  useCustomers,
+  useCreateCustomer,
+  useUpdateCustomer,
+} from "../../hooks/useSupabase";
 import { formatDate, formatCurrency, formatAnyId } from "../../utils/format";
 import { PlusIcon, TrashIcon, XMarkIcon, UsersIcon } from "../Icons";
 import type { Customer, Sale, WorkOrder, Vehicle } from "../../types";
@@ -339,7 +343,27 @@ const classifyCustomer = (customer: Customer): Customer["segment"] => {
 };
 
 const CustomerManager: React.FC = () => {
-  const { customers, upsertCustomer, setCustomers } = useAppContext();
+  // Lấy danh sách khách hàng từ Supabase
+  const { data: customers = [], isLoading, refetch } = useCustomers();
+  const createCustomer = useCreateCustomer();
+  const updateCustomer = useUpdateCustomer();
+
+  // Hàm lưu khách hàng (tạo mới hoặc cập nhật)
+  const handleSaveCustomer = async (c: Partial<Customer> & { id?: string }) => {
+    if (c.id) {
+      // Cập nhật
+      await updateCustomer.mutateAsync({ id: c.id, updates: c });
+    } else {
+      // Tạo mới, sinh id nếu chưa có
+      const newCustomer = {
+        ...c,
+        id: `CUS-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      };
+      await createCustomer.mutateAsync(newCustomer);
+    }
+    refetch();
+    setEditCustomer(null);
+  };
   const [search, setSearch] = useState("");
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [showImport, setShowImport] = useState(false);
@@ -381,20 +405,18 @@ const CustomerManager: React.FC = () => {
   // Auto-classify customers on mount only (not on every change to avoid conflicts)
   useEffect(() => {
     let hasChanges = false;
-    const updatedCustomers = customers.map((customer) => {
-      // Only classify if segment is missing or undefined
+    customers.forEach((customer) => {
       if (!customer.segment) {
         const newSegment = classifyCustomer(customer);
         hasChanges = true;
-        return { ...customer, segment: newSegment };
+        // Cập nhật segment lên Supabase
+        updateCustomer.mutate({
+          id: customer.id,
+          updates: { segment: newSegment },
+        });
       }
-      return customer;
     });
-
-    if (hasChanges) {
-      setCustomers(updatedCustomers);
-    }
-  }, [customers.length]); // Only run when customer count changes
+  }, [customers.length]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -420,9 +442,11 @@ const CustomerManager: React.FC = () => {
     return result;
   }, [customers, search, activeFilter]);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Xác nhận xoá khách hàng này?")) return;
-    setCustomers((prev) => prev.filter((c) => c.id !== id));
+    // Xóa khách hàng trên Supabase
+    await updateCustomer.mutateAsync({ id, updates: { status: "inactive" } });
+    refetch();
   };
 
   // Statistics calculations
@@ -1302,7 +1326,7 @@ const CustomerManager: React.FC = () => {
       {editCustomer && (
         <CustomerModal
           customer={editCustomer}
-          onSave={upsertCustomer}
+          onSave={handleSaveCustomer}
           onClose={() => setEditCustomer(null)}
         />
       )}
@@ -1380,8 +1404,8 @@ const CustomerModal: React.FC<{
       phone: phone.trim(),
       vehicles: vehicles,
       // Keep legacy fields for backward compatibility
-      vehicleModel: primaryVehicle?.model || "",
-      licensePlate: primaryVehicle?.licensePlate || "",
+      vehiclemodel: primaryVehicle?.model || "",
+      licenseplate: primaryVehicle?.licensePlate || "",
     });
     onClose();
   };
