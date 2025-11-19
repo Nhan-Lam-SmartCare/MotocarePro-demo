@@ -650,11 +650,12 @@ const NavLink: React.FC<{
 const BottomNav: React.FC = () => {
   const location = useLocation();
 
-  // Ẩn bottom nav khi đang ở Dashboard hoặc Inventory (có bottom nav riêng)
+  // Ẩn bottom nav khi đang ở Dashboard, Inventory, hoặc Service (có UI riêng cho mobile)
   if (
     location.pathname === "/dashboard" ||
     location.pathname === "/" ||
-    location.pathname === "/inventory"
+    location.pathname === "/inventory" ||
+    location.pathname === "/service"
   ) {
     return null;
   }

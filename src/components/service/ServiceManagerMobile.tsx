@@ -443,9 +443,9 @@ export function ServiceManagerMobile({
       {/* KHỐI D: FAB (Floating Action Button) */}
       <button
         onClick={onCreateWorkOrder}
-        className="fixed bottom-4 right-4 w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full shadow-lg shadow-blue-500/50 flex items-center justify-center hover:from-blue-600 hover:to-blue-700 transition-all z-50 active:scale-95"
+        className="fixed bottom-6 right-4 w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full shadow-xl shadow-blue-500/50 flex items-center justify-center hover:from-blue-600 hover:to-blue-700 transition-all z-[60] active:scale-95"
       >
-        <Plus className="w-6 h-6 text-white" />
+        <Plus className="w-7 h-7 text-white" />
       </button>
 
       {/* Filter Popup (Optional) */}
