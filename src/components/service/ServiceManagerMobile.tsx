@@ -140,74 +140,8 @@ export function ServiceManagerMobile({
 
   return (
     <div className="md:hidden flex flex-col h-screen bg-[#151521]">
-      {/* KPI DASHBOARD - Single Row Scroll */}
-      <div className="bg-[#1e1e2d] border-b border-gray-800">
-        <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex gap-2 p-2 min-w-max">
-            {/* Tiếp nhận */}
-            <div className="flex-shrink-0 w-28 bg-gradient-to-br from-[#009ef7] to-[#0077b6] rounded-xl p-3 shadow-lg">
-              <div className="flex justify-center mb-1">
-                <FileText className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-2xl font-bold text-white text-center mb-1">
-                {kpis.tiepNhan}
-              </div>
-              <div className="text-xs text-white/90 text-center">Tiếp nhận</div>
-            </div>
-
-            {/* Đang sửa */}
-            <div className="flex-shrink-0 w-28 bg-gradient-to-br from-[#f1416c] to-[#d11a4e] rounded-xl p-3 shadow-lg">
-              <div className="flex justify-center mb-1">
-                <Wrench className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-2xl font-bold text-white text-center mb-1">
-                {kpis.dangSua}
-              </div>
-              <div className="text-xs text-white/90 text-center">Đang sửa</div>
-            </div>
-
-            {/* Đã xong */}
-            <div className="flex-shrink-0 w-28 bg-gradient-to-br from-[#50cd89] to-[#39a96a] rounded-xl p-3 shadow-lg">
-              <div className="flex justify-center mb-1">
-                <Check className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-2xl font-bold text-white text-center mb-1">
-                {kpis.daHoanThanh}
-              </div>
-              <div className="text-xs text-white/90 text-center">Đã xong</div>
-            </div>
-
-            {/* Doanh thu */}
-            <div className="flex-shrink-0 w-32 bg-[#2b2b40] rounded-xl p-3 border border-emerald-500/30">
-              <div className="flex justify-center mb-1">
-                <TrendingUp className="w-5 h-5 text-emerald-500" />
-              </div>
-              <div className="text-base font-bold text-white text-center mb-1">
-                {formatCurrency(kpis.doanhThu)}
-              </div>
-              <div className="text-[10px] text-gray-400 text-center">
-                Doanh thu
-              </div>
-            </div>
-
-            {/* Lợi nhuận */}
-            <div className="flex-shrink-0 w-32 bg-[#2b2b40] rounded-xl p-3 border border-cyan-500/30">
-              <div className="flex justify-center mb-1">
-                <DollarSign className="w-5 h-5 text-cyan-500" />
-              </div>
-              <div className="text-base font-bold text-white text-center mb-1">
-                {formatCurrency(kpis.loiNhuan)}
-              </div>
-              <div className="text-[10px] text-gray-400 text-center">
-                Lợi nhuận
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* SEARCH BAR */}
-      <div className="bg-[#1e1e2d] border-b border-gray-800 p-2">
+      <div className="bg-[#1e1e2d] border-b border-gray-800 px-0 py-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
@@ -223,7 +157,7 @@ export function ServiceManagerMobile({
       {/* STATUS TABS */}
       <div className="bg-[#1e1e2d] border-b border-gray-800">
         <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex gap-2 p-2 min-w-max">
+          <div className="flex gap-2 py-2 min-w-max">
             <button
               onClick={() => setStatusFilter("all")}
               className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
@@ -290,7 +224,7 @@ export function ServiceManagerMobile({
       </div>
 
       {/* DANH SÁCH PHIẾU SỬA CHỮA */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-2 pb-20">
+      <div className="flex-1 overflow-y-auto py-2 space-y-2 pb-20 scrollbar-hide">
         {filteredWorkOrders.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
