@@ -2953,8 +2953,18 @@ const SalesManager: React.FC = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 flex-1 min-w-0">
                       <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        <svg
+                          className="w-5 h-5 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -2963,10 +2973,22 @@ const SalesManager: React.FC = () => {
                         </div>
                         {selectedCustomer.phone && (
                           <div className="text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1 mt-0.5">
-                            <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            <svg
+                              className="w-3 h-3 flex-shrink-0"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                              />
                             </svg>
-                            <span className="truncate">{selectedCustomer.phone}</span>
+                            <span className="truncate">
+                              {selectedCustomer.phone}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -3010,7 +3032,9 @@ const SalesManager: React.FC = () => {
                     <ShoppingCart className="w-10 h-10 text-slate-400 dark:text-slate-500" />
                   </div>
                 </div>
-                <div className="text-base font-bold text-slate-600 dark:text-slate-400 mb-1">Giỏ hàng trống</div>
+                <div className="text-base font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  Giỏ hàng trống
+                </div>
                 <div className="text-xs text-slate-500 dark:text-slate-500">
                   Chọn sản phẩm để thêm vào giỏ
                 </div>
