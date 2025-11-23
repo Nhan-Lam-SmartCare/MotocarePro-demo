@@ -2684,7 +2684,7 @@ const SalesManager: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex h-screen">
+      <div className="flex h-[calc(100vh-57px)] md:h-screen">
         {/* Main Content Area - Products Grid */}
         <div
           className={`flex-1 flex flex-col transition-all duration-300 ${
@@ -2864,17 +2864,17 @@ const SalesManager: React.FC = () => {
 
         {/* Right Sidebar - Customer, Cart & Checkout */}
         <div
-          className={`w-full md:w-[40%] bg-white dark:bg-slate-800 md:border-l border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-300 ${
+          className={`w-full md:w-[40%] bg-white dark:bg-slate-800 md:border-l border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-300 overflow-y-auto ${
             mobileTab === "products" ? "hidden md:flex" : "animate-fade-in"
           }`}
         >
           {/* Customer Selection */}
-          <div className="p-4 border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-emerald-50/30 via-teal-50/20 to-cyan-50/30 dark:from-slate-800/50 dark:via-slate-800/30 dark:to-slate-800/50">
+          <div className="p-3 md:p-4 border-b border-slate-200 md:border-slate-200/50 dark:border-slate-700/50 bg-slate-50 md:bg-gradient-to-r md:from-emerald-50/30 md:via-teal-50/20 md:to-cyan-50/30 dark:from-slate-800/50 dark:via-slate-800/30 dark:to-slate-800/50">
             <div className="customer-dropdown-container">
-              <label className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center shadow-lg">
+              <label className="flex items-center gap-2 text-sm font-semibold md:font-bold text-slate-900 dark:text-slate-100 mb-2 md:mb-3">
+                <div className="w-7 h-7 md:w-8 md:h-8 bg-emerald-500 md:bg-gradient-to-br md:from-emerald-500 md:to-teal-500 rounded-lg flex items-center justify-center md:shadow-lg">
                   <svg
-                    className="w-5 h-5 text-white"
+                    className="w-4 h-4 md:w-5 md:h-5 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -2912,15 +2912,15 @@ const SalesManager: React.FC = () => {
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
                     onFocus={() => setShowCustomerDropdown(true)}
-                    className="w-full pl-10 pr-4 py-2.5 border-2 border-slate-300/50 dark:border-slate-600/50 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all placeholder:text-slate-400"
+                    className="w-full pl-10 pr-4 py-2 md:py-2.5 border md:border-2 border-slate-300 md:border-slate-300/50 dark:border-slate-600/50 rounded-lg md:rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all placeholder:text-slate-400"
                   />
                 </div>
                 <button
                   onClick={() => setShowAddCustomerModal(true)}
-                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 font-bold"
+                  className="px-3 py-2 md:px-4 md:py-2.5 bg-emerald-500 md:bg-gradient-to-r md:from-emerald-500 md:to-teal-500 hover:bg-emerald-600 md:hover:from-emerald-600 md:hover:to-teal-600 text-white rounded-lg md:rounded-xl flex items-center justify-center gap-2 transition-all md:shadow-lg md:hover:shadow-xl md:hover:scale-105 md:active:scale-95 font-semibold md:font-bold"
                   title="Thêm khách hàng mới"
                 >
-                  <PlusIcon className="w-5 h-5" />
+                  <PlusIcon className="w-4 h-4 md:w-5 md:h-5" />
                   <span className="hidden sm:inline text-sm">Thêm</span>
                 </button>
                 {showCustomerDropdown && filteredCustomers.length > 0 && (
@@ -2949,10 +2949,10 @@ const SalesManager: React.FC = () => {
                 )}
               </div>
               {selectedCustomer && (
-                <div className="mt-3 p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border-2 border-emerald-200 dark:border-emerald-800 shadow-sm">
+                <div className="mt-2 md:mt-3 p-2 md:p-3.5 bg-blue-50 md:bg-gradient-to-r md:from-emerald-50 md:to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg md:rounded-xl border md:border-2 border-blue-200 md:border-emerald-200 dark:border-emerald-800 md:shadow-sm">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                      <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0">
+                    <div className="flex items-center gap-2 md:gap-2.5 flex-1 min-w-0">
+                      <div className="hidden md:flex w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg items-center justify-center shadow-lg flex-shrink-0">
                         <svg
                           className="w-5 h-5 text-white"
                           fill="none"
@@ -2968,13 +2968,13 @@ const SalesManager: React.FC = () => {
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-emerald-900 dark:text-emerald-100 truncate">
+                        <div className="font-medium md:font-bold text-blue-900 md:text-emerald-900 dark:text-emerald-100 truncate text-sm md:text-base">
                           {selectedCustomer.name}
                         </div>
                         {selectedCustomer.phone && (
-                          <div className="text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1 mt-0.5">
+                          <div className="text-xs text-blue-700 md:text-emerald-700 dark:text-emerald-300 flex items-center gap-1 mt-0.5">
                             <svg
-                              className="w-3 h-3 flex-shrink-0"
+                              className="w-3 h-3 flex-shrink-0 hidden md:inline"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -2998,7 +2998,7 @@ const SalesManager: React.FC = () => {
                         setSelectedCustomer(null);
                         setCustomerSearch("");
                       }}
-                      className="w-8 h-8 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center transition-all flex-shrink-0 shadow-sm hover:shadow-md"
+                      className="w-7 h-7 md:w-8 md:h-8 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-md md:rounded-lg flex items-center justify-center transition-all flex-shrink-0 md:shadow-sm md:hover:shadow-md text-lg"
                       title="Xóa"
                     >
                       ×
@@ -3010,29 +3010,29 @@ const SalesManager: React.FC = () => {
           </div>
 
           {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto p-4 pb-24 md:pb-4">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-slate-200/50 dark:border-slate-700/50">
+          <div className="p-3 md:p-4">
+            <div className="flex items-center justify-between mb-3 md:mb-4 pb-2 md:pb-3 border-b md:border-b-2 border-slate-200 md:border-slate-200/50 dark:border-slate-700/50">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center shadow-lg">
+                <div className="hidden md:flex w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg items-center justify-center shadow-lg">
                   <ShoppingCart className="w-4 h-4 text-white" />
                 </div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
+                <h3 className="text-base md:text-lg font-semibold md:font-black text-slate-900 dark:text-slate-100">
                   Giỏ hàng
                 </h3>
               </div>
-              <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-bold shadow-sm">
-                {cartItems.length} SP
+              <span className="px-2 py-0.5 md:px-3 md:py-1 bg-blue-100 md:bg-gradient-to-r md:from-blue-100 md:to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-semibold md:font-bold md:shadow-sm">
+                {cartItems.length}
               </span>
             </div>
 
             {cartItems.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="mb-4 flex items-center justify-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-3xl flex items-center justify-center shadow-lg">
-                    <ShoppingCart className="w-10 h-10 text-slate-400 dark:text-slate-500" />
+              <div className="text-center py-12 md:py-16 mb-3">
+                <div className="mb-3 md:mb-4 flex items-center justify-center">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-100 md:bg-gradient-to-br md:from-slate-100 md:to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-2xl md:rounded-3xl flex items-center justify-center md:shadow-lg">
+                    <ShoppingCart className="w-8 h-8 md:w-10 md:h-10 text-slate-400 dark:text-slate-500" />
                   </div>
                 </div>
-                <div className="text-base font-bold text-slate-600 dark:text-slate-400 mb-1">
+                <div className="text-sm md:text-base font-semibold md:font-bold text-slate-600 dark:text-slate-400 mb-1">
                   Giỏ hàng trống
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-500">
@@ -3040,32 +3040,32 @@ const SalesManager: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-2 md:space-y-2.5">
                 {cartItems.map((item) => (
                   <div
                     key={item.partId}
-                    className="group flex items-center gap-3 p-3 border-2 border-slate-200/50 dark:border-slate-700/50 rounded-xl bg-white dark:bg-slate-800 hover:border-blue-400 dark:hover:border-blue-600 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/10"
+                    className="group flex items-center gap-2 md:gap-3 p-2 md:p-3 border md:border-2 border-slate-200 md:border-slate-200/50 dark:border-slate-700/50 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 md:hover:border-blue-400 dark:hover:border-blue-600 transition-all duration-200 md:hover:shadow-lg md:hover:shadow-blue-500/10"
                   >
-                    <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform">
-                      <Boxes className="w-6 h-6 text-orange-500 dark:text-orange-400" />
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-50 md:bg-gradient-to-br md:from-orange-100 md:to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-lg md:rounded-xl flex items-center justify-center flex-shrink-0 md:shadow-sm md:group-hover:scale-110 transition-transform">
+                      <Boxes className="w-5 h-5 md:w-6 md:h-6 text-orange-500 dark:text-orange-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div
-                        className="font-bold text-sm text-slate-900 dark:text-slate-100 line-clamp-1 mb-1"
+                        className="font-medium md:font-bold text-xs md:text-sm text-slate-900 dark:text-slate-100 line-clamp-1 mb-0.5 md:mb-1"
                         title={item.partName}
                       >
                         {item.partName}
                       </div>
-                      <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded-md mb-1">
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                      <div className="inline-flex items-center gap-1 px-1.5 md:px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded-md mb-0.5 md:mb-1">
+                        <span className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 font-medium md:font-semibold">
                           {item.sku}
                         </span>
                       </div>
-                      <div className="text-sm font-black bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                      <div className="text-xs md:text-sm font-bold md:font-black text-blue-600 md:bg-gradient-to-r md:from-blue-600 md:to-indigo-600 dark:from-blue-400 dark:to-indigo-400 md:bg-clip-text md:text-transparent">
                         {formatCurrency(item.sellingPrice)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1 md:gap-1.5 flex-shrink-0">
                       <button
                         onClick={() =>
                           updateCartQuantity(
@@ -3073,24 +3073,24 @@ const SalesManager: React.FC = () => {
                             Math.max(1, item.quantity - 1)
                           )
                         }
-                        className="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:from-slate-200 hover:to-slate-300 dark:hover:from-slate-600 dark:hover:to-slate-500 transition-all shadow-sm hover:shadow-md font-bold"
+                        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-100 md:bg-gradient-to-r md:from-slate-100 md:to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-md md:rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-200 md:hover:from-slate-200 md:hover:to-slate-300 dark:hover:from-slate-600 dark:hover:to-slate-500 transition-all md:shadow-sm md:hover:shadow-md font-bold"
                       >
                         -
                       </button>
-                      <span className="w-10 text-center font-black text-sm text-slate-900 dark:text-slate-100 px-2 py-1 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                      <span className="w-8 md:w-10 text-center font-bold md:font-black text-xs md:text-sm text-slate-900 dark:text-slate-100 px-1 md:px-2 py-1 bg-slate-50 dark:bg-slate-700 rounded-md md:rounded-lg">
                         {item.quantity}
                       </span>
                       <button
                         onClick={() =>
                           updateCartQuantity(item.partId, item.quantity + 1)
                         }
-                        className="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-500 dark:from-blue-600 dark:to-indigo-600 rounded-lg text-white hover:from-blue-600 hover:to-indigo-600 dark:hover:from-blue-700 dark:hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-bold"
+                        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-blue-500 md:bg-gradient-to-r md:from-blue-500 md:to-indigo-500 dark:from-blue-600 dark:to-indigo-600 rounded-md md:rounded-lg text-white hover:bg-blue-600 md:hover:from-blue-600 md:hover:to-indigo-600 dark:hover:from-blue-700 dark:hover:to-indigo-700 transition-all md:shadow-md md:hover:shadow-lg font-bold"
                       >
                         +
                       </button>
                       <button
                         onClick={() => removeFromCart(item.partId)}
-                        className="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 rounded-lg text-white transition-all ml-1 shadow-md hover:shadow-lg font-bold text-lg"
+                        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-red-500 md:bg-gradient-to-r md:from-red-500 md:to-pink-500 hover:bg-red-600 md:hover:from-red-600 md:hover:to-pink-600 rounded-md md:rounded-lg text-white transition-all ml-0.5 md:ml-1 md:shadow-md md:hover:shadow-lg font-bold text-base md:text-lg"
                       >
                         ×
                       </button>
@@ -3103,23 +3103,23 @@ const SalesManager: React.FC = () => {
 
           {/* Checkout Section */}
           {cartItems.length > 0 && (
-            <div className="border-t-2 border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-800 dark:to-slate-800/50">
+            <div className="border-t md:border-t-2 border-slate-200 md:border-slate-200/50 dark:border-slate-700/50 bg-slate-50 md:bg-gradient-to-br md:from-slate-50 md:to-blue-50/30 dark:from-slate-800 dark:to-slate-800/50">
               {/* Summary */}
-              <div className="p-4 space-y-3">
-                <div className="flex justify-between text-sm">
+              <div className="p-3 md:p-4 space-y-2 md:space-y-3 pb-20 md:pb-3">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span className="text-slate-600 dark:text-slate-400 font-medium">
                     Tổng tiền hàng
                   </span>
-                  <span className="font-bold text-slate-900 dark:text-slate-100">
+                  <span className="font-semibold md:font-bold text-slate-900 dark:text-slate-100">
                     {formatCurrency(subtotal)}
                   </span>
                 </div>
-                <div className="space-y-2.5">
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between text-sm gap-2">
+                <div className="space-y-2 md:space-y-2.5">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between text-xs md:text-sm gap-1.5 md:gap-2">
                     <span className="text-slate-600 dark:text-slate-400 font-medium">
                       Giảm giá:
                     </span>
-                    <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="flex items-center gap-1.5 md:gap-2 w-full md:w-auto">
                       <input
                         type="number"
                         value={
@@ -3139,7 +3139,7 @@ const SalesManager: React.FC = () => {
                             );
                           }
                         }}
-                        className="flex-1 md:w-24 px-3 py-2 text-right text-sm border-2 border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all font-semibold"
+                        className="flex-1 md:w-24 px-2 md:px-3 py-1.5 md:py-2 text-right text-xs md:text-sm border md:border-2 border-slate-300 md:border-slate-300 dark:border-slate-600 rounded-lg md:rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all font-medium md:font-semibold"
                         placeholder="0"
                         min="0"
                         max={discountType === "amount" ? subtotal : 100}
@@ -3154,7 +3154,7 @@ const SalesManager: React.FC = () => {
                           setOrderDiscount(0);
                           setDiscountPercent(0);
                         }}
-                        className="px-3 py-2 border-2 border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm font-bold focus:ring-2 focus:ring-purple-500 transition-all"
+                        className="px-2 md:px-3 py-1.5 md:py-2 border md:border-2 border-slate-300 md:border-slate-300 dark:border-slate-600 rounded-lg md:rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-xs md:text-sm font-semibold md:font-bold focus:ring-2 focus:ring-purple-500 transition-all"
                       >
                         <option value="amount">₫</option>
                         <option value="percent">%</option>
@@ -3164,7 +3164,7 @@ const SalesManager: React.FC = () => {
 
                   {/* Quick percent buttons */}
                   {discountType === "percent" && (
-                    <div className="flex gap-2 justify-end flex-wrap">
+                    <div className="flex gap-1.5 md:gap-2 justify-end flex-wrap">
                       {[5, 10, 15, 20].map((percent) => (
                         <button
                           key={percent}
@@ -3174,7 +3174,7 @@ const SalesManager: React.FC = () => {
                               Math.round((subtotal * percent) / 100)
                             );
                           }}
-                          className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 hover:from-purple-200 hover:to-pink-200 dark:hover:from-purple-900/50 dark:hover:to-pink-900/50 text-purple-700 dark:text-purple-300 rounded-lg transition-all shadow-sm hover:shadow-md"
+                          className="px-2 md:px-3 py-1 md:py-1.5 text-[10px] md:text-xs font-semibold md:font-bold bg-purple-100 md:bg-gradient-to-r md:from-purple-100 md:to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 hover:bg-purple-200 md:hover:from-purple-200 md:hover:to-pink-200 dark:hover:from-purple-900/50 dark:hover:to-pink-900/50 text-purple-700 dark:text-purple-300 rounded-md md:rounded-lg transition-all md:shadow-sm md:hover:shadow-md"
                         >
                           {percent}%
                         </button>
@@ -3184,68 +3184,68 @@ const SalesManager: React.FC = () => {
 
                   {/* Show amount if percent mode */}
                   {discountType === "percent" && discountPercent > 0 && (
-                    <div className="text-xs text-slate-500 dark:text-slate-400 text-right">
+                    <div className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 text-right">
                       = {formatCurrency(orderDiscount)}
                     </div>
                   )}
                 </div>
-                <div className="flex justify-between items-center pt-3 mt-3 border-t-2 border-slate-200 dark:border-slate-700 p-3 -mx-4 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 rounded-b-xl shadow-lg">
-                  <span className="font-bold text-white text-sm">
+                <div className="flex justify-between items-center pt-2 md:pt-3 mt-2 md:mt-3 border-t md:border-t-2 border-slate-200 dark:border-slate-700 p-2 md:p-3 -mx-3 md:-mx-4 bg-blue-600 md:bg-gradient-to-r md:from-blue-600 md:to-indigo-600 dark:from-blue-700 dark:to-indigo-700 rounded-b-lg md:rounded-b-xl md:shadow-lg">
+                  <span className="font-semibold md:font-bold text-white text-xs md:text-sm">
                     Khách phải trả
                   </span>
-                  <span className="font-black text-2xl text-white">
+                  <span className="font-black text-lg md:text-2xl text-white">
                     {formatCurrency(Math.max(0, total - orderDiscount))}
                   </span>
                 </div>
               </div>
 
               {/* Payment Method */}
-              <div className="px-4 pb-4">
-                <label className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">
+              <div className="px-3 md:px-4 pb-3 md:pb-4">
+                <label className="flex items-center gap-2 text-xs md:text-sm font-semibold md:font-bold text-slate-900 dark:text-slate-100 mb-2 md:mb-3">
                   <span>Phương thức thanh toán</span>
                   <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <button
                     onClick={() => setPaymentMethod("cash")}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all font-bold shadow-sm hover:shadow-md ${
+                    className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl border md:border-2 transition-all font-semibold md:font-bold md:shadow-sm md:hover:shadow-md ${
                       paymentMethod === "cash"
-                        ? "border-emerald-500 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 text-emerald-700 dark:text-emerald-400 shadow-lg"
+                        ? "border-emerald-500 bg-emerald-50 md:bg-gradient-to-r md:from-emerald-50 md:to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 text-emerald-700 dark:text-emerald-400 md:shadow-lg"
                         : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400"
                     }`}
                   >
-                    <Banknote className="w-5 h-5" />
-                    <span className="text-sm">Tiền mặt</span>
+                    <Banknote className="w-4 h-4 md:w-5 md:h-5" />
+                    <span className="text-xs md:text-sm">Tiền mặt</span>
                   </button>
                   <button
                     onClick={() => setPaymentMethod("bank")}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all font-bold shadow-sm hover:shadow-md ${
+                    className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl border md:border-2 transition-all font-semibold md:font-bold md:shadow-sm md:hover:shadow-md ${
                       paymentMethod === "bank"
-                        ? "border-blue-500 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 text-blue-700 dark:text-blue-400 shadow-lg"
+                        ? "border-blue-500 bg-blue-50 md:bg-gradient-to-r md:from-blue-50 md:to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 text-blue-700 dark:text-blue-400 md:shadow-lg"
                         : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400"
                     }`}
                   >
-                    <CreditCard className="w-5 h-5" />
-                    <span className="text-sm">Chuyển khoản</span>
+                    <CreditCard className="w-4 h-4 md:w-5 md:h-5" />
+                    <span className="text-xs md:text-sm">Chuyển khoản</span>
                   </button>
                 </div>
               </div>
 
               {/* Payment Type */}
               {paymentMethod && (
-                <div className="px-4 pb-4">
-                  <label className="block text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">
+                <div className="px-3 md:px-4 pb-3 md:pb-4">
+                  <label className="block text-xs md:text-sm font-semibold md:font-bold text-slate-900 dark:text-slate-100 mb-2 md:mb-3">
                     Hình thức
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 md:gap-2">
                     <button
                       onClick={() => {
                         setPaymentType("full");
                         setPartialAmount(0);
                       }}
-                      className={`px-3 py-2.5 text-xs rounded-xl border-2 transition-all font-bold shadow-sm ${
+                      className={`px-2 md:px-3 py-2 md:py-2.5 text-[10px] md:text-xs rounded-lg md:rounded-xl border md:border-2 transition-all font-semibold md:font-bold md:shadow-sm ${
                         paymentType === "full"
-                          ? "border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30 text-orange-700 dark:text-orange-400 shadow-lg"
+                          ? "border-orange-500 bg-orange-50 md:bg-gradient-to-r md:from-orange-50 md:to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30 text-orange-700 dark:text-orange-400 md:shadow-lg"
                           : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-orange-400"
                       }`}
                     >
@@ -3253,9 +3253,9 @@ const SalesManager: React.FC = () => {
                     </button>
                     <button
                       onClick={() => setPaymentType("partial")}
-                      className={`px-3 py-2.5 text-xs rounded-xl border-2 transition-all font-bold shadow-sm ${
+                      className={`px-2 md:px-3 py-2 md:py-2.5 text-[10px] md:text-xs rounded-lg md:rounded-xl border md:border-2 transition-all font-semibold md:font-bold md:shadow-sm ${
                         paymentType === "partial"
-                          ? "border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30 text-orange-700 dark:text-orange-400 shadow-lg"
+                          ? "border-orange-500 bg-orange-50 md:bg-gradient-to-r md:from-orange-50 md:to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30 text-orange-700 dark:text-orange-400 md:shadow-lg"
                           : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-orange-400"
                       }`}
                     >
@@ -3266,9 +3266,9 @@ const SalesManager: React.FC = () => {
                         setPaymentType("note");
                         setPartialAmount(0);
                       }}
-                      className={`px-3 py-2.5 text-xs rounded-xl border-2 transition-all font-bold shadow-sm ${
+                      className={`px-2 md:px-3 py-2 md:py-2.5 text-[10px] md:text-xs rounded-lg md:rounded-xl border md:border-2 transition-all font-semibold md:font-bold md:shadow-sm ${
                         paymentType === "note"
-                          ? "border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30 text-orange-700 dark:text-orange-400 shadow-lg"
+                          ? "border-orange-500 bg-orange-50 md:bg-gradient-to-r md:from-orange-50 md:to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30 text-orange-700 dark:text-orange-400 md:shadow-lg"
                           : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-orange-400"
                       }`}
                     >
@@ -3304,28 +3304,28 @@ const SalesManager: React.FC = () => {
               )}
 
               {/* Checkboxes */}
-              <div className="px-4 pb-3 space-y-2">
-                <div className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+              <div className="px-3 md:px-4 pb-2 md:pb-3 space-y-1.5 md:space-y-2">
+                <div className="text-xs md:text-sm font-semibold md:font-medium text-slate-900 dark:text-slate-100 mb-1.5 md:mb-2">
                   Thời gian bán hàng
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-1.5 md:gap-2 cursor-pointer">
                   <input
                     type="radio"
                     name="salesTime"
                     defaultChecked
-                    className="w-4 h-4 text-pink-600 focus:ring-pink-500"
+                    className="w-3.5 h-3.5 md:w-4 md:h-4 text-pink-600 focus:ring-pink-500"
                   />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                  <span className="text-xs md:text-sm text-slate-700 dark:text-slate-300">
                     Thời gian hiện tại
                   </span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-1.5 md:gap-2 cursor-pointer">
                   <input
                     type="radio"
                     name="salesTime"
-                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                  <span className="text-xs md:text-sm text-slate-700 dark:text-slate-300">
                     Tùy chỉnh
                   </span>
                 </label>
@@ -3338,33 +3338,33 @@ const SalesManager: React.FC = () => {
                     Ghi chú riêng cho đơn hàng
                   </span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-1.5 md:gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={autoPrintReceipt}
                     onChange={(e) => setAutoPrintReceipt(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="w-3.5 h-3.5 md:w-4 md:h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                  <span className="text-xs md:text-sm text-slate-700 dark:text-slate-300">
                     Đóng thời in hoá đơn
                   </span>
                 </label>
               </div>
 
               {/* Action Buttons */}
-              <div className="p-4 pt-0 flex flex-col md:flex-row gap-3">
+              <div className="p-3 md:p-4 pt-0 flex flex-col md:flex-row gap-2 md:gap-3">
                 <button
                   onClick={clearCart}
-                  className="flex-1 px-4 py-3 bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-all shadow-sm hover:shadow-md"
+                  className="flex-1 px-3 md:px-4 py-2 md:py-3 bg-white dark:bg-slate-700 border md:border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-semibold md:font-bold rounded-lg md:rounded-xl transition-all md:shadow-sm md:hover:shadow-md text-sm md:text-base"
                 >
                   LƯU NHÁP
                 </button>
                 <button
                   onClick={handleFinalize}
                   disabled={!paymentMethod || !paymentType}
-                  className={`flex-1 px-4 py-3 font-black rounded-xl transition-all shadow-lg ${
+                  className={`flex-1 px-3 md:px-4 py-2 md:py-3 font-bold md:font-black rounded-lg md:rounded-xl transition-all md:shadow-lg text-sm md:text-base ${
                     paymentMethod && paymentType
-                      ? "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:scale-105 active:scale-95"
+                      ? "bg-orange-500 md:bg-gradient-to-r md:from-orange-500 md:to-red-500 hover:bg-orange-600 md:hover:from-orange-600 md:hover:to-red-600 text-white md:shadow-orange-500/30 md:hover:shadow-xl md:hover:shadow-orange-500/40 md:hover:scale-105 md:active:scale-95"
                       : "bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 cursor-not-allowed opacity-60"
                   }`}
                 >
