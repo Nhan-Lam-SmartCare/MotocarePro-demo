@@ -3,6 +3,7 @@ import { formatCurrency } from "../../utils/format";
 import { SupplierSelectionModal } from "./SupplierSelectionModal";
 import { useSuppliers } from "../../hooks/useSuppliers";
 import { showToast } from "../../utils/toast";
+import { BarcodeScanner } from "../common/BarcodeScanner";
 
 interface Part {
   id: string;
@@ -82,6 +83,7 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
   const { data: suppliers = [] } = useSuppliers();
 
   console.log(
@@ -152,6 +154,23 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
     } else {
       showToast.error(`Không tìm thấy sản phẩm có mã: ${barcode}`);
       setBarcodeInput("");
+    }
+  };
+
+  // Handle camera scan result
+  const handleCameraScan = (barcode: string) => {
+    const foundPart = parts.find(
+      (p) =>
+        p.sku?.toLowerCase() === barcode.toLowerCase() ||
+        p.name?.toLowerCase().includes(barcode.toLowerCase())
+    );
+
+    if (foundPart) {
+      addToReceipt(foundPart);
+      setShowCameraScanner(false);
+    } else {
+      showToast.error(`Không tìm thấy sản phẩm có mã: ${barcode}`);
+      setShowCameraScanner(false);
     }
   };
 
@@ -276,8 +295,8 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
               {/* Sticky Search Bar */}
               <div className="p-3 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 flex-shrink-0 space-y-2">
                 {/* Barcode Scanner Input - Quick Entry */}
-                <form onSubmit={handleBarcodeSubmit}>
-                  <div className="relative">
+                <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
+                  <div className="relative flex-1">
                     <svg
                       className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500"
                       fill="none"
@@ -294,7 +313,7 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
                     <input
                       ref={barcodeInputRef}
                       type="text"
-                      placeholder="📷 Quét mã vạch hoặc nhập SKU..."
+                      placeholder="Nhập SKU hoặc quét..."
                       value={barcodeInput}
                       onChange={(e) => setBarcodeInput(e.target.value)}
                       className="w-full px-4 py-3 pl-11 border-2 border-blue-400 dark:border-blue-600 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-slate-900 dark:text-slate-100 text-base font-mono placeholder:text-blue-500/70"
@@ -321,6 +340,33 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
                       </button>
                     )}
                   </div>
+
+                  {/* Camera Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowCameraScanner(true)}
+                    className="w-14 h-[50px] flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl shadow-lg transition-all active:scale-95"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </button>
                 </form>
 
                 {/* Manual Search */}
@@ -743,6 +789,13 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
         onClose={() => setShowSupplierModal(false)}
         selectedSupplierId={selectedSupplier}
         onSelectSupplier={setSelectedSupplier}
+      />
+
+      {/* Camera Barcode Scanner */}
+      <BarcodeScanner
+        isOpen={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScan={handleCameraScan}
       />
     </>
   );
