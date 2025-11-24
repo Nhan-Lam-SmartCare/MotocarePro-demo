@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { canDo } from "../../utils/permissions";
 import {
@@ -676,12 +682,6 @@ const GoodsReceiptModal: React.FC<{
       setTimeout(() => barcodeInputRef.current?.focus(), 300);
     }
   }, [isOpen]);
-          wholesalePrice: part.wholesalePrice?.[currentBranchId] || 0,
-        },
-      ]);
-    }
-    setSearchTerm("");
-  };
 
   const updateReceiptItem = (
     partId: string,
@@ -873,14 +873,24 @@ const GoodsReceiptModal: React.FC<{
                       onClick={() => setBarcodeInput("")}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   )}
                 </div>
               </form>
-              
+
               {/* Manual Search */}
               <div className="relative">
                 <svg
