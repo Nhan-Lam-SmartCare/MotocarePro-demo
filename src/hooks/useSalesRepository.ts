@@ -123,6 +123,11 @@ export const useCreateSaleAtomicRepo = () => {
     mutationFn: (input: Partial<Sale>) => createSaleAtomic(input),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["salesRepo"] });
+      qc.invalidateQueries({ queryKey: ["salesRepoPaged"] });
+      qc.invalidateQueries({ queryKey: ["salesRepoKeyset"] });
+      qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Update stock display
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Update stock display
+      qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Show inventory transactions
       showToast.success("Đã tạo hóa đơn (atomic)");
       if ((res as any)?.data?.inventoryTxCount) {
         showToast.info(`Xuất kho: ${(res as any).data.inventoryTxCount} dòng`);
@@ -138,6 +143,11 @@ export const useDeleteSaleRepo = () => {
     mutationFn: ({ id }: { id: string }) => deleteSaleById(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["salesRepo"] });
+      qc.invalidateQueries({ queryKey: ["salesRepoPaged"] });
+      qc.invalidateQueries({ queryKey: ["salesRepoKeyset"] });
+      qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Restore stock
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Restore stock
+      qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
       showToast.success("Đã xóa hóa đơn");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
@@ -151,6 +161,11 @@ export const useRefundSaleRepo = () => {
       refundSale(id, reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["salesRepo"] });
+      qc.invalidateQueries({ queryKey: ["salesRepoPaged"] });
+      qc.invalidateQueries({ queryKey: ["salesRepoKeyset"] });
+      qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Restore stock
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Restore stock
+      qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
       showToast.success("Đã hoàn tiền hóa đơn");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
@@ -173,6 +188,11 @@ export const useReturnSaleItemRepo = () => {
     }) => returnSaleItem({ saleId, itemSku, quantity, reason }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["salesRepo"] });
+      qc.invalidateQueries({ queryKey: ["salesRepoPaged"] });
+      qc.invalidateQueries({ queryKey: ["salesRepoKeyset"] });
+      qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Restore stock
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Restore stock
+      qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
       showToast.success("Đã trả hàng một phần");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),

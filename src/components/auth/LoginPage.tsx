@@ -159,42 +159,6 @@ export const LoginPage = () => {
               )}
             </button>
           </form>
-
-          {/* Demo accounts */}
-          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-1">
-              <Key className="w-4 h-4" /> Tài khoản demo:
-            </p>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded">
-                <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                  <Crown className="w-4 h-4" /> Chủ cửa hàng
-                </span>
-                <code className="text-blue-600 dark:text-blue-400">
-                  owner.motocare.test@gmail.com
-                </code>
-              </div>
-              <div className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded">
-                <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                  <UserCog className="w-4 h-4" /> Quản lý
-                </span>
-                <code className="text-blue-600 dark:text-blue-400">
-                  manager.motocare.test@gmail.com
-                </code>
-              </div>
-              <div className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded">
-                <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                  <User className="w-4 h-4" /> Nhân viên
-                </span>
-                <code className="text-blue-600 dark:text-blue-400">
-                  staff.motocare.test@gmail.com
-                </code>
-              </div>
-              <p className="text-slate-500 dark:text-slate-400 text-center mt-2">
-                Mật khẩu: <code className="font-semibold">123456</code>
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}

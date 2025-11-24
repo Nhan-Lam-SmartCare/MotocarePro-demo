@@ -35,6 +35,8 @@ BEGIN
     v_total_price := v_quantity * v_import_price;
 
     -- 1. Insert Inventory Transaction
+    -- ⚠️ IMPORTANT: Trigger trg_inventory_tx_after_insert will auto-update stock
+    -- We only manually update prices (costPrice, retailPrice, wholesalePrice)
     INSERT INTO public.inventory_transactions (
       id,
       type,
@@ -59,22 +61,9 @@ BEGIN
       p_notes
     );
 
-    -- 2. Update Parts (Stock & Prices)
-    -- Get current stock
-    SELECT (stock->>p_branch_id)::INT INTO v_current_stock
-    FROM public.parts
-    WHERE id = v_part_id;
-
-    IF v_current_stock IS NULL THEN
-      v_current_stock := 0;
-    END IF;
-
-    v_new_stock := v_current_stock + v_quantity;
-
-    -- Update part with COALESCE to handle potential NULLs in JSONB columns
+    -- 2. Update Part Prices (NOT STOCK - stock is handled by trigger)
     UPDATE public.parts
     SET
-      stock = jsonb_set(COALESCE(stock, '{}'::jsonb), ARRAY[p_branch_id], to_jsonb(v_new_stock)),
       "costPrice" = jsonb_set(COALESCE("costPrice", '{}'::jsonb), ARRAY[p_branch_id], to_jsonb(v_import_price)),
       "retailPrice" = jsonb_set(COALESCE("retailPrice", '{}'::jsonb), ARRAY[p_branch_id], to_jsonb(v_selling_price)),
       "wholesalePrice" = jsonb_set(COALESCE("wholesalePrice", '{}'::jsonb), ARRAY[p_branch_id], to_jsonb(COALESCE(v_wholesale_price, 0)))

@@ -1,11 +1,5 @@
 import { supabase } from "../../supabaseClient";
-import {
-  RepoResult,
-  success,
-  failure,
-  RepoSuccess,
-  RepoError,
-} from "./types";
+import { RepoResult, success, failure, RepoSuccess, RepoError } from "./types";
 import { InventoryTransaction } from "../../types";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { safeAudit } from "./auditLogsRepository";
@@ -123,7 +117,7 @@ export async function createInventoryTransaction(
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch { }
+    } catch {}
     await safeAudit(userId, {
       action:
         input.type === "Nhập kho" ? "inventory.receipt" : "inventory.adjust",
@@ -205,8 +199,9 @@ export function useCreateReceiptAtomicRepo() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventoryTransactions"] });
-      queryClient.invalidateQueries({ queryKey: ["partsRepo"] });
-      queryClient.invalidateQueries({ queryKey: ["partsRepoPaged"] });
+      queryClient.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
+      queryClient.invalidateQueries({ queryKey: ["partsRepo"] }); // Update stock display
+      queryClient.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Update stock display
     },
   });
 }

@@ -33,6 +33,8 @@ export const useCreateWorkOrderAtomicRepo = () => {
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["workOrdersRepo"] });
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Refresh parts for stock update
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Refresh parts for stock update
+      qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
       showToast.success("Đã tạo phiếu sửa chữa (atomic)");
       if (data?.inventoryTxCount) {
         showToast.info(`Xuất kho: ${data.inventoryTxCount} phụ tùng`);
@@ -53,7 +55,9 @@ export const useUpdateWorkOrderAtomicRepo = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workOrdersRepo"] });
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Refresh parts for stock update
-      showToast.success("Đã cập nhật phiếu sửa chữa (atomic)");
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Refresh parts for stock update
+      qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
+      showToast.success("Đã cập nhật lệnh sửa chữa");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
   });
@@ -71,6 +75,8 @@ export const useUpdateWorkOrderRepo = () => {
     }) => updateWorkOrder(id, updates),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workOrdersRepo"] });
+      qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Update stock if needed
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Update stock if needed
       showToast.success("Đã cập nhật phiếu sửa chữa");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
@@ -83,7 +89,10 @@ export const useDeleteWorkOrderRepo = () => {
     mutationFn: ({ id }: { id: string }) => deleteWorkOrder(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workOrdersRepo"] });
-      showToast.success("Đã xóa phiếu sửa chữa");
+      qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Update stock if needed
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Update stock if needed
+      qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
+      showToast.success("Đã hủy lệnh sửa chữa");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
   });
@@ -102,6 +111,8 @@ export const useRefundWorkOrderRepo = () => {
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["workOrdersRepo"] });
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Refresh for restored stock
+      qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Refresh for restored stock
+      qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
       showToast.success("Đã hoàn tiền phiếu sửa chữa");
       if (result.ok && (result.data as any).refundAmount) {
         showToast.info(
