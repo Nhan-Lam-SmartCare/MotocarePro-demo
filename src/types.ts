@@ -291,7 +291,46 @@ export interface Capital {
   amount: number; // Số tiền
   date: string; // Ngày nhận
   notes?: string;
+
+  // Thông tin lãi suất (áp dụng cho investor và loan)
+  interestRate?: number; // Lãi suất %/năm
+  interestType?: "simple" | "compound"; // Lãi đơn/Lãi kép
+  paymentFrequency?: "monthly" | "quarterly" | "yearly"; // Kỳ trả lãi
+  maturityDate?: string; // Ngày đến hạn
+
   branchId: string;
+  created_at: string;
+}
+
+export interface FixedAsset {
+  id: string;
+  name: string; // Tên tài sản
+  assetType: "equipment" | "vehicle" | "building" | "furniture" | "other"; // Loại tài sản
+  purchaseDate: string; // Ngày mua
+  purchasePrice: number; // Giá mua
+  currentValue: number; // Giá trị hiện tại
+  depreciationRate: number; // Tỷ lệ khấu hao %/năm
+  depreciationMethod: "straight-line" | "declining-balance"; // Phương pháp khấu hao
+  usefulLife: number; // Thời gian sử dụng (năm)
+  status: "active" | "disposed" | "maintenance"; // Trạng thái
+  location?: string; // Vị trí
+  serialNumber?: string; // Số serial
+  supplier?: string; // Nhà cung cấp
+  warranty?: string; // Bảo hành đến
+  notes?: string; // Ghi chú
+  branchId: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface FixedAssetDepreciation {
+  id: string;
+  assetId: string;
+  year: number;
+  month: number;
+  depreciationAmount: number; // Số tiền khấu hao
+  accumulatedDepreciation: number; // Khấu hao lũy kế
+  bookValue: number; // Giá trị còn lại
   created_at: string;
 }
 

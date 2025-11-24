@@ -1,9 +1,17 @@
 import React, { useState } from "react";
-import { Banknote, Wallet, PiggyBank } from "lucide-react";
+import {
+  Banknote,
+  Wallet,
+  PiggyBank,
+  Building2,
+  CircleDollarSign,
+} from "lucide-react";
 import CashBook from "./CashBook";
 import LoansManager from "./LoansManager";
+import FixedAssetsManager from "./FixedAssetsManager";
+import CapitalManager from "./CapitalManager";
 
-type Tab = "cashbook" | "loans";
+type Tab = "cashbook" | "loans" | "assets" | "capital";
 
 const FinanceManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>("cashbook");
@@ -25,24 +33,50 @@ const FinanceManager: React.FC = () => {
 
           {/* Toggle Buttons */}
           <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto mt-4 md:mt-0">
-            <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full md:w-auto">
               <button
                 onClick={() => setActiveTab("cashbook")}
-                className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-all shadow-md flex items-center justify-center gap-2 ${activeTab === "cashbook"
-                  ? "bg-blue-600 text-white shadow-blue-500/50 scale-105"
-                  : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
-                  }`}
+                className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-all shadow-md flex items-center justify-center gap-2 ${
+                  activeTab === "cashbook"
+                    ? "bg-blue-600 text-white shadow-blue-500/50 scale-105"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
+                }`}
               >
-                <Wallet className="w-4 h-4" /> <span className="whitespace-nowrap">Sổ quỹ</span>
+                <Wallet className="w-4 h-4" />{" "}
+                <span className="whitespace-nowrap">Sổ quỹ</span>
               </button>
               <button
                 onClick={() => setActiveTab("loans")}
-                className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-all shadow-md flex items-center justify-center gap-2 ${activeTab === "loans"
-                  ? "bg-cyan-600 text-white shadow-cyan-500/50 scale-105"
-                  : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
-                  }`}
+                className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-all shadow-md flex items-center justify-center gap-2 ${
+                  activeTab === "loans"
+                    ? "bg-cyan-600 text-white shadow-cyan-500/50 scale-105"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
+                }`}
               >
-                <Banknote className="w-4 h-4" /> <span className="whitespace-nowrap">Khoản vay</span>
+                <Banknote className="w-4 h-4" />{" "}
+                <span className="whitespace-nowrap">Khoản vay</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("assets")}
+                className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-all shadow-md flex items-center justify-center gap-2 ${
+                  activeTab === "assets"
+                    ? "bg-green-600 text-white shadow-green-500/50 scale-105"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
+                }`}
+              >
+                <Building2 className="w-4 h-4" />{" "}
+                <span className="whitespace-nowrap">TSCĐ</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("capital")}
+                className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-all shadow-md flex items-center justify-center gap-2 ${
+                  activeTab === "capital"
+                    ? "bg-purple-600 text-white shadow-purple-500/50 scale-105"
+                    : "bg-primary-bg text-secondary-text border border-primary-border hover:bg-tertiary-bg"
+                }`}
+              >
+                <CircleDollarSign className="w-4 h-4" />{" "}
+                <span className="whitespace-nowrap">Vốn</span>
               </button>
             </div>
           </div>
@@ -53,6 +87,8 @@ const FinanceManager: React.FC = () => {
       <div>
         {activeTab === "cashbook" && <CashBook />}
         {activeTab === "loans" && <LoansManager />}
+        {activeTab === "assets" && <FixedAssetsManager />}
+        {activeTab === "capital" && <CapitalManager />}
       </div>
     </div>
   );
