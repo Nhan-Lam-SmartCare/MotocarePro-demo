@@ -5021,20 +5021,20 @@ const InventoryManager: React.FC = () => {
       />
 
       {/* Mobile Floating Action Buttons */}
-      <div className="sm:hidden fixed bottom-20 right-4 z-40 flex flex-col gap-3">
+      <div className="sm:hidden fixed bottom-24 right-4 z-40 flex flex-col gap-2">
         <button
           onClick={() => setShowGoodsReceipt(true)}
-          className="w-14 h-14 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all transform hover:scale-110"
+          className="w-12 h-12 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all transform hover:scale-105"
           aria-label="Tạo phiếu nhập"
         >
-          <Plus className="w-6 h-6" />
+          <Plus className="w-4 h-4" />
         </button>
         <button
           onClick={handleExportExcel}
-          className="w-14 h-14 bg-orange-600 hover:bg-orange-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all transform hover:scale-110"
+          className="w-12 h-12 bg-orange-600 hover:bg-orange-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all transform hover:scale-105"
           aria-label="Xuất Excel"
         >
-          <Repeat className="w-6 h-6" />
+          <Repeat className="w-4 h-4" />
         </button>
       </div>
 

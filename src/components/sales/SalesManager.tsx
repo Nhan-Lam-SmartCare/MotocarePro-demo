@@ -3313,7 +3313,7 @@ const SalesManager: React.FC = () => {
                     type="radio"
                     name="salesTime"
                     defaultChecked
-                    className="w-3.5 h-3.5 md:w-4 md:h-4 text-pink-600 focus:ring-pink-500"
+                    className="w-3 h-3 md:w-3.5 md:h-3.5 text-pink-600 focus:ring-pink-500"
                   />
                   <span className="text-xs md:text-sm text-slate-700 dark:text-slate-300">
                     Thời gian hiện tại
@@ -3323,18 +3323,18 @@ const SalesManager: React.FC = () => {
                   <input
                     type="radio"
                     name="salesTime"
-                    className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600 focus:ring-blue-500"
+                    className="w-3 h-3 md:w-3.5 md:h-3.5 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-xs md:text-sm text-slate-700 dark:text-slate-300">
                     Tùy chỉnh
                   </span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="w-3 h-3 md:w-3.5 md:h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                  <span className="text-sm md:text-sm text-slate-700 dark:text-slate-300">
                     Ghi chú riêng cho đơn hàng
                   </span>
                 </label>
@@ -3343,7 +3343,7 @@ const SalesManager: React.FC = () => {
                     type="checkbox"
                     checked={autoPrintReceipt}
                     onChange={(e) => setAutoPrintReceipt(e.target.checked)}
-                    className="w-3.5 h-3.5 md:w-4 md:h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="w-3 h-3 md:w-3.5 md:h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-xs md:text-sm text-slate-700 dark:text-slate-300">
                     Đóng thời in hoá đơn
@@ -4365,17 +4365,18 @@ const SalesManager: React.FC = () => {
       {mobileTab === "products" && cartItems.length > 0 && (
         <button
           onClick={() => setMobileTab("cart")}
-          className="md:hidden fixed bottom-20 right-4 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-2xl p-4 transition-all duration-300 hover:scale-110 active:scale-95"
+          className="md:hidden fixed bottom-24 right-4 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-2xl p-3 transition-all duration-200 hover:scale-105 active:scale-95"
+          aria-label="Mở giỏ hàng"
         >
           <div className="relative">
-            <ShoppingCart className="w-6 h-6" />
+            <ShoppingCart className="w-5 h-5" />
             {cartItems.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[11px] font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
                 {cartItems.length}
               </span>
             )}
           </div>
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+          <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></div>
         </button>
       )}
     </div>

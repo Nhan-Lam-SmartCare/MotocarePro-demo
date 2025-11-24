@@ -372,9 +372,10 @@ export function ServiceManagerMobile({
       {/* FAB (Floating Action Button) */}
       <button
         onClick={onCreateWorkOrder}
-        className="fixed bottom-6 right-4 w-14 h-14 bg-gradient-to-br from-[#009ef7] to-[#0077b6] rounded-full shadow-xl shadow-[#009ef7]/50 flex items-center justify-center hover:from-[#0077b6] hover:to-[#005a8a] transition-all z-[60] active:scale-95"
+        className="fixed bottom-20 right-4 w-12 h-12 bg-gradient-to-br from-[#009ef7] to-[#0077b6] rounded-full shadow-xl shadow-[#009ef7]/50 flex items-center justify-center hover:from-[#0077b6] hover:to-[#005a8a] transition-all z-[60] active:scale-95"
+        aria-label="Tạo phiếu mới"
       >
-        <Plus className="w-6 h-6 text-white" />
+        <Plus className="w-5 h-5 text-white" />
       </button>
 
       {/* Filter Popup (Optional) */}
