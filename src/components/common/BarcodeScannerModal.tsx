@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, Camera, FlashlightOff, Flashlight, SwitchCamera } from "lucide-react";
 import { Html5Qrcode, Html5QrcodeScannerState } from "html5-qrcode";
 
@@ -21,10 +21,57 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [torchOn, setTorchOn] = useState(false);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [lastScanned, setLastScanned] = useState<string>("");
+  const [scanCount, setScanCount] = useState(0);
   const lastScanTime = useRef<number>(0);
+  const lastScanCode = useRef<string>("");
+  const processingRef = useRef<boolean>(false);
+  const onScanRef = useRef(onScan);
 
-  // Debounce scan to prevent spam
-  const SCAN_COOLDOWN = 1500; // 1.5 giây giữa các lần quét
+  // Keep onScan ref updated
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
+
+  // Debounce: 3 giây giữa các lần quét CÙNG mã, 1.5s cho mã khác
+  const SAME_CODE_COOLDOWN = 3000;
+  const DIFF_CODE_COOLDOWN = 1500;
+
+  // Memoized scan handler - sử dụng ref để tránh dependency issues
+  const handleScanResult = useCallback((decodedText: string) => {
+    const now = Date.now();
+    const isSameCode = decodedText === lastScanCode.current;
+    const cooldown = isSameCode ? SAME_CODE_COOLDOWN : DIFF_CODE_COOLDOWN;
+    
+    // Debounce check
+    if (now - lastScanTime.current < cooldown) {
+      return;
+    }
+    
+    // Prevent concurrent processing
+    if (processingRef.current) {
+      return;
+    }
+    
+    processingRef.current = true;
+    lastScanTime.current = now;
+    lastScanCode.current = decodedText;
+    
+    setLastScanned(decodedText);
+    setScanCount(prev => prev + 1);
+    
+    // Vibrate on scan (mobile) - chỉ 1 lần ngắn
+    if (navigator.vibrate) {
+      navigator.vibrate(100);
+    }
+    
+    // Call parent handler thông qua ref
+    onScanRef.current(decodedText);
+    
+    // Reset processing flag after cooldown
+    setTimeout(() => {
+      processingRef.current = false;
+    }, 1000);
+  }, []); // Empty deps - sử dụng ref
 
   useEffect(() => {
     if (isOpen) {
@@ -59,49 +106,16 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       scannerRef.current = scanner;
 
       const config = {
-        fps: 10,
+        fps: 5, // Giảm FPS để giảm spam
         qrbox: { width: 280, height: 150 },
         aspectRatio: 1.5,
         disableFlip: false,
-        formatsToSupport: [
-          0, // QR_CODE
-          1, // AZTEC
-          2, // CODABAR
-          3, // CODE_39
-          4, // CODE_93
-          5, // CODE_128
-          6, // DATA_MATRIX
-          7, // MAXICODE
-          8, // ITF
-          9, // EAN_13
-          10, // EAN_8
-          11, // PDF_417
-          12, // RSS_14
-          13, // RSS_EXPANDED
-          14, // UPC_A
-          15, // UPC_E
-          16, // UPC_EAN_EXTENSION
-        ],
       };
 
       await scanner.start(
         { facingMode },
         config,
-        (decodedText) => {
-          const now = Date.now();
-          // Debounce: chỉ xử lý nếu đã qua cooldown hoặc mã khác
-          if (now - lastScanTime.current > SCAN_COOLDOWN || decodedText !== lastScanned) {
-            lastScanTime.current = now;
-            setLastScanned(decodedText);
-            
-            // Vibrate on scan (mobile)
-            if (navigator.vibrate) {
-              navigator.vibrate(100);
-            }
-            
-            onScan(decodedText);
-          }
-        },
+        handleScanResult,
         () => {
           // Ignore scan errors (no code found)
         }
@@ -136,10 +150,13 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     }
     setIsScanning(false);
     setLastScanned("");
+    setScanCount(0);
+    lastScanCode.current = "";
+    lastScanTime.current = 0;
+    processingRef.current = false;
   };
 
   const toggleTorch = async () => {
-    // Note: Torch might not be supported on all devices
     try {
       const track = (scannerRef.current as any)?.getRunningTrackCameraCapabilities?.();
       if (track?.torchFeature?.isSupported()) {
@@ -221,7 +238,7 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             {lastScanned && (
               <div className="mt-4 px-4 py-2 bg-green-600/20 border border-green-500 rounded-lg">
                 <p className="text-green-400 text-sm text-center font-mono">
-                  ✓ {lastScanned}
+                  ✓ {lastScanned} {scanCount > 1 && <span className="text-green-300">(×{scanCount})</span>}
                 </p>
               </div>
             )}
