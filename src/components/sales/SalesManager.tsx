@@ -2189,6 +2189,9 @@ const SalesManager: React.FC = () => {
         p.sku?.toLowerCase() === barcode.toLowerCase()
     );
 
+    // Đóng scanner trước
+    setShowCameraScanner(false);
+
     if (foundPart) {
       // Kiểm tra đã có trong giỏ chưa
       const existingItem = cart.find((item) => item.partId === foundPart.id);

@@ -165,24 +165,57 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
     }
   };
 
-  // Handle camera scan result
+  // Handle camera scan result - KHÔNG hiện toast để tránh spam
   const handleCameraScan = (barcode: string) => {
+    // Normalize barcode để so sánh
+    const normalizeCode = (code: string): string =>
+      code.toLowerCase().replace(/[-\s./\\]/g, "");
+    const normalizedBarcode = normalizeCode(barcode);
+
     const foundPart = parts.find(
       (p) =>
-        p.sku?.toLowerCase() === barcode.toLowerCase() ||
-        p.name?.toLowerCase().includes(barcode.toLowerCase())
+        normalizeCode(p.barcode || "") === normalizedBarcode ||
+        p.barcode?.toLowerCase() === barcode.toLowerCase() ||
+        normalizeCode(p.sku || "") === normalizedBarcode ||
+        p.sku?.toLowerCase() === barcode.toLowerCase()
     );
 
+    // Đóng scanner trước
     setShowCameraScanner(false);
 
     if (foundPart) {
-      addToReceipt(foundPart);
+      // Kiểm tra đã có trong phiếu chưa
+      const existing = receiptItems.find((item) => item.partId === foundPart.id);
+      if (existing) {
+        // Chỉ tăng số lượng, KHÔNG hiện toast
+        setReceiptItems((items) =>
+          items.map((item) =>
+            item.partId === foundPart.id
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          )
+        );
+      } else {
+        // Thêm mới - chỉ hiện 1 toast
+        setReceiptItems((items) => [
+          ...items,
+          {
+            partId: foundPart.id,
+            partName: foundPart.name,
+            sku: foundPart.sku,
+            quantity: 1,
+            importPrice: foundPart.costPrice?.[currentBranchId] || 0,
+            sellingPrice: foundPart.retailPrice?.[currentBranchId] || 0,
+            wholesalePrice: foundPart.wholesalePrice?.[currentBranchId] || 0,
+          },
+        ]);
+        showToast.success(`Đã thêm ${foundPart.name}`);
+      }
+      setSearchTerm("");
     } else {
       // Sản phẩm chưa có trong kho - mở form thêm mới
-      showToast.info(
-        `Sản phẩm mã ${barcode} chưa có. Vui lòng thêm thông tin sản phẩm mới.`
-      );
-      setBarcodeInput(barcode); // Điền sẵn mã vào ô nhập
+      showToast.info(`Sản phẩm mã ${barcode} chưa có.`);
+      setBarcodeInput(barcode);
       setTimeout(() => {
         setShowAddProductModal(true);
       }, 500);

@@ -761,13 +761,16 @@ const GoodsReceiptModal: React.FC<{
         p.sku?.toLowerCase() === barcode.toLowerCase()
     );
 
+    // Đóng scanner trước
+    setShowCameraScanner(false);
+
     if (foundPart) {
       // Kiểm tra đã có trong phiếu chưa
       const existingItem = receiptItems.find(
         (item) => item.partId === foundPart.id
       );
       if (existingItem) {
-        // Chỉ tăng số lượng, không hiện toast để tránh spam
+        // Chỉ tăng số lượng, KHÔNG hiện toast để tránh spam
         setReceiptItems((items) =>
           items.map((item) =>
             item.partId === foundPart.id
@@ -776,8 +779,22 @@ const GoodsReceiptModal: React.FC<{
           )
         );
       } else {
-        addToReceipt(foundPart);
+        // Thêm mới - chỉ hiện 1 toast
+        setReceiptItems((items) => [
+          ...items,
+          {
+            partId: foundPart.id,
+            partName: foundPart.name,
+            sku: foundPart.sku,
+            quantity: 1,
+            importPrice: foundPart.costPrice?.[currentBranchId] || 0,
+            sellingPrice: foundPart.retailPrice[currentBranchId] || 0,
+            wholesalePrice: foundPart.wholesalePrice?.[currentBranchId] || 0,
+          },
+        ]);
+        showToast.success(`Đã thêm ${foundPart.name}`);
       }
+      setSearchTerm("");
     } else {
       showToast.error(`Không tìm thấy: ${barcode}`);
     }
