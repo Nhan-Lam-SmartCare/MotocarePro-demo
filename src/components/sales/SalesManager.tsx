@@ -2195,11 +2195,11 @@ const SalesManager: React.FC = () => {
     // KHÔNG cần đóng scanner - BarcodeScannerModal tự đóng
 
     if (foundPart) {
-      // Kiểm tra đã có trong giỏ chưa
-      const existingItem = cart.find((item) => item.partId === foundPart.id);
+      // Kiểm tra đã có trong giỏ chưa - dùng cartItems thay vì cart
+      const existingItem = cartItems.find((item) => item.partId === foundPart.id);
       if (existingItem) {
         // Chỉ tăng số lượng, không hiện toast để tránh spam
-        updateCartQty(foundPart.id, existingItem.quantity + 1);
+        updateCartQuantity(foundPart.id, existingItem.quantity + 1);
       } else {
         addToCart(foundPart);
         showToast.success(`Đã thêm ${foundPart.name}`);
