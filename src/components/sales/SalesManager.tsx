@@ -2183,7 +2183,8 @@ const SalesManager: React.FC = () => {
     
     const normalizedBarcode = normalizeCode(barcode);
 
-    const foundPart = filteredParts.find(
+    // Tìm trong TẤT CẢ sản phẩm (repoParts), không phải filteredParts
+    const foundPart = repoParts.find(
       (p) =>
         normalizeCode(p.barcode || "") === normalizedBarcode ||
         p.barcode?.toLowerCase() === barcode.toLowerCase() ||
