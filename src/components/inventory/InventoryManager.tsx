@@ -4741,6 +4741,12 @@ const InventoryManager: React.FC = () => {
                     const retailPrice = part.retailPrice[currentBranchId] || 0;
                     const value = stock * retailPrice;
                     const isDuplicate = hasDuplicateName(part.name);
+                    // Lấy chữ cái đầu của tên sản phẩm để hiển thị khi không có ảnh
+                    const initials = part.name
+                      .split(/[-\s]/)
+                      .slice(0, 2)
+                      .map((word) => word.charAt(0).toUpperCase())
+                      .join("");
                     return (
                       <div
                         key={part.id}
@@ -4765,39 +4771,48 @@ const InventoryManager: React.FC = () => {
                                 ),
                               }}
                             >
-                              <Package className="w-6 h-6 text-white opacity-90" />
+                              <span className="text-lg font-bold text-white/90">
+                                {initials || (
+                                  <Package className="w-6 h-6 text-white opacity-90" />
+                                )}
+                              </span>
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <div className="text-[15px] font-medium text-white truncate">
+                              {/* Tên sản phẩm: cho phép 2 dòng thay vì truncate 1 dòng */}
+                              <div className="text-[15px] font-medium text-white line-clamp-2 leading-tight">
                                 {part.name}
                               </div>
-                              <div className="text-[13px] text-slate-400 mt-0.5">
+                              <div className="text-[12px] text-slate-400 mt-1 truncate">
                                 SKU: {part.sku} • {part.category}
                               </div>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <div className="text-[13px] text-slate-300">
-                                {formatCurrency(value)} ₫
+                              {/* Sửa lỗi format giá bị lặp đơn vị ₫ */}
+                              <div className="text-[13px] text-slate-300 font-medium">
+                                {formatCurrency(value)}
                               </div>
                             </div>
                           </div>
                           <div className="mt-2 flex items-center justify-between">
+                            {/* Cải thiện badge số lượng với icon và text rõ hơn */}
                             <span
-                              className={`inline-flex px-2 py-0.5 text-sm font-bold rounded ${
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 text-sm font-bold rounded-lg ${
                                 stock === 0
-                                  ? "text-red-400 bg-red-900/30"
-                                  : stock < 10
-                                  ? "text-yellow-400 bg-yellow-900/30"
-                                  : "text-emerald-400 bg-emerald-900/30"
+                                  ? "text-red-300 bg-red-900/40 border border-red-700/50"
+                                  : stock < LOW_STOCK_THRESHOLD
+                                  ? "text-yellow-300 bg-yellow-900/40 border border-yellow-700/50"
+                                  : "text-emerald-300 bg-emerald-900/40 border border-emerald-700/50"
                               }`}
                             >
+                              <span className="text-xs opacity-80">SL:</span>
                               {stock}
                             </span>
                             <div className="relative">
+                              {/* Tăng vùng tap cho menu 3 chấm */}
                               <button
                                 onClick={() =>
                                   setMobileMenuOpenIndex(
@@ -4807,7 +4822,7 @@ const InventoryManager: React.FC = () => {
                                 aria-haspopup="true"
                                 aria-expanded={mobileMenuOpenIndex === index}
                                 aria-label="Thêm hành động"
-                                className="p-1.5 text-slate-400 hover:bg-slate-600 rounded transition"
+                                className="p-2.5 -m-1 text-slate-400 hover:bg-slate-600 rounded-lg transition active:bg-slate-500"
                               >
                                 <MoreHorizontal className="w-5 h-5" />
                               </button>
@@ -5478,69 +5493,111 @@ const InventoryManager: React.FC = () => {
       />
 
       {/* Mobile Floating Action Buttons */}
-      <div className="sm:hidden fixed bottom-24 right-4 z-40 flex flex-col gap-2">
+      <div className="sm:hidden fixed bottom-20 right-4 z-40 flex flex-col gap-3">
         <button
           onClick={() => setShowGoodsReceipt(true)}
-          className="w-12 h-12 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all transform hover:scale-105"
+          className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full shadow-lg shadow-green-500/30 flex items-center justify-center transition-all transform hover:scale-110 active:scale-95"
           aria-label="Tạo phiếu nhập"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-5 h-5" />
         </button>
         <button
           onClick={handleExportExcel}
-          className="w-12 h-12 bg-orange-600 hover:bg-orange-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all transform hover:scale-105"
+          className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full shadow-lg shadow-orange-500/30 flex items-center justify-center transition-all transform hover:scale-110 active:scale-95"
           aria-label="Xuất Excel"
         >
-          <Repeat className="w-4 h-4" />
+          <Repeat className="w-5 h-5" />
         </button>
       </div>
 
       {/* Custom Bottom Navigation for Inventory */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-50 safe-area-bottom">
-        <div className="grid grid-cols-4 gap-0.5 px-1 py-1">
+        {/* Backdrop blur effect */}
+        <div className="absolute inset-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg -z-10"></div>
+        <div className="grid grid-cols-4 gap-1 px-2 py-2">
           <button
             onClick={() => setActiveTab("stock")}
-            className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg transition ${
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${
               activeTab === "stock"
-                ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
-                : "text-slate-600 dark:text-slate-400"
+                ? "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 scale-105"
+                : "text-slate-500 dark:text-slate-400 active:scale-95"
             }`}
           >
-            <Boxes className="w-4 h-4" />
-            <span className="text-[9px] font-medium">Tồn kho</span>
+            <Boxes
+              className={`w-5 h-5 ${
+                activeTab === "stock" ? "scale-110" : ""
+              } transition-transform`}
+            />
+            <span
+              className={`text-[10px] font-medium ${
+                activeTab === "stock" ? "font-semibold" : ""
+              }`}
+            >
+              Tồn kho
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("categories")}
-            className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg transition ${
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${
               activeTab === "categories"
-                ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
-                : "text-slate-600 dark:text-slate-400"
+                ? "bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 scale-105"
+                : "text-slate-500 dark:text-slate-400 active:scale-95"
             }`}
           >
-            <Package className="w-4 h-4" />
-            <span className="text-[9px] font-medium">Danh mục</span>
+            <Package
+              className={`w-5 h-5 ${
+                activeTab === "categories" ? "scale-110" : ""
+              } transition-transform`}
+            />
+            <span
+              className={`text-[10px] font-medium ${
+                activeTab === "categories" ? "font-semibold" : ""
+              }`}
+            >
+              Danh mục
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("lookup")}
-            className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg transition ${
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${
               activeTab === "lookup"
-                ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                : "text-slate-600 dark:text-slate-400"
+                ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 scale-105"
+                : "text-slate-500 dark:text-slate-400 active:scale-95"
             }`}
           >
-            <Search className="w-4 h-4" />
-            <span className="text-[9px] font-medium">Tra cứu</span>
+            <Search
+              className={`w-5 h-5 ${
+                activeTab === "lookup" ? "scale-110" : ""
+              } transition-transform`}
+            />
+            <span
+              className={`text-[10px] font-medium ${
+                activeTab === "lookup" ? "font-semibold" : ""
+              }`}
+            >
+              Tra cứu
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("history")}
-            className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg transition ${
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${
               activeTab === "history"
-                ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                : "text-slate-600 dark:text-slate-400"
+                ? "bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 scale-105"
+                : "text-slate-500 dark:text-slate-400 active:scale-95"
             }`}
           >
-            <FileText className="w-4 h-4" />
-            <span className="text-[9px] font-medium">Lịch sử</span>
+            <FileText
+              className={`w-5 h-5 ${
+                activeTab === "history" ? "scale-110" : ""
+              } transition-transform`}
+            />
+            <span
+              className={`text-[10px] font-medium ${
+                activeTab === "history" ? "font-semibold" : ""
+              }`}
+            >
+              Lịch sử
+            </span>
           </button>
         </div>
       </div>

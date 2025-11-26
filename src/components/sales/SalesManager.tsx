@@ -20,6 +20,7 @@ import {
   CalendarDays,
   Receipt,
   ScanLine,
+  History,
 } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { usePartsRepo } from "../../hooks/usePartsRepository";
@@ -2899,10 +2900,11 @@ const SalesManager: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowSalesHistory(true)}
-                  className="px-3 md:px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl whitespace-nowrap transition-all inline-flex items-center gap-2 text-sm font-bold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                  className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl whitespace-nowrap transition-all inline-flex items-center gap-2 text-sm font-bold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                  title="Lịch sử bán hàng"
                 >
-                  <BarChart3 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Lịch sử</span>
+                  <History className="w-5 h-5" />
+                  <span>Lịch sử</span>
                 </button>
               </div>
             </div>
