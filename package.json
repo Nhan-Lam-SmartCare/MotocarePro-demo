@@ -17,6 +17,7 @@
     "@tanstack/react-query-devtools": "^5.90.2",
     "dotenv": "^17.2.3",
     "html5-qrcode": "^2.3.8",
+    "jsbarcode": "^3.12.1",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.469.0",

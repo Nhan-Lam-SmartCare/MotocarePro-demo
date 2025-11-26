@@ -58,6 +58,8 @@ import FormattedNumberInput from "../common/FormattedNumberInput";
 import { validatePriceAndQty } from "../../utils/validation";
 import { GoodsReceiptMobileModal } from "./GoodsReceiptMobileModal";
 import InventoryHistorySectionMobile from "./InventoryHistorySectionMobile";
+import PrintBarcodeModal from "./PrintBarcodeModal";
+import BatchPrintBarcodeModal from "./BatchPrintBarcodeModal";
 
 const LOW_STOCK_THRESHOLD = 5;
 const FILTER_THEME_STYLES: Record<
@@ -689,7 +691,7 @@ const GoodsReceiptModal: React.FC<{
             : item
         )
       );
-      showToast.success(`Đã tăng số lượng ${part.name}`);
+      // Không hiện toast khi tăng số lượng để tránh spam
     } else {
       setReceiptItems([
         ...receiptItems,
@@ -716,9 +718,21 @@ const GoodsReceiptModal: React.FC<{
     if (!barcodeInput.trim()) return;
 
     const barcode = barcodeInput.trim();
+    // Normalize: loại bỏ ký tự đặc biệt để so sánh
+    const normalizeCode = (code: string): string =>
+      code.toLowerCase().replace(/[-\s./\\]/g, "");
+    const normalizedBarcode = normalizeCode(barcode);
+
+    // Tìm part với logic ưu tiên: barcode > SKU > tên
     const foundPart = parts.find(
       (p) =>
+        // 1. Khớp barcode (field mới)
+        normalizeCode(p.barcode || "") === normalizedBarcode ||
+        p.barcode?.toLowerCase() === barcode.toLowerCase() ||
+        // 2. Khớp SKU
+        normalizeCode(p.sku || "") === normalizedBarcode ||
         p.sku?.toLowerCase() === barcode.toLowerCase() ||
+        // 3. Tìm trong tên
         p.name?.toLowerCase().includes(barcode.toLowerCase())
     );
 
@@ -3753,6 +3767,7 @@ const InventoryManager: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [editingPart, setEditingPart] = useState<Part | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showBatchPrintModal, setShowBatchPrintModal] = useState(false);
   const [mobileMenuOpenIndex, setMobileMenuOpenIndex] = useState<number | null>(
     null
   );
@@ -4359,6 +4374,16 @@ const InventoryManager: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowBatchPrintModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold shadow-lg shadow-emerald-500/30 hover:brightness-110 transition"
+              title="In mã vạch hàng loạt"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              </svg>
+              In mã vạch
+            </button>
             <button
               onClick={() => setShowGoodsReceipt(true)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg shadow-blue-500/30 hover:brightness-110 transition"
@@ -5182,6 +5207,15 @@ const InventoryManager: React.FC = () => {
         onSave={handleSaveGoodsReceipt}
       />
 
+      {/* Batch Print Barcode Modal */}
+      {showBatchPrintModal && (
+        <BatchPrintBarcodeModal
+          parts={allPartsData || []}
+          currentBranchId={currentBranchId}
+          onClose={() => setShowBatchPrintModal(false)}
+        />
+      )}
+
       {/* Edit Part Modal */}
       {editingPart && (
         <EditPartModal
@@ -5192,6 +5226,7 @@ const InventoryManager: React.FC = () => {
             // Only send fields that are allowed in database schema
             const updates: Partial<Part> = {
               name: updatedPart.name,
+              barcode: updatedPart.barcode,
               category: updatedPart.category,
               stock: updatedPart.stock,
               retailPrice: updatedPart.retailPrice,
@@ -5797,12 +5832,14 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: part.name,
+    barcode: part.barcode || "",
     category: part.category || "",
     retailPrice: part.retailPrice[currentBranchId] || 0,
     wholesalePrice: part.wholesalePrice?.[currentBranchId] || 0,
     costPrice: part.costPrice?.[currentBranchId] || 0,
     stock: part.stock[currentBranchId] || 0,
   });
+  const [showPrintBarcode, setShowPrintBarcode] = useState(false);
   const { data: categories = [] } = useCategories();
   const createCategory = useCreateCategory();
   const [showInlineCat, setShowInlineCat] = useState(false);
@@ -5819,6 +5856,7 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
     onSave({
       id: part.id,
       name: formData.name.trim(),
+      barcode: formData.barcode.trim() || undefined,
       category: formData.category.trim() || undefined,
       stock: {
         ...part.stock,
@@ -5882,6 +5920,25 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
               required
             />
+          </div>
+
+          {/* Barcode field - Mã vạch của hãng */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Mã vạch (Barcode)
+            </label>
+            <input
+              type="text"
+              value={formData.barcode}
+              onChange={(e) =>
+                setFormData({ ...formData, barcode: e.target.value })
+              }
+              placeholder="Ví dụ: 06455-KYJ-841 (Honda), 5S9-F2101-00 (Yamaha)"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-mono"
+            />
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Nhập mã vạch từ bao bì gốc của hãng để quét nhanh khi bán hàng
+            </p>
           </div>
 
           <div>
@@ -6057,25 +6114,49 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-between gap-3 pt-4">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              onClick={() => setShowPrintBarcode(true)}
+              className="px-4 py-2 border border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-2"
             >
-              Hủy
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              </svg>
+              In mã vạch
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              Lưu thay đổi
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Lưu thay đổi
+              </button>
+            </div>
           </div>
         </form>
+
+        {/* Print Barcode Modal */}
+        {showPrintBarcode && (
+          <PrintBarcodeModal
+            part={part}
+            currentBranchId={currentBranchId}
+            onClose={() => setShowPrintBarcode(false)}
+          />
+        )}
       </div>
     </div>
   );
 };
+
+// Export BatchPrintBarcodeModal renderer as part of main component
+export { BatchPrintBarcodeModal };
 
 export default InventoryManager;
