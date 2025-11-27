@@ -20,6 +20,7 @@ import {
   Settings,
   Bell,
   Eye,
+  EyeOff,
   CheckCircle2,
   XCircle,
   Clock,
@@ -273,6 +274,7 @@ const Dashboard: React.FC = () => {
   const [reportFilter, setReportFilter] = useState<
     "today" | "week" | "month" | "year"
   >("month");
+  const [showBalance, setShowBalance] = useState(false);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   // Calculate inventory stats from parts data directly
@@ -586,25 +588,35 @@ const Dashboard: React.FC = () => {
             </p>
 
             {/* Mini stats trong header */}
-            <div className="mt-4 flex flex-wrap gap-3">
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-2">
-                <Eye className="w-4 h-4" />
-                <div>
-                  <p className="text-xs opacity-90">Tiền mặt</p>
-                  <p className="text-sm font-semibold">
-                    {formatCurrency(cashBalance)}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => setShowBalance(!showBalance)}
+                className="bg-white/20 backdrop-blur-sm rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 hover:bg-white/30 transition-colors"
+              >
+                {showBalance ? (
+                  <EyeOff className="w-3.5 h-3.5" />
+                ) : (
+                  <Eye className="w-3.5 h-3.5" />
+                )}
+                <div className="text-left">
+                  <p className="text-[10px] opacity-80">Tiền mặt</p>
+                  <p className="text-xs font-semibold">
+                    {showBalance ? formatCurrency(cashBalance) : "••••••"}
                   </p>
                 </div>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                <div>
-                  <p className="text-xs opacity-90">Quản lý</p>
-                  <p className="text-sm font-semibold">
-                    {employees.filter((e) => e.status === "active").length}
+              </button>
+              <button
+                onClick={() => setShowBalance(!showBalance)}
+                className="bg-white/20 backdrop-blur-sm rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 hover:bg-white/30 transition-colors"
+              >
+                <Landmark className="w-3.5 h-3.5" />
+                <div className="text-left">
+                  <p className="text-[10px] opacity-80">Ngân hàng</p>
+                  <p className="text-xs font-semibold">
+                    {showBalance ? formatCurrency(bankBalance) : "••••••"}
                   </p>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
 
