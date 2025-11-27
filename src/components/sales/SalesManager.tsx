@@ -2837,8 +2837,18 @@ const SalesManager: React.FC = () => {
                 : "text-slate-600 dark:text-slate-400 active:scale-95"
             }`}
           >
-            <Boxes className={`w-6 h-6 transition-transform ${mobileTab === "products" ? "scale-105" : ""}`} />
-            <span className={`text-[9px] font-medium ${mobileTab === "products" ? "font-semibold" : ""}`}>Sản phẩm</span>
+            <Boxes
+              className={`w-6 h-6 transition-transform ${
+                mobileTab === "products" ? "scale-105" : ""
+              }`}
+            />
+            <span
+              className={`text-[9px] font-medium ${
+                mobileTab === "products" ? "font-semibold" : ""
+              }`}
+            >
+              Sản phẩm
+            </span>
           </button>
           <button
             onClick={() => setMobileTab("cart")}
@@ -2849,14 +2859,24 @@ const SalesManager: React.FC = () => {
             }`}
           >
             <div className="relative">
-              <ShoppingCart className={`w-6 h-6 transition-transform ${mobileTab === "cart" ? "scale-105" : ""}`} />
+              <ShoppingCart
+                className={`w-6 h-6 transition-transform ${
+                  mobileTab === "cart" ? "scale-105" : ""
+                }`}
+              />
               {cartItems.length > 0 && (
                 <span className="absolute -top-1 -right-2 px-1 min-w-[14px] h-[14px] text-[8px] font-bold rounded-full bg-red-500 text-white flex items-center justify-center">
                   {cartItems.length}
                 </span>
               )}
             </div>
-            <span className={`text-[9px] font-medium ${mobileTab === "cart" ? "font-semibold" : ""}`}>Giỏ hàng</span>
+            <span
+              className={`text-[9px] font-medium ${
+                mobileTab === "cart" ? "font-semibold" : ""
+              }`}
+            >
+              Giỏ hàng
+            </span>
           </button>
           <button
             onClick={() => {
@@ -2869,8 +2889,18 @@ const SalesManager: React.FC = () => {
                 : "text-slate-600 dark:text-slate-400 active:scale-95"
             }`}
           >
-            <History className={`w-6 h-6 transition-transform ${mobileTab === "history" ? "scale-105" : ""}`} />
-            <span className={`text-[9px] font-medium ${mobileTab === "history" ? "font-semibold" : ""}`}>Lịch sử</span>
+            <History
+              className={`w-6 h-6 transition-transform ${
+                mobileTab === "history" ? "scale-105" : ""
+              }`}
+            />
+            <span
+              className={`text-[9px] font-medium ${
+                mobileTab === "history" ? "font-semibold" : ""
+              }`}
+            >
+              Lịch sử
+            </span>
           </button>
         </div>
       </div>
