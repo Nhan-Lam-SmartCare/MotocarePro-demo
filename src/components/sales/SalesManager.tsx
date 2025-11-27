@@ -42,6 +42,8 @@ import {
   useCreateCustomerDebtRepo,
   useCustomerDebtsRepo,
 } from "../../hooks/useDebtsRepository";
+import { useCustomers, useCreateCustomer } from "../../hooks/useSupabase";
+import BarcodeScannerModal from "../common/BarcodeScannerModal";
 
 interface StoreSettings {
   store_name?: string;
@@ -1789,7 +1791,6 @@ const SalesHistoryModal: React.FC<SalesHistoryModalProps> = ({
 
 const SalesManager: React.FC = () => {
   const {
-    customers,
     upsertCustomer,
     cartItems,
     setCartItems,
@@ -1802,6 +1803,10 @@ const SalesManager: React.FC = () => {
   } = useAppContext();
 
   const queryClient = useQueryClient();
+
+  // Fetch customers from Supabase
+  const { data: customers = [], isLoading: loadingCustomers } = useCustomers();
+  const createCustomerMutation = useCreateCustomer();
 
   // Repository (read-only step 1)
   const {
@@ -1901,6 +1906,7 @@ const SalesManager: React.FC = () => {
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
   const [barcodeInput, setBarcodeInput] = useState("");
   const [showBarcodeInput, setShowBarcodeInput] = useState(false);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [customerSearch, setCustomerSearch] = useState("");
 
@@ -2136,15 +2142,31 @@ const SalesManager: React.FC = () => {
       .slice(0, 36);
   }, [filteredParts, stockFilter, currentBranchId]);
 
+  // Normalize barcode/SKU: loại bỏ ký tự đặc biệt để so sánh
+  // Honda: 06455-KYJ-841 → 06455kyj841
+  // Yamaha: 5S9-F2101-00 → 5s9f210100
+  const normalizeCode = (code: string): string => {
+    return code.toLowerCase().replace(/[-\s./\\]/g, "");
+  };
+
   // Handle barcode scan for quick add to cart
   const handleBarcodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!barcodeInput.trim()) return;
 
     const barcode = barcodeInput.trim();
+    const normalizedBarcode = normalizeCode(barcode);
+
+    // Tìm part với logic ưu tiên: barcode > SKU > tên
     const foundPart = filteredParts.find(
       (p) =>
+        // 1. Khớp chính xác barcode (field mới)
+        normalizeCode(p.barcode || "") === normalizedBarcode ||
+        p.barcode?.toLowerCase() === barcode.toLowerCase() ||
+        // 2. Khớp SKU (normalize hoặc chính xác)
+        normalizeCode(p.sku || "") === normalizedBarcode ||
         p.sku?.toLowerCase() === barcode.toLowerCase() ||
+        // 3. Tìm trong tên sản phẩm
         p.name?.toLowerCase().includes(barcode.toLowerCase())
     );
 
@@ -2157,6 +2179,38 @@ const SalesManager: React.FC = () => {
     } else {
       showToast.error(`Không tìm thấy sản phẩm có mã: ${barcode}`);
       setBarcodeInput("");
+    }
+  };
+
+  // Handle camera barcode scan - Modal tự đóng sau khi quét
+  const handleCameraScan = (barcode: string) => {
+    console.log("📷 Camera scanned:", barcode);
+    
+    const normalizedBarcode = normalizeCode(barcode);
+
+    // Tìm trong TẤT CẢ sản phẩm (repoParts), không phải filteredParts
+    const foundPart = repoParts.find(
+      (p) =>
+        normalizeCode(p.barcode || "") === normalizedBarcode ||
+        p.barcode?.toLowerCase() === barcode.toLowerCase() ||
+        normalizeCode(p.sku || "") === normalizedBarcode ||
+        p.sku?.toLowerCase() === barcode.toLowerCase()
+    );
+
+    // KHÔNG cần đóng scanner - BarcodeScannerModal tự đóng
+
+    if (foundPart) {
+      // Kiểm tra đã có trong giỏ chưa - dùng cartItems thay vì cart
+      const existingItem = cartItems.find((item) => item.partId === foundPart.id);
+      if (existingItem) {
+        // Chỉ tăng số lượng, không hiện toast để tránh spam
+        updateCartQuantity(foundPart.id, existingItem.quantity + 1);
+      } else {
+        addToCart(foundPart);
+        showToast.success(`Đã thêm ${foundPart.name}`);
+      }
+    } else {
+      showToast.error(`Không tìm thấy: ${barcode}`);
     }
   };
 
@@ -2248,7 +2302,7 @@ const SalesManager: React.FC = () => {
     }
 
     // Create new customer
-    const customer = {
+    const customer: Customer = {
       id: `CUST-${Date.now()}`,
       name: newCustomer.name,
       phone: newCustomer.phone,
@@ -2263,20 +2317,28 @@ const SalesManager: React.FC = () => {
       created_at: new Date().toISOString(),
     };
 
-    upsertCustomer(customer);
+    // Save to database using mutation
+    createCustomerMutation.mutate(customer, {
+      onSuccess: () => {
+        // Select the new customer
+        setSelectedCustomer(customer);
+        setCustomerSearch(customer.name);
 
-    // Select the new customer
-    setSelectedCustomer(customer);
-    setCustomerSearch(customer.name);
-
-    // Reset form and close modal
-    setNewCustomer({
-      name: "",
-      phone: "",
-      vehicleModel: "",
-      licensePlate: "",
+        // Reset form and close modal
+        setNewCustomer({
+          name: "",
+          phone: "",
+          vehicleModel: "",
+          licensePlate: "",
+        });
+        setShowAddCustomerModal(false);
+        showToast.success("Đã thêm khách hàng mới!");
+      },
+      onError: (error) => {
+        console.error("Error creating customer:", error);
+        showToast.error("Không thể thêm khách hàng. Vui lòng thử lại.");
+      }
     });
-    setShowAddCustomerModal(false);
   };
 
   // Handle print receipt - Show preview modal
@@ -2852,6 +2914,18 @@ const SalesManager: React.FC = () => {
                       {showBarcodeInput ? "Đóng quét" : "Quét mã"}
                     </span>
                   </button>
+                  {/* Camera scan button - mobile only */}
+                  <button
+                    type="button"
+                    onClick={() => setShowCameraScanner(true)}
+                    className="md:hidden px-3 py-2 rounded-xl border-2 border-green-500 text-green-600 bg-green-50 dark:bg-green-900/20 font-semibold text-sm flex items-center gap-1.5 transition-all hover:bg-green-100"
+                    title="Quét bằng camera"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
                 </div>
                 {showBarcodeInput && (
                   <form onSubmit={handleBarcodeSubmit} className="relative">
@@ -3144,10 +3218,62 @@ const SalesManager: React.FC = () => {
                     type="text"
                     placeholder="Tìm tên, số điện thoại..."
                     value={customerSearch}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    onChange={(e) => {
+                      setCustomerSearch(e.target.value);
+                      setShowCustomerDropdown(true);
+                    }}
                     onFocus={() => setShowCustomerDropdown(true)}
+                    onBlur={() => {
+                      // Delay hiding dropdown to allow click on items
+                      setTimeout(() => setShowCustomerDropdown(false), 200);
+                    }}
                     className="w-full pl-10 pr-4 py-2 md:py-2.5 border md:border-2 border-slate-300 md:border-slate-300/50 dark:border-slate-600/50 rounded-lg md:rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all placeholder:text-slate-400"
                   />
+                  {/* Dropdown results - positioned relative to input container */}
+                  {showCustomerDropdown && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg">
+                      {filteredCustomers.length > 0 ? (
+                        filteredCustomers.map((customer) => (
+                          <button
+                            key={customer.id}
+                            onClick={() => {
+                              setSelectedCustomer(customer);
+                              setCustomerSearch(customer.name);
+                              setShowCustomerDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-600 border-b border-slate-100 dark:border-slate-600 last:border-b-0"
+                          >
+                            <div className="font-medium text-slate-900 dark:text-slate-100 text-sm">
+                              {customer.name}
+                            </div>
+                            {customer.phone && (
+                              <div className="text-xs text-slate-500 dark:text-slate-400">
+                                📞 {customer.phone}
+                              </div>
+                            )}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-3 text-center text-slate-500 dark:text-slate-400 text-sm">
+                          {customerSearch ? (
+                            <>
+                              <div>Không tìm thấy khách hàng</div>
+                              <button
+                                onClick={() => setShowAddCustomerModal(true)}
+                                className="mt-2 text-emerald-500 hover:text-emerald-600 font-medium"
+                              >
+                                + Thêm khách hàng mới
+                              </button>
+                            </>
+                          ) : customers.length === 0 ? (
+                            <div>Chưa có khách hàng nào</div>
+                          ) : (
+                            <div>Nhập tên hoặc SĐT để tìm...</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => setShowAddCustomerModal(true)}
@@ -3157,30 +3283,6 @@ const SalesManager: React.FC = () => {
                   <PlusIcon className="w-4 h-4 md:w-5 md:h-5" />
                   <span className="hidden sm:inline text-sm">Thêm</span>
                 </button>
-                {showCustomerDropdown && filteredCustomers.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-10 mt-1 max-h-40 overflow-y-auto bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg">
-                    {filteredCustomers.map((customer) => (
-                      <button
-                        key={customer.id}
-                        onClick={() => {
-                          setSelectedCustomer(customer);
-                          setCustomerSearch(customer.name);
-                          setShowCustomerDropdown(false);
-                        }}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-600 border-b border-slate-100 dark:border-slate-600 last:border-b-0"
-                      >
-                        <div className="font-medium text-slate-900 dark:text-slate-100">
-                          {customer.name}
-                        </div>
-                        {customer.phone && (
-                          <div className="text-sm text-slate-500">
-                            {customer.phone}
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
               {selectedCustomer && (
                 <div className="mt-2 md:mt-3 p-2 md:p-3.5 bg-emerald-50 dark:bg-emerald-900/20 md:bg-gradient-to-r md:from-emerald-50 md:to-teal-50 dark:md:from-emerald-900/20 dark:md:to-teal-900/20 rounded-lg md:rounded-xl border md:border-2 border-emerald-200 dark:border-emerald-800 md:shadow-sm">
@@ -4676,6 +4778,14 @@ const SalesManager: React.FC = () => {
           <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></div>
         </button>
       )}
+
+      {/* Camera Barcode Scanner Modal */}
+      <BarcodeScannerModal
+        isOpen={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScan={handleCameraScan}
+        title="Quét mã vạch sản phẩm"
+      />
     </div>
   );
 };
