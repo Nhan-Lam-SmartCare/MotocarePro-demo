@@ -750,7 +750,7 @@ const GoodsReceiptModal: React.FC<{
   // Handle camera barcode scan - Modal tự đóng sau khi quét
   const handleCameraScan = (barcode: string) => {
     console.log("📷 Camera scanned:", barcode);
-    
+
     const normalizeCode = (code: string): string =>
       code.toLowerCase().replace(/[-\s./\\]/g, "");
     const normalizedBarcode = normalizeCode(barcode);
@@ -4471,8 +4471,18 @@ const InventoryManager: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold shadow-lg shadow-emerald-500/30 hover:brightness-110 transition"
               title="In mã vạch hàng loạt"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                />
               </svg>
               In mã vạch
             </button>
@@ -5205,24 +5215,31 @@ const InventoryManager: React.FC = () => {
                 </table>
               </div>
               {/* Pagination Controls */}
-              <div className="flex items-center justify-between px-6 py-4 border-t border-primary-border bg-primary-bg">
-                <div className="text-sm text-secondary-text">
-                  Trang {page}/{totalPages} • Tổng {totalParts} phụ tùng
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-t border-primary-border bg-primary-bg">
+                <div className="text-xs sm:text-sm text-secondary-text text-center sm:text-left">
+                  <span className="font-medium">
+                    Trang {page}/{totalPages}
+                  </span>
+                  <span className="mx-1">•</span>
+                  <span>{totalParts} phụ tùng</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <button
                     disabled={page === 1 || partsLoading}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="px-3 py-1.5 border border-secondary-border rounded disabled:opacity-40"
+                    className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm border border-secondary-border rounded disabled:opacity-40 hover:bg-slate-700/50 transition-colors"
                   >
-                    ← Trước
+                    ←
                   </button>
+                  <span className="px-2 py-1 text-xs sm:text-sm font-medium text-slate-300 min-w-[2rem] text-center">
+                    {page}
+                  </span>
                   <button
                     disabled={page >= totalPages || partsLoading}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className="px-3 py-1.5 border border-secondary-border rounded disabled:opacity-40"
+                    className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm border border-secondary-border rounded disabled:opacity-40 hover:bg-slate-700/50 transition-colors"
                   >
-                    Sau →
+                    →
                   </button>
                   <select
                     value={pageSize}
@@ -5231,11 +5248,11 @@ const InventoryManager: React.FC = () => {
                       setPageSize(newSize);
                       setPage(1);
                     }}
-                    className="px-2 py-1.5 border border-secondary-border rounded"
+                    className="px-1.5 sm:px-2 py-1.5 text-xs sm:text-sm border border-secondary-border rounded bg-slate-800 text-slate-200"
                   >
                     {[10, 20, 50, 100].map((s) => (
                       <option key={s} value={s}>
-                        {s}/trang
+                        {s}
                       </option>
                     ))}
                   </select>
@@ -6212,8 +6229,18 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
               onClick={() => setShowPrintBarcode(true)}
               className="px-4 py-2 border border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-2"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                />
               </svg>
               In mã vạch
             </button>
