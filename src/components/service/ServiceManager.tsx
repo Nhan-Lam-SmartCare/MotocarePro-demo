@@ -49,6 +49,7 @@ import {
   detectMaintenancesFromWorkOrder,
   updateVehicleMaintenances,
 } from "../../utils/maintenanceReminder";
+import { RepairTemplatesModal } from "./components/RepairTemplatesModal";
 
 interface StoreSettings {
   store_name?: string;
@@ -220,27 +221,6 @@ export default function ServiceManager() {
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundReason, setRefundReason] = useState("");
 
-  // State for service template editing
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
-  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
-  const [templateForm, setTemplateForm] = useState({
-    id: "",
-    name: "",
-    description: "",
-    duration: 30,
-    laborCost: 0,
-    parts: [] as Array<{
-      name: string;
-      quantity: number;
-      price: number;
-      unit: string;
-    }>,
-  });
-  const [templatePartSearchIndex, setTemplatePartSearchIndex] = useState<
-    number | null
-  >(null);
-  const [templatePartSearchTerm, setTemplatePartSearchTerm] = useState("");
-
   // Open modal automatically if navigated from elsewhere with editOrder state
 
   useEffect(() => {
@@ -255,78 +235,6 @@ export default function ServiceManager() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [rowActionMenuId]);
-
-  // Service Templates
-  const serviceTemplates = [
-    {
-      id: "oil-change",
-      name: "Thay dầu động cơ",
-      description: "Thay dầu và lọc dầu động cơ",
-      duration: 30,
-      laborCost: 300000,
-      parts: [
-        { name: "Dầu động cơ 10W40", quantity: 1, price: 120000, unit: "chai" },
-        { name: "Lọc dầu", quantity: 1, price: 30000, unit: "cái" },
-      ],
-    },
-    {
-      id: "brake-service",
-      name: "Sửa phanh",
-      description: "Thay má phanh và bảo dưỡng hệ thống phanh",
-      duration: 45,
-      laborCost: 505000,
-      parts: [
-        { name: "Má phanh trước", quantity: 2, price: 160000, unit: "cái" },
-        { name: "Má phanh sau", quantity: 2, price: 120000, unit: "cái" },
-        { name: "Dầu phanh", quantity: 1, price: 25000, unit: "chai" },
-      ],
-    },
-    {
-      id: "cleaning",
-      name: "Vệ sinh kim phun",
-      description: "Vệ sinh và hiệu chỉnh kim phun xăng",
-      duration: 60,
-      laborCost: 150000,
-      parts: [
-        {
-          name: "Dung dịch vệ sinh kim phun",
-          quantity: 1,
-          price: 50000,
-          unit: "chai",
-        },
-      ],
-    },
-    {
-      id: "oil-box",
-      name: "Thay nhớt hộp số",
-      description: "Thay dầu hộp số và kiểm tra",
-      duration: 25,
-      laborCost: 140000,
-      parts: [{ name: "Dầu hộp số", quantity: 1, price: 60000, unit: "chai" }],
-    },
-    {
-      id: "bug-check",
-      name: "Thay bugi",
-      description: "Thay bugi và kiểm tra hệ thống đánh lửa",
-      duration: 20,
-      laborCost: 85000,
-      parts: [{ name: "Bugi", quantity: 1, price: 35000, unit: "cái" }],
-    },
-    {
-      id: "full-maintenance",
-      name: "Bảo dưỡng tổng quát",
-      description: "Bảo dưỡng định kỳ đầy đủ",
-      duration: 90,
-      laborCost: 570000,
-      parts: [
-        { name: "Dầu động cơ 10W40", quantity: 1, price: 120000, unit: "chai" },
-        { name: "Lọc dầu", quantity: 1, price: 30000, unit: "cái" },
-        { name: "Lọc không khí", quantity: 1, price: 25000, unit: "cái" },
-        { name: "Bugi", quantity: 1, price: 35000, unit: "cái" },
-        { name: "Dầu hộp số", quantity: 1, price: 60000, unit: "chai" },
-      ],
-    },
-  ];
 
   const filteredOrders = useMemo(() => {
     let filtered = displayWorkOrders.filter((o) => !o.refunded);
@@ -592,137 +500,6 @@ export default function ServiceManager() {
     setShowTemplateModal(false);
     setShowModal(true);
   };
-
-  const handleCreateTemplate = () => {
-    setEditingTemplate(null);
-    setTemplateForm({
-      id: "",
-      name: "",
-      description: "",
-      duration: 30,
-      laborCost: 0,
-      parts: [],
-    });
-    setShowTemplateEditor(true);
-  };
-
-  const handleEditTemplate = (template: (typeof serviceTemplates)[0]) => {
-    setEditingTemplate(template);
-    setTemplateForm({
-      id: template.id,
-      name: template.name,
-      description: template.description,
-      duration: template.duration,
-      laborCost: template.laborCost,
-      parts: [...template.parts],
-    });
-    setShowTemplateEditor(true);
-  };
-
-  const handleSaveTemplate = () => {
-    if (!templateForm.name.trim()) {
-      showToast.error("Vui lòng nhập tên mẫu");
-      return;
-    }
-    if (templateForm.laborCost <= 0) {
-      showToast.error("Vui lòng nhập chi phí công");
-      return;
-    }
-
-    // TODO: Save to database or localStorage
-    // For now, just show success message
-    if (editingTemplate) {
-      showToast.success(`Đã cập nhật mẫu "${templateForm.name}"`);
-    } else {
-      showToast.success(`Đã tạo mẫu "${templateForm.name}"`);
-    }
-
-    setShowTemplateEditor(false);
-    setEditingTemplate(null);
-  };
-
-  const handleAddPartToTemplate = () => {
-    setTemplateForm({
-      ...templateForm,
-      parts: [
-        ...templateForm.parts,
-        { name: "", quantity: 1, price: 0, unit: "cái" },
-      ],
-    });
-  };
-
-  const handleRemovePartFromTemplate = (index: number) => {
-    setTemplateForm({
-      ...templateForm,
-      parts: templateForm.parts.filter((_, i) => i !== index),
-    });
-  };
-
-  const handleUpdateTemplatePart = (
-    index: number,
-    field: string,
-    value: any
-  ) => {
-    const updatedParts = [...templateForm.parts];
-    updatedParts[index] = { ...updatedParts[index], [field]: value };
-    setTemplateForm({ ...templateForm, parts: updatedParts });
-
-    // If updating name field, trigger search
-    if (field === "name") {
-      setTemplatePartSearchIndex(index);
-      setTemplatePartSearchTerm(value);
-    }
-  };
-
-  const handleSelectTemplatePartFromInventory = (index: number, part: Part) => {
-    const updatedParts = [...templateForm.parts];
-    updatedParts[index] = {
-      ...updatedParts[index],
-      name: part.name,
-      price: part.retailPrice?.[currentBranchId || ""] || 0,
-      unit: "cái",
-    };
-    setTemplateForm({ ...templateForm, parts: updatedParts });
-    setTemplatePartSearchIndex(null);
-    setTemplatePartSearchTerm("");
-  };
-
-  // Filter parts for template autocomplete
-  const filteredTemplateInventoryParts = useMemo(() => {
-    if (templatePartSearchIndex === null) return [];
-    const availableParts = fetchedParts || [];
-    console.log("[DEBUG] fetchedParts available:", availableParts.length);
-    const term = templatePartSearchTerm.toLowerCase();
-    if (!term) {
-      // Show all parts if no search term
-      const result = availableParts.slice(0, 5);
-      console.log(
-        "[DEBUG] No search term, showing first 5 parts:",
-        result.map((p) => ({
-          name: p.name,
-          stock: p.stock?.[currentBranchId || ""],
-          price: p.retailPrice?.[currentBranchId || ""],
-        }))
-      );
-      return result;
-    }
-    const filtered = availableParts.filter((p) =>
-      p.name.toLowerCase().includes(term)
-    );
-    console.log(
-      "[DEBUG] Search term:",
-      term,
-      "Found:",
-      filtered.length,
-      "Sample:",
-      filtered.slice(0, 2).map((p) => ({
-        name: p.name,
-        stock: p.stock?.[currentBranchId || ""],
-        price: p.retailPrice?.[currentBranchId || ""],
-      }))
-    );
-    return filtered.slice(0, 5);
-  }, [fetchedParts, templatePartSearchTerm, templatePartSearchIndex]);
 
   // Handle print work order - show preview modal
   const handlePrintOrder = async (order: WorkOrder) => {
@@ -2320,114 +2097,41 @@ export default function ServiceManager() {
         </div>
       </div>
 
-      {/* Template Modal */}
-      {showTemplateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                Mẫu sửa chữa thường dùng
-              </h2>
-              <button
-                onClick={() => setShowTemplateModal(false)}
-                className="text-slate-400 hover:text-slate-600"
-                aria-label="Đóng"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="w-5 h-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                Chọn mẫu sửa chữa để tự động điền thông tin vào phiếu sửa chữa
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {serviceTemplates.map((template) => (
-                  <div
-                    key={template.id}
-                    className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-semibold text-slate-900 dark:text-slate-100">
-                          {template.name}
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          {template.description}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1">
-                          {template.duration} phút
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                          {formatCurrency(
-                            template.laborCost +
-                              template.parts.reduce(
-                                (s, p) => s + p.price * p.quantity,
-                                0
-                              )
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">
-                        Phụ tùng cần thiết:
-                      </p>
-                      {template.parts.map((part, idx) => (
-                        <div
-                          key={idx}
-                          className="flex justify-between text-xs text-slate-500 dark:text-slate-400"
-                        >
-                          <span>
-                            {part.name} x{part.quantity} {part.unit}
-                          </span>
-                          <span>
-                            {formatCurrency(part.price * part.quantity)}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          onClick={() => handleApplyTemplate(template)}
-                          className="flex-1 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm"
-                        >
-                          Áp dụng mẫu
-                        </button>
-                        <button
-                          onClick={handleCreateTemplate}
-                          className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded text-sm"
-                        >
-                          Tạo mới
-                        </button>
-                        <button
-                          onClick={() => handleEditTemplate(template)}
-                          className="px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-sm"
-                        >
-                          Sửa mẫu
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Repair Templates Modal - Component tách riêng */}
+      <RepairTemplatesModal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        onApplyTemplate={(template) => {
+          // Convert and apply template to current work order
+          const newOrder: WorkOrder = {
+            id: `WO-${Date.now()}`,
+            customerName: "",
+            customerPhone: "",
+            vehicleModel: "",
+            issueDescription: template.description,
+            status: "Tiếp nhận",
+            creationDate: new Date().toISOString(),
+            estimatedCompletion: new Date(
+              Date.now() + template.duration * 60000
+            ).toISOString(),
+            assignedTechnician: "",
+            laborCost: template.laborCost,
+            partsUsed: template.parts.map((p) => ({
+              partId: "",
+              partName: p.name,
+              quantity: p.quantity,
+              unitPrice: p.price,
+            })),
+            notes: "",
+            total: 0,
+          };
+          setEditingOrder(newOrder);
+          setShowTemplateModal(false);
+          setShowModal(true);
+        }}
+        parts={fetchedParts || []}
+        currentBranchId={currentBranchId}
+      />
 
       {/* Work Order Modal */}
       {showModal && editingOrder && (
@@ -4011,349 +3715,6 @@ export default function ServiceManager() {
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-300 dark:disabled:bg-red-900 text-white rounded-lg font-medium disabled:cursor-not-allowed"
               >
                 Xác nhận hủy phiếu
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Template Editor Modal */}
-      {showTemplateEditor && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                {editingTemplate ? "Sửa mẫu sửa chữa" : "Tạo mẫu sửa chữa mới"}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowTemplateEditor(false);
-                  setEditingTemplate(null);
-                }}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              <div className="space-y-4">
-                {/* Template Name */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Tên mẫu <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="VD: Thay dầu động cơ"
-                    value={templateForm.name}
-                    onChange={(e) =>
-                      setTemplateForm({ ...templateForm, name: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Mô tả
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="Mô tả chi tiết dịch vụ..."
-                    value={templateForm.description}
-                    onChange={(e) =>
-                      setTemplateForm({
-                        ...templateForm,
-                        description: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 resize-none"
-                  />
-                </div>
-
-                {/* Duration & Labor Cost */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Thời gian (phút)
-                    </label>
-                    <input
-                      type="number"
-                      min="5"
-                      step="5"
-                      value={templateForm.duration}
-                      onChange={(e) =>
-                        setTemplateForm({
-                          ...templateForm,
-                          duration: Number(e.target.value),
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Chi phí công <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="10000"
-                      placeholder="0"
-                      value={templateForm.laborCost || ""}
-                      onChange={(e) =>
-                        setTemplateForm({
-                          ...templateForm,
-                          laborCost: Number(e.target.value),
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-                </div>
-
-                {/* Parts List */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Phụ tùng cần thiết
-                    </label>
-                    <button
-                      onClick={handleAddPartToTemplate}
-                      className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm flex items-center gap-1"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      Thêm phụ tùng
-                    </button>
-                  </div>
-
-                  {templateForm.parts.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
-                      Chưa có phụ tùng nào. Nhấn "Thêm phụ tùng" để thêm.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {templateForm.parts.map((part, index) => (
-                        <div
-                          key={index}
-                          className="flex gap-2 items-start p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
-                        >
-                          <div className="flex-1 grid grid-cols-4 gap-2">
-                            <div className="col-span-2 relative template-part-input">
-                              <input
-                                type="text"
-                                placeholder="Tên phụ tùng"
-                                value={part.name}
-                                onChange={(e) =>
-                                  handleUpdateTemplatePart(
-                                    index,
-                                    "name",
-                                    e.target.value
-                                  )
-                                }
-                                onFocus={() => {
-                                  setTemplatePartSearchIndex(index);
-                                  setTemplatePartSearchTerm(part.name);
-                                }}
-                                className="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
-                              />
-                              {/* Autocomplete dropdown */}
-                              {templatePartSearchIndex === index && (
-                                <div className="absolute z-[60] top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
-                                  {filteredTemplateInventoryParts.length > 0 ? (
-                                    filteredTemplateInventoryParts.map(
-                                      (inventoryPart) => (
-                                        <button
-                                          key={inventoryPart.id}
-                                          type="button"
-                                          onClick={() =>
-                                            handleSelectTemplatePartFromInventory(
-                                              index,
-                                              inventoryPart
-                                            )
-                                          }
-                                          className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-200 dark:border-slate-700 last:border-b-0"
-                                        >
-                                          <div className="flex items-center justify-between">
-                                            <div className="flex-1">
-                                              <div className="font-medium text-slate-900 dark:text-slate-100 text-sm">
-                                                {inventoryPart.name}
-                                              </div>
-                                              <div className="text-xs text-slate-500 dark:text-slate-400">
-                                                Tồn kho:{" "}
-                                                {inventoryPart.stock?.[
-                                                  currentBranchId || ""
-                                                ] || 0}{" "}
-                                                cái
-                                              </div>
-                                            </div>
-                                            <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                                              {formatCurrency(
-                                                inventoryPart.retailPrice?.[
-                                                  currentBranchId || ""
-                                                ] || 0
-                                              )}
-                                            </div>
-                                          </div>
-                                        </button>
-                                      )
-                                    )
-                                  ) : (
-                                    <div className="px-3 py-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                                      {!fetchedParts ||
-                                      fetchedParts.length === 0
-                                        ? "Không có phụ tùng trong kho. Vui lòng thêm phụ tùng trước."
-                                        : "Không tìm thấy phụ tùng phù hợp"}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <input
-                              type="number"
-                              min="1"
-                              placeholder="SL"
-                              value={part.quantity}
-                              onChange={(e) =>
-                                handleUpdateTemplatePart(
-                                  index,
-                                  "quantity",
-                                  Number(e.target.value)
-                                )
-                              }
-                              className="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
-                            />
-                            <input
-                              type="number"
-                              min="0"
-                              step="1000"
-                              placeholder="Đơn giá"
-                              value={part.price || ""}
-                              onChange={(e) =>
-                                handleUpdateTemplatePart(
-                                  index,
-                                  "price",
-                                  Number(e.target.value)
-                                )
-                              }
-                              className="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
-                            />
-                          </div>
-                          <button
-                            onClick={() => handleRemovePartFromTemplate(index)}
-                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                            title="Xóa"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Total Preview */}
-                {(templateForm.laborCost > 0 ||
-                  templateForm.parts.length > 0) && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <div className="text-sm space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-slate-600 dark:text-slate-400">
-                          Chi phí công:
-                        </span>
-                        <span className="font-medium text-slate-900 dark:text-slate-100">
-                          {formatCurrency(templateForm.laborCost)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600 dark:text-slate-400">
-                          Phụ tùng:
-                        </span>
-                        <span className="font-medium text-slate-900 dark:text-slate-100">
-                          {formatCurrency(
-                            templateForm.parts.reduce(
-                              (sum, p) => sum + p.price * p.quantity,
-                              0
-                            )
-                          )}
-                        </span>
-                      </div>
-                      <div className="flex justify-between pt-2 border-t border-blue-200 dark:border-blue-700">
-                        <span className="font-medium text-slate-900 dark:text-slate-100">
-                          Tổng ước tính:
-                        </span>
-                        <span className="font-bold text-blue-600 dark:text-blue-400">
-                          {formatCurrency(
-                            templateForm.laborCost +
-                              templateForm.parts.reduce(
-                                (sum, p) => sum + p.price * p.quantity,
-                                0
-                              )
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-slate-200 dark:border-slate-700 px-6 py-4 flex justify-end gap-3 bg-slate-50 dark:bg-slate-800/50">
-              <button
-                onClick={() => {
-                  setShowTemplateEditor(false);
-                  setEditingTemplate(null);
-                }}
-                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleSaveTemplate}
-                className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium"
-              >
-                {editingTemplate ? "Cập nhật" : "Tạo mẫu"}
               </button>
             </div>
           </div>
