@@ -223,20 +223,21 @@ const AddProductModal: React.FC<{
               />
             </div>
 
-            {/* Mã vạch (Barcode) */}
+            {/* Mã sản phẩm */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Mã vạch (Barcode)
+                Mã sản phẩm
               </label>
               <input
                 type="text"
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
-                placeholder="Ví dụ: 06455-KYJ-841 (Honda), 5S9-F2101-00 (Yamaha)"
+                placeholder="VD: 06455-KYJ-841 (Honda), 5S9-F2101-00 (Yamaha)"
                 className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-mono"
               />
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Nhập mã vạch từ bao bì gốc của hãng để quét nhanh khi bán hàng
+                Nhập mã hãng (Honda/Yamaha) hoặc để trống để tự sinh mã nội bộ
+                PT-xxxxx
               </p>
             </div>
 
@@ -969,11 +970,12 @@ const GoodsReceiptModal: React.FC<{
     // Tạo sản phẩm mới với stock = 0, stock sẽ được cập nhật khi hoàn tất phiếu nhập
     (async () => {
       try {
-        const generatedSku = `PT-${Date.now()}`;
+        // Nếu người dùng nhập mã (Honda/Yamaha) thì dùng, không thì tự sinh PT-xxx
+        const productSku = productData.barcode?.trim() || `PT-${Date.now()}`;
         const createRes = await createPartMutation.mutateAsync({
           name: productData.name,
-          sku: generatedSku,
-          barcode: productData.barcode || "",
+          sku: productSku,
+          barcode: productData.barcode?.trim() || "", // Lưu lại để tìm kiếm
           category: productData.category,
           description: productData.description,
           stock: { [currentBranchId]: 0 }, // Stock = 0, sẽ cập nhật khi hoàn tất phiếu nhập
@@ -989,7 +991,7 @@ const GoodsReceiptModal: React.FC<{
         const partId =
           partData?.id ||
           `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        const partSku = partData?.sku || generatedSku;
+        const partSku = partData?.sku || productSku;
 
         // Add to receipt items from persisted part
         setReceiptItems((prev) => [
@@ -6143,10 +6145,10 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
             />
           </div>
 
-          {/* Barcode field - Mã vạch của hãng */}
+          {/* Mã sản phẩm */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Mã vạch (Barcode)
+              Mã sản phẩm
             </label>
             <input
               type="text"
@@ -6154,11 +6156,12 @@ const EditPartModal: React.FC<EditPartModalProps> = ({
               onChange={(e) =>
                 setFormData({ ...formData, barcode: e.target.value })
               }
-              placeholder="Ví dụ: 06455-KYJ-841 (Honda), 5S9-F2101-00 (Yamaha)"
+              placeholder="VD: 06455-KYJ-841 (Honda), 5S9-F2101-00 (Yamaha)"
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-mono"
             />
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Nhập mã vạch từ bao bì gốc của hãng để quét nhanh khi bán hàng
+              Nhập mã hãng (Honda/Yamaha) hoặc để trống để tự sinh mã nội bộ
+              PT-xxxxx
             </p>
           </div>
 

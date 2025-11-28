@@ -129,20 +129,21 @@ const AddProductModal: React.FC<{
               />
             </div>
 
-            {/* M� v�ch (Barcode) */}
+            {/* Mã sản phẩm */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Mã vạch (Barcode)
+                Mã sản phẩm
               </label>
               <input
                 type="text"
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
-                placeholder="Ví dụ: 06455-KYJ-841 (Honda), 5S9-F2101-00 (Yamaha)"
+                placeholder="VD: 06455-KYJ-841 (Honda), 5S9-F2101-00 (Yamaha)"
                 className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-mono"
               />
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Nhập mã vạch từ bao bì gốc của hãng để quét nhanh khi bán hàng
+                Nhập mã hãng (Honda/Yamaha) hoặc để trống để tự sinh mã nội bộ
+                PT-xxxxx
               </p>
             </div>
 

@@ -297,11 +297,12 @@ const GoodsReceiptModal: React.FC<{
     // Tạo sản phẩm mới với stock = 0, stock sẽ được cập nhật khi hoàn tất phiếu nhập
     (async () => {
       try {
-        const generatedSku = `PT-${Date.now()}`;
+        // Nếu người dùng nhập mã (Honda/Yamaha) thì dùng, không thì tự sinh PT-xxx
+        const productSku = productData.barcode?.trim() || `PT-${Date.now()}`;
         const createRes = await createPartMutation.mutateAsync({
           name: productData.name,
-          sku: generatedSku,
-          barcode: productData.barcode || "",
+          sku: productSku,
+          barcode: productData.barcode?.trim() || "", // Lưu lại để tìm kiếm
           category: productData.category,
           description: productData.description,
           stock: { [currentBranchId]: 0 }, // Stock = 0, sẽ cập nhật khi hoàn tất phiếu nhập
@@ -313,8 +314,10 @@ const GoodsReceiptModal: React.FC<{
         });
         // Xử lý response - có thể là { ok, data } hoặc trực tiếp Part object
         const partData = (createRes as any)?.data || createRes;
-        const partId = partData?.id || `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        const partSku = partData?.sku || generatedSku;
+        const partId =
+          partData?.id ||
+          `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const partSku = partData?.sku || productSku;
         // Add to receipt items from persisted part
         setReceiptItems((prev) => [
           ...prev,
