@@ -1695,7 +1695,7 @@ export default function ServiceManager() {
                 />
               </div>
             </div>
-            
+
             {/* Filters */}
             <div className="flex flex-wrap gap-2">
               <select className={filterInputClass}>
