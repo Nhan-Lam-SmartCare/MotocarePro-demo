@@ -104,9 +104,9 @@ const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
         </div>
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
               {customerSales.length}
             </div>
             <div className="text-xs text-slate-600 dark:text-slate-400">
@@ -114,7 +114,7 @@ const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
             </div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <div className="text-xl font-bold text-green-600 dark:text-green-400">
               {customerWorkOrders.length}
             </div>
             <div className="text-xs text-slate-600 dark:text-slate-400">
@@ -122,7 +122,7 @@ const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
             </div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+            <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
               {formatCurrency(actualTotalSpent)}
             </div>
             <div className="text-xs text-slate-600 dark:text-slate-400">
@@ -130,7 +130,7 @@ const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
             </div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+            <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
               {actualVisitCount}
             </div>
             <div className="text-xs text-slate-600 dark:text-slate-400">
@@ -138,7 +138,7 @@ const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
             </div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+            <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
               ⭐ {actualLoyaltyPoints.toLocaleString()}
             </div>
             <div className="text-xs text-slate-600 dark:text-slate-400">
@@ -148,10 +148,10 @@ const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 px-6 pt-4 border-b border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar">
+        <div className="flex gap-3 px-4 pt-3 border-b border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab("sales")}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-3 py-1.5 font-medium text-sm transition-colors ${
               activeTab === "sales"
                 ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
@@ -161,7 +161,7 @@ const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
           </button>
           <button
             onClick={() => setActiveTab("workorders")}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-3 py-1.5 font-medium text-sm transition-colors ${
               activeTab === "workorders"
                 ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
@@ -703,28 +703,28 @@ const CustomerManager: React.FC = () => {
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden">
       {/* Tabs Header - Fixed */}
       <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex-none z-20 shadow-sm">
-        <div className="flex items-center px-6 overflow-x-auto no-scrollbar">
+        <div className="flex items-center px-4 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab("customers")}
-            className={`flex items-center gap-2 px-4 py-3 md:py-4 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-2 md:py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
               activeTab === "customers"
                 ? "border-blue-500 text-blue-600 dark:text-blue-400"
                 : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
-            <UsersIcon className="w-5 h-5" />
+            <UsersIcon className="w-4 h-4" />
             <span>Khách hàng ({stats.total})</span>
           </button>
           <button
             onClick={() => setActiveTab("suppliers")}
-            className={`flex items-center gap-2 px-4 py-3 md:py-4 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-2 md:py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
               activeTab === "suppliers"
                 ? "border-blue-500 text-blue-600 dark:text-blue-400"
                 : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
             <svg
-              className="w-5 h-5"
+              className="w-4 h-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -743,13 +743,13 @@ const CustomerManager: React.FC = () => {
 
       {/* Main Scrollable Area */}
       {activeTab === "customers" ? (
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar relative">
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar relative">
           {/* Sticky Action Bar */}
-          <div className="sticky top-0 z-10 pb-4 -mt-2 pt-2 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm transition-all">
-            <div className="flex flex-col md:flex-row gap-3 mb-4">
+          <div className="sticky top-0 z-10 pb-3 -mt-2 pt-2 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm transition-all">
+            <div className="flex flex-col md:flex-row gap-2 mb-3">
               <div className="flex-1 relative w-full">
                 <svg
-                  className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -766,7 +766,7 @@ const CustomerManager: React.FC = () => {
                   placeholder="Tìm theo tên, SĐT, biển số xe..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-14 md:pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                  className="w-full pl-9 pr-14 md:pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm text-sm"
                 />
                 <button
                   onClick={() => setShowActionSheet(true)}
@@ -791,10 +791,10 @@ const CustomerManager: React.FC = () => {
               <div className="hidden md:flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
                 <button
                   onClick={() => setShowImport(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm text-sm"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -809,11 +809,11 @@ const CustomerManager: React.FC = () => {
                   <span>Upload DS</span>
                 </button>
                 <button
-                  className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm text-sm"
                   onClick={() => alert("Tính năng đang phát triển")}
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -829,72 +829,74 @@ const CustomerManager: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setEditCustomer({} as Customer)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm text-sm"
                 >
-                  <PlusIcon className="w-5 h-5" />
+                  <PlusIcon className="w-4 h-4" />
                   <span>Thêm KH</span>
                 </button>
               </div>
             </div>
 
             {/* Filters */}
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/60 md:border-none md:bg-transparent md:p-0 md:shadow-none">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800/60 md:border-none md:bg-transparent md:p-0 md:shadow-none">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                     Phân khúc khách hàng
                   </p>
-                  <p className="text-xs text-slate-400">Chạm để lọc nhanh</p>
+                  <p className="text-[10px] text-slate-400">
+                    Chạm để lọc nhanh
+                  </p>
                 </div>
-                <div className="hidden sm:inline-flex rounded-2xl border border-slate-200 bg-white p-1 text-xs font-semibold dark:border-slate-600 dark:bg-slate-900/40">
+                <div className="hidden sm:inline-flex rounded-xl border border-slate-200 bg-white p-0.5 text-xs font-semibold dark:border-slate-600 dark:bg-slate-900/40">
                   <button
                     onClick={() => setViewMode("grid")}
-                    className={`flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 transition-colors sm:flex-none ${
+                    className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 transition-colors sm:flex-none ${
                       viewMode === "grid"
                         ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
                         : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                     }`}
                   >
-                    <LayoutGrid className="h-4 w-4" />
+                    <LayoutGrid className="h-3.5 w-3.5" />
                     <span>Thẻ</span>
                   </button>
                   <button
                     onClick={() => setViewMode("list")}
-                    className={`flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 transition-colors sm:flex-none ${
+                    className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 transition-colors sm:flex-none ${
                       viewMode === "list"
                         ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
                         : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                     }`}
                   >
-                    <List className="h-4 w-4" />
+                    <List className="h-3.5 w-3.5" />
                     <span>Danh sách</span>
                   </button>
                 </div>
               </div>
-              <div className="mt-3 flex gap-3 overflow-x-auto pb-1 no-scrollbar snap-x snap-mandatory md:mt-4 md:snap-none">
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1 no-scrollbar snap-x snap-mandatory md:mt-3 md:snap-none">
                 {filterOptions.map((filter) => (
                   <button
                     key={filter.id}
                     onClick={() => setActiveFilter(filter.id)}
-                    className={`min-w-[190px] snap-start rounded-2xl border px-4 py-3 text-left transition-all md:min-w-0 ${
+                    className={`min-w-[160px] snap-start rounded-xl border px-3 py-2 text-left transition-all md:min-w-0 ${
                       activeFilter === filter.id
                         ? `${filter.activeClasses} dark:bg-slate-800/80 dark:border-slate-600 dark:text-white`
                         : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{filter.icon}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{filter.icon}</span>
                         <div>
-                          <p className="text-sm font-semibold">
+                          <p className="text-xs font-semibold">
                             {filter.label}
                           </p>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-[10px] text-slate-500">
                             {filter.hint}
                           </p>
                         </div>
                       </div>
-                      <div className="text-lg font-black text-slate-900 dark:text-slate-100">
+                      <div className="text-base font-black text-slate-900 dark:text-slate-100">
                         {filter.count}
                       </div>
                     </div>

@@ -45,8 +45,6 @@ const FinancialAnalytics: React.FC = () => {
     supplierDebtsLoading;
   const [timeRange, setTimeRange] = useState<TimeRange>("30days");
 
-
-
   // Filter by time range
   const getCutoffDate = () => {
     if (timeRange === "all") return new Date(0);
@@ -173,9 +171,9 @@ const FinancialAnalytics: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Time Range Selector */}
-      <div className="flex gap-2">
+      <div className="flex gap-1.5">
         {(
           [
             { value: "7days", label: "7 ngày" },
@@ -187,10 +185,11 @@ const FinancialAnalytics: React.FC = () => {
           <button
             key={option.value}
             onClick={() => setTimeRange(option.value)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${timeRange === option.value
-              ? "bg-blue-600 text-white"
-              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
+            className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-colors ${
+              timeRange === option.value
+                ? "bg-blue-600 text-white"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+            }`}
           >
             {option.label}
           </button>
@@ -198,73 +197,77 @@ const FinancialAnalytics: React.FC = () => {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 p-6 rounded-lg border border-emerald-200 dark:border-emerald-700">
-          <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-2">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
+          <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">
             Thu nhập
           </div>
-          <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">
+          <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
             {formatCurrency(salesIncome)}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-6 rounded-lg border border-red-200 dark:border-red-700">
-          <div className="text-sm font-medium text-red-600 dark:text-red-400 mb-2">
+        <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-4 rounded-lg border border-red-200 dark:border-red-700">
+          <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
             Chi phí
           </div>
-          <div className="text-3xl font-bold text-red-900 dark:text-red-100">
+          <div className="text-2xl font-bold text-red-900 dark:text-red-100">
             {formatCurrency(inventoryExpenses)}
           </div>
         </div>
 
         <div
-          className={`bg-gradient-to-br p-6 rounded-lg border ${netProfit >= 0
-            ? "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-700"
-            : "from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-700"
-            }`}
+          className={`bg-gradient-to-br p-4 rounded-lg border ${
+            netProfit >= 0
+              ? "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-700"
+              : "from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-700"
+          }`}
         >
           <div
-            className={`text-sm font-medium mb-2 ${netProfit >= 0
-              ? "text-blue-600 dark:text-blue-400"
-              : "text-red-600 dark:text-red-400"
-              }`}
+            className={`text-xs font-medium mb-1 ${
+              netProfit >= 0
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
           >
             Lợi nhuận
           </div>
           <div
-            className={`text-3xl font-bold ${netProfit >= 0
-              ? "text-blue-900 dark:text-blue-100"
-              : "text-red-900 dark:text-red-100"
-              }`}
+            className={`text-2xl font-bold ${
+              netProfit >= 0
+                ? "text-blue-900 dark:text-blue-100"
+                : "text-red-900 dark:text-red-100"
+            }`}
           >
             {formatCurrency(netProfit)}
           </div>
           <div
-            className={`text-xs mt-1 ${netProfit >= 0
-              ? "text-blue-600 dark:text-blue-400"
-              : "text-red-600 dark:text-red-400"
-              }`}
+            className={`text-[10px] mt-0.5 ${
+              netProfit >= 0
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
           >
             Biên lợi nhuận: {profitMargin.toFixed(1)}%
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-6 rounded-lg border border-purple-200 dark:border-purple-700">
-          <div className="text-sm font-medium text-purple-600 dark:text-purple-400 mb-2">
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
+          <div className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-1">
             Giá trị tồn kho
           </div>
-          <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+          <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
             {formatCurrency(inventoryValue)}
           </div>
         </div>
       </div>
 
       {/* Income vs Expense Chart */}
-      <div className="bg-white dark:bg-[#1e293b] p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+      <div className="bg-white dark:bg-[#1e293b] p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">
           Thu - Chi - Lợi nhuận
         </h3>
-        <ResponsiveContainer width="100%" height={350}>
+        <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={dailyFinancials}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis dataKey="date" stroke="#94a3b8" />
@@ -293,60 +296,60 @@ const FinancialAnalytics: React.FC = () => {
       </div>
 
       {/* Debts Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Customer Debts */}
-        <div className="bg-white dark:bg-[#1e293b] p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        <div className="bg-white dark:bg-[#1e293b] p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">
             Công nợ khách hàng
           </h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
               <div>
-                <div className="text-sm text-amber-600 dark:text-amber-400">
+                <div className="text-xs text-amber-600 dark:text-amber-400">
                   Tổng công nợ
                 </div>
-                <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+                <div className="text-xl font-bold text-amber-900 dark:text-amber-100">
                   {formatCurrency(customerDebtStats.totalDebt)}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm text-amber-600 dark:text-amber-400">
+                <div className="text-xs text-amber-600 dark:text-amber-400">
                   Quá hạn
                 </div>
-                <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+                <div className="text-xl font-bold text-amber-900 dark:text-amber-100">
                   {customerDebtStats.overdueCount}
                 </div>
               </div>
             </div>
 
             <div>
-              <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <div className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                 Top 5 khách nợ nhiều nhất
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {topDebtors.map((debt) => (
                   <div
                     key={debt.id}
-                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                    className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg"
                   >
                     <div>
-                      <div className="font-medium text-slate-900 dark:text-slate-100">
+                      <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                         {debt.customerName}
                       </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">
+                      <div className="text-[10px] text-slate-600 dark:text-slate-400">
                         Ngày tạo:{" "}
                         {new Date(debt.createdDate).toLocaleDateString("vi-VN")}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold text-amber-600 dark:text-amber-400">
+                      <div className="text-sm font-semibold text-amber-600 dark:text-amber-400">
                         {formatCurrency(debt.remainingAmount)}
                       </div>
                     </div>
                   </div>
                 ))}
                 {topDebtors.length === 0 && (
-                  <div className="text-center py-4 text-slate-600 dark:text-slate-400 inline-flex items-center justify-center gap-2">
+                  <div className="text-center py-3 text-slate-600 dark:text-slate-400 inline-flex items-center justify-center gap-2 text-sm">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="w-4 h-4 text-green-500"
@@ -370,32 +373,32 @@ const FinancialAnalytics: React.FC = () => {
         </div>
 
         {/* Supplier Debts */}
-        <div className="bg-white dark:bg-[#1e293b] p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        <div className="bg-white dark:bg-[#1e293b] p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">
             Công nợ nhà cung cấp
           </h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
               <div>
-                <div className="text-sm text-red-600 dark:text-red-400">
+                <div className="text-xs text-red-600 dark:text-red-400">
                   Tổng công nợ
                 </div>
-                <div className="text-2xl font-bold text-red-900 dark:text-red-100">
+                <div className="text-xl font-bold text-red-900 dark:text-red-100">
                   {formatCurrency(supplierDebtStats.totalDebt)}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm text-red-600 dark:text-red-400">
+                <div className="text-xs text-red-600 dark:text-red-400">
                   Quá hạn
                 </div>
-                <div className="text-2xl font-bold text-red-900 dark:text-red-100">
+                <div className="text-xl font-bold text-red-900 dark:text-red-100">
                   {supplierDebtStats.overdueCount}
                 </div>
               </div>
             </div>
 
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-              <div className="text-sm text-blue-600 dark:text-blue-400 mb-2 inline-flex items-center gap-2">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+              <div className="text-xs text-blue-600 dark:text-blue-400 mb-1.5 inline-flex items-center gap-1.5">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="w-4 h-4"
@@ -407,7 +410,7 @@ const FinancialAnalytics: React.FC = () => {
                 </svg>
                 Mẹo quản lý tài chính
               </div>
-              <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+              <ul className="text-[10px] text-blue-700 dark:text-blue-300 space-y-0.5">
                 <li>• Theo dõi biên lợi nhuận hàng tháng</li>
                 <li>• Giữ tồn kho ở mức hợp lý</li>
                 <li>• Thu hồi công nợ đúng hạn</li>
@@ -415,20 +418,20 @@ const FinancialAnalytics: React.FC = () => {
               </ul>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
-                <div className="text-xs text-slate-600 dark:text-slate-400">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                <div className="text-[10px] text-slate-600 dark:text-slate-400">
                   Khách hàng nợ
                 </div>
-                <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {customerDebtStats.count}
                 </div>
               </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
-                <div className="text-xs text-slate-600 dark:text-slate-400">
+              <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-center">
+                <div className="text-[10px] text-slate-600 dark:text-slate-400">
                   NCC cần trả
                 </div>
-                <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {supplierDebtStats.count}
                 </div>
               </div>

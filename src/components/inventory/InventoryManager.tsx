@@ -169,7 +169,7 @@ const AddProductModal: React.FC<{
     setQuantity(1);
     setImportPrice(0);
     setRetailPrice(0);
-    setWarranty(1);
+    setWarranty(0);
     setRetailOverridden(false);
     setWarrantyUnit("tháng");
   };
@@ -641,6 +641,7 @@ const GoodsReceiptModal: React.FC<{
   const [barcodeInput, setBarcodeInput] = useState("");
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [showBarcodeInput, setShowBarcodeInput] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState("");
   const [step, setStep] = useState<1 | 2>(1); // 1: Chọn hàng, 2: Thanh toán
   const { data: suppliers = [] } = useSuppliers();
@@ -896,12 +897,12 @@ const GoodsReceiptModal: React.FC<{
     }
   };
 
-  // Auto focus barcode input when modal opens
+  // Auto focus barcode input when showBarcodeInput is enabled
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => barcodeInputRef.current?.focus(), 300);
+    if (showBarcodeInput) {
+      setTimeout(() => barcodeInputRef.current?.focus(), 100);
     }
-  }, [isOpen]);
+  }, [showBarcodeInput]);
 
   const updateReceiptItem = (
     partId: string,
@@ -1076,59 +1077,117 @@ const GoodsReceiptModal: React.FC<{
 
             {/* Search Bar with Icon */}
             <div className="p-3 bg-white/50 dark:bg-slate-800/50 space-y-2">
-              {/* Barcode Scanner Input - Quick Entry */}
-              <form onSubmit={handleBarcodeSubmit}>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <svg
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-                      />
-                    </svg>
-                    <input
-                      ref={barcodeInputRef}
-                      type="text"
-                      placeholder="Quét mã vạch hoặc nhập SKU..."
-                      value={barcodeInput}
-                      onChange={(e) => setBarcodeInput(e.target.value)}
-                      className="w-full pl-10 pr-8 py-2.5 border-2 border-blue-300 dark:border-blue-600 rounded-xl bg-blue-50/50 dark:bg-blue-900/20 text-slate-900 dark:text-slate-100 text-sm placeholder:text-blue-500/60 dark:placeholder:text-blue-400/60 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-mono"
-                    />
-                    {barcodeInput && (
-                      <button
-                        type="button"
-                        onClick={() => setBarcodeInput("")}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              {/* Barcode Scanner Input - Toggle visibility */}
+              {showBarcodeInput && (
+                <form onSubmit={handleBarcodeSubmit}>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <svg
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                        />
+                      </svg>
+                      <input
+                        ref={barcodeInputRef}
+                        type="text"
+                        placeholder="Quét mã vạch hoặc nhập SKU..."
+                        value={barcodeInput}
+                        onChange={(e) => setBarcodeInput(e.target.value)}
+                        className="w-full pl-10 pr-8 py-2.5 border-2 border-blue-300 dark:border-blue-600 rounded-xl bg-blue-50/50 dark:bg-blue-900/20 text-slate-900 dark:text-slate-100 text-sm placeholder:text-blue-500/60 dark:placeholder:text-blue-400/60 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-mono"
+                      />
+                      {barcodeInput && (
+                        <button
+                          type="button"
+                          onClick={() => setBarcodeInput("")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-                    )}
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    {/* Close barcode input */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowBarcodeInput(false);
+                        setBarcodeInput("");
+                      }}
+                      className="px-3 py-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-600 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                      title="Đóng"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
                   </div>
-                  {/* Camera Scanner Button */}
+                </form>
+              )}
+
+              {/* Manual Search with barcode toggle */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <svg
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Hoặc tìm kiếm thủ công..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  />
+                </div>
+
+                {/* Barcode Toggle Button */}
+                {!showBarcodeInput && (
                   <button
                     type="button"
-                    onClick={() => setShowCameraScanner(true)}
-                    className="px-3 py-2.5 rounded-xl border-2 border-green-500 text-green-600 bg-green-50 dark:bg-green-900/20 font-semibold text-sm flex items-center gap-1.5 transition-all hover:bg-green-100"
-                    title="Quét bằng camera"
+                    onClick={() => {
+                      setShowBarcodeInput(true);
+                      setTimeout(() => barcodeInputRef.current?.focus(), 100);
+                    }}
+                    className="px-3 py-2.5 rounded-xl border-2 border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600 dark:text-blue-400 font-semibold text-sm flex items-center gap-1.5 transition-all hover:bg-blue-100 dark:hover:bg-blue-900/40"
+                    title="Quét mã vạch"
                   >
                     <svg
                       className="w-5 h-5"
@@ -1140,41 +1199,39 @@ const GoodsReceiptModal: React.FC<{
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
                       />
                     </svg>
                   </button>
-                </div>
-              </form>
+                )}
 
-              {/* Manual Search */}
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                {/* Camera Scanner Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowCameraScanner(true)}
+                  className="px-3 py-2.5 rounded-xl border-2 border-green-500 text-green-600 bg-green-50 dark:bg-green-900/20 font-semibold text-sm flex items-center gap-1.5 transition-all hover:bg-green-100"
+                  title="Quét bằng camera"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Hoặc tìm kiếm thủ công..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -4090,65 +4147,66 @@ const InventoryManager: React.FC = () => {
     ],
     [stockHealth]
   );
-  // Detect duplicate product names
-  const duplicateNames = useMemo(() => {
+  // Detect duplicate product SKUs (mã sản phẩm)
+  const duplicateSkus = useMemo(() => {
     if (!allPartsData) return new Set<string>();
-    const nameCount = new Map<string, number>();
+    const skuCount = new Map<string, number>();
     allPartsData.forEach((part: any) => {
-      const count = nameCount.get(part.name) || 0;
-      nameCount.set(part.name, count + 1);
+      if (!part.sku) return; // Bỏ qua sản phẩm không có SKU
+      const count = skuCount.get(part.sku) || 0;
+      skuCount.set(part.sku, count + 1);
     });
     const duplicates = new Set(
-      Array.from(nameCount.entries())
+      Array.from(skuCount.entries())
         .filter(([_, count]) => count > 1)
-        .map(([name, _]) => name)
+        .map(([sku, _]) => sku)
     );
     console.log(
-      `🔍 Detected ${duplicates.size} duplicate product names from ${allPartsData.length} parts`
+      `🔍 Detected ${duplicates.size} duplicate product SKUs from ${allPartsData.length} parts`
     );
     if (duplicates.size > 0) {
-      console.log("Duplicate names:", Array.from(duplicates).slice(0, 5));
+      console.log("Duplicate SKUs:", Array.from(duplicates).slice(0, 5));
     }
     return duplicates;
   }, [allPartsData]);
 
-  // Check if a part has duplicate name
-  const hasDuplicateName = useCallback(
-    (partName: string) => {
-      return duplicateNames.has(partName);
+  // Check if a part has duplicate SKU
+  const hasDuplicateSku = useCallback(
+    (partSku: string) => {
+      return duplicateSkus.has(partSku);
     },
-    [duplicateNames]
+    [duplicateSkus]
   );
 
   // Fetch duplicate parts when filter is enabled
   const { data: duplicatePartsData } = useQuery({
-    queryKey: ["duplicateParts", currentBranchId, Array.from(duplicateNames)],
+    queryKey: ["duplicateParts", currentBranchId, Array.from(duplicateSkus)],
     queryFn: async () => {
-      if (duplicateNames.size === 0) return [];
+      if (duplicateSkus.size === 0) return [];
 
       console.log(
-        `🔍 Fetching all duplicate parts for ${duplicateNames.size} names...`
+        `🔍 Fetching all duplicate parts for ${duplicateSkus.size} SKUs...`
       );
 
-      // Fetch all parts with duplicate names
+      // Fetch all parts with duplicate SKUs
       const { data, error } = await supabase
         .from("parts")
         .select("*")
-        .in("name", Array.from(duplicateNames))
-        .order("name");
+        .in("sku", Array.from(duplicateSkus))
+        .order("sku");
 
       if (error) throw error;
-      console.log(`✅ Found ${data?.length || 0} parts with duplicate names`);
+      console.log(`✅ Found ${data?.length || 0} parts with duplicate SKUs`);
       return data || [];
     },
-    enabled: showDuplicatesOnly && duplicateNames.size > 0,
+    enabled: showDuplicatesOnly && duplicateSkus.size > 0,
     staleTime: 5_000,
   });
 
   // Sau khi chuyển sang server filter, filteredParts = repoParts (có thể thêm client filter tồn kho nếu cần)
   const filteredParts = useMemo(() => {
     const baseList =
-      showDuplicatesOnly && duplicateNames.size > 0
+      showDuplicatesOnly && duplicateSkus.size > 0
         ? duplicatePartsData || []
         : repoParts;
 
@@ -4169,7 +4227,7 @@ const InventoryManager: React.FC = () => {
   }, [
     repoParts,
     showDuplicatesOnly,
-    duplicateNames,
+    duplicateSkus,
     duplicatePartsData,
     stockFilter,
     currentBranchId,
@@ -4177,10 +4235,10 @@ const InventoryManager: React.FC = () => {
 
   // Auto-disable duplicate filter when no duplicates remain
   useEffect(() => {
-    if (showDuplicatesOnly && duplicateNames.size === 0) {
+    if (showDuplicatesOnly && duplicateSkus.size === 0) {
       setShowDuplicatesOnly(false);
     }
-  }, [showDuplicatesOnly, duplicateNames.size]);
+  }, [showDuplicatesOnly, duplicateSkus.size]);
 
   const totalStockQuantity = useMemo(() => {
     if (!allPartsData) return 0;
@@ -4528,37 +4586,37 @@ const InventoryManager: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900 sm:bg-[#1e293b]">
-      {/* Desktop Header - Giữ nguyên như cũ */}
-      <div className="hidden sm:block bg-primary-bg border-b border-primary-border px-4 py-3">
-        <div className="flex items-center justify-between gap-4">
-          {/* Tabs */}
-          <div className="flex gap-2">
+      {/* Desktop Header - Compact */}
+      <div className="hidden sm:block bg-primary-bg border-b border-primary-border px-3 py-1.5">
+        <div className="flex items-center justify-between gap-3">
+          {/* Tabs - Compact */}
+          <div className="flex gap-1">
             {[
               {
                 key: "stock",
                 label: "Tồn kho",
-                icon: <Boxes className="w-4 h-4" />,
+                icon: <Boxes className="w-3.5 h-3.5" />,
               },
               {
                 key: "categories",
                 label: "Danh mục",
-                icon: <Package className="w-4 h-4" />,
+                icon: <Package className="w-3.5 h-3.5" />,
               },
               {
                 key: "lookup",
                 label: "Tra cứu",
-                icon: <Search className="w-4 h-4" />,
+                icon: <Search className="w-3.5 h-3.5" />,
               },
               {
                 key: "history",
                 label: "Lịch sử",
-                icon: <FileText className="w-4 h-4" />,
+                icon: <FileText className="w-3.5 h-3.5" />,
               },
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
                   activeTab === tab.key
                     ? "bg-blue-600 text-white"
                     : "text-secondary-text hover:bg-tertiary-bg"
@@ -4572,15 +4630,15 @@ const InventoryManager: React.FC = () => {
             ))}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3">
+          {/* Action Buttons - Compact */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowBatchPrintModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold shadow-lg shadow-emerald-500/30 hover:brightness-110 transition"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition"
               title="In mã vạch hàng loạt"
             >
               <svg
-                className="w-4 h-4"
+                className="w-3.5 h-3.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -4596,45 +4654,41 @@ const InventoryManager: React.FC = () => {
             </button>
             <button
               onClick={() => setShowGoodsReceipt(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold shadow-lg shadow-blue-500/30 hover:brightness-110 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               Tạo phiếu nhập
             </button>
-            <div className="flex items-center gap-1 rounded-2xl border border-primary-border bg-tertiary-bg px-1.5 py-1">
+            <div className="flex items-center gap-0.5 rounded-lg border border-primary-border bg-tertiary-bg px-1 py-0.5">
               <button
                 onClick={() => {
                   showToast.info("Tính năng chuyển kho đang phát triển");
                 }}
-                className="p-2 rounded-xl text-secondary-text hover:text-blue-600 hover:bg-primary-bg transition"
+                className="p-1.5 rounded-md text-secondary-text hover:text-blue-600 hover:bg-primary-bg transition"
                 title="Chuyển kho"
               >
-                <Repeat className="w-4 h-4" />
-                <span className="sr-only">Chuyển kho</span>
+                <Repeat className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={handleExportExcel}
-                className="p-2 rounded-xl text-secondary-text hover:text-emerald-600 hover:bg-primary-bg transition"
+                className="p-1.5 rounded-md text-secondary-text hover:text-emerald-600 hover:bg-primary-bg transition"
                 title="Xuất Excel"
               >
-                <UploadCloud className="w-4 h-4" />
-                <span className="sr-only">Xuất Excel</span>
+                <UploadCloud className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setShowImportModal(true)}
-                className="p-2 rounded-xl text-secondary-text hover:text-blue-600 hover:bg-primary-bg transition"
+                className="p-1.5 rounded-md text-secondary-text hover:text-blue-600 hover:bg-primary-bg transition"
                 title="Nhập CSV"
               >
-                <DownloadCloud className="w-4 h-4" />
-                <span className="sr-only">Nhập CSV</span>
+                <DownloadCloud className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={handleDownloadTemplate}
-                className="p-2 rounded-xl text-secondary-text hover:text-amber-600 hover:bg-primary-bg transition"
+                className="p-1.5 rounded-md text-secondary-text hover:text-amber-600 hover:bg-primary-bg transition"
                 title="Tải mẫu import"
               >
-                <FileText className="w-4 h-4" />
-                <span className="sr-only">Tải template</span>
+                <FileText className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -4691,170 +4745,123 @@ const InventoryManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Desktop Filters - Hidden on Mobile - Only for Stock Tab */}
+      {/* Desktop Filters - Compact for small screens */}
       {activeTab === "stock" && (
-        <div className="hidden sm:block bg-primary-bg border-b border-primary-border px-5 py-5">
-          <div className="space-y-4">
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-500/15 via-blue-500/5 to-transparent p-4 shadow-inner">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-300">
-                        Tổng số lượng tồn
-                      </p>
-                      <p className="mt-2 text-3xl font-bold text-primary-text">
-                        {totalStockQuantity.toLocaleString()} sp
-                      </p>
-                      <p className="text-xs text-secondary-text mt-1">
-                        {stockHealth.inStock} sản phẩm còn hàng •{" "}
-                        {stockHealth.outOfStock} hết hàng
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-white/70 dark:bg-slate-900/40 text-blue-600">
-                      <Boxes className="w-6 h-6" />
-                    </div>
+        <div className="hidden sm:block bg-primary-bg border-b border-primary-border px-4 py-2">
+          <div className="space-y-2">
+            {/* Row 1: Stats inline + Search */}
+            <div className="flex items-center gap-3">
+              {/* Compact Stats */}
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-blue-500/20 bg-blue-500/5">
+                  <Boxes className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <span className="text-lg font-bold text-primary-text">
+                      {totalStockQuantity.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-secondary-text ml-1">
+                      sp
+                    </span>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent p-4 shadow-inner">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-300">
-                        Tổng giá trị tồn
-                      </p>
-                      <p className="mt-2 text-3xl font-bold text-primary-text">
-                        {formatCurrency(totalStockValue)}
-                      </p>
-                      <p className="text-xs text-secondary-text mt-1">
-                        Trung bình{" "}
-                        {formatCurrency(
-                          totalStockQuantity > 0
-                            ? totalStockValue / totalStockQuantity
-                            : 0
-                        )}{" "}
-                        / sản phẩm
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-white/70 dark:bg-slate-900/40 text-emerald-600">
-                      <Package className="w-6 h-6" />
-                    </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
+                  <Package className="w-4 h-4 text-emerald-600" />
+                  <div>
+                    <span className="text-lg font-bold text-primary-text">
+                      {formatCurrency(totalStockValue)}
+                    </span>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Tìm kiếm theo tên hoặc SKU..."
-                    value={search}
-                    onChange={(e) => {
-                      setPage(1);
-                      setSearch(e.target.value);
-                    }}
-                    className="w-full pl-10 pr-12 py-2.5 border border-primary-border rounded-xl bg-primary-bg text-primary-text focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-secondary-text">
-                    {filteredParts.length}/{totalParts}
-                  </span>
-                </div>
-                <div className="flex items-center justify-end gap-2">
-                  <button
-                    onClick={() => setShowAdvancedFilters((prev) => !prev)}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border transition ${
-                      showAdvancedFilters
-                        ? "border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                        : "border-primary-border text-secondary-text hover:text-primary-text"
-                    }`}
-                  >
-                    <Filter className="w-4 h-4" />
-                    Bộ lọc nâng cao
-                    {advancedFiltersActive && (
-                      <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                    )}
-                  </button>
-                  {advancedFiltersActive && (
-                    <button
-                      onClick={resetFilters}
-                      className="px-3 py-2 text-sm font-medium text-red-500 hover:text-red-600"
-                    >
-                      Xóa bộ lọc
-                    </button>
-                  )}
-                </div>
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm theo tên hoặc SKU..."
+                  value={search}
+                  onChange={(e) => {
+                    setPage(1);
+                    setSearch(e.target.value);
+                  }}
+                  className="w-full pl-9 pr-16 py-1.5 text-sm border border-primary-border rounded-lg bg-primary-bg text-primary-text focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-secondary-text">
+                  {filteredParts.length}/{totalParts}
+                </span>
               </div>
+              {/* Filter button */}
+              <button
+                onClick={() => setShowAdvancedFilters((prev) => !prev)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition flex-shrink-0 ${
+                  showAdvancedFilters
+                    ? "border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-primary-border text-secondary-text hover:text-primary-text"
+                }`}
+              >
+                <Filter className="w-3.5 h-3.5" />
+                Bộ lọc nâng cao
+              </button>
             </div>
 
-            {shouldShowLowStockBanner && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">⚠️</span>
-                  <div>
-                    <p className="font-semibold">
-                      {stockHealth.lowStock} sản phẩm sắp hết hàng
-                    </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-400">
-                      Chiếm {lowStockPercent}% danh mục hiện tại
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleStockFilterChange("low-stock")}
-                    className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 transition dark:bg-amber-700 dark:hover:bg-amber-600"
-                  >
-                    Lọc nhanh
-                  </button>
-                  <button
-                    onClick={() => setShowGoodsReceipt(true)}
-                    className="px-3 py-1.5 rounded-lg border border-amber-400 text-sm font-medium text-amber-800 hover:bg-amber-100 transition dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-950/30"
-                  >
-                    Tạo phiếu nhập
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            {/* Row 2: Quick filters as horizontal pills + Low stock warning inline */}
+            <div className="flex items-center gap-2 flex-wrap">
               {stockQuickFilters.map((filter) => {
                 const isActive = stockFilter === filter.id;
-                const theme =
-                  FILTER_THEME_STYLES[filter.variant ?? "neutral"] ||
-                  FILTER_THEME_STYLES.neutral;
-                const buttonClasses = `text-left rounded-2xl border px-4 py-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                  isActive ? theme.buttonActive : theme.buttonInactive
-                }`;
-                const badgeClasses = `inline-flex items-center justify-center rounded-xl border px-3 py-1 text-xs font-semibold ${
-                  isActive ? theme.badgeActive : theme.badgeInactive
-                }`;
-
+                const colorMap: Record<string, string> = {
+                  neutral: isActive
+                    ? "bg-slate-600 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-secondary-text hover:bg-slate-200 dark:hover:bg-slate-700",
+                  success: isActive
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100",
+                  warning: isActive
+                    ? "bg-amber-600 text-white"
+                    : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100",
+                  danger: isActive
+                    ? "bg-red-600 text-white"
+                    : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 hover:bg-red-100",
+                };
                 return (
                   <button
                     key={filter.id}
                     onClick={() => handleStockFilterChange(filter.id)}
-                    className={buttonClasses}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition ${
+                      colorMap[filter.variant || "neutral"]
+                    }`}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-secondary-text">
-                          {filter.label}
-                        </p>
-                        <p className="mt-1 text-2xl font-bold text-primary-text">
-                          {(filter.count || 0).toLocaleString()}
-                        </p>
-                      </div>
-                      <span className={badgeClasses}>{filter.description}</span>
-                    </div>
-                    <p className="mt-2 text-xs text-tertiary-text">
-                      Trạng thái kho tương ứng
-                    </p>
+                    <span>{filter.label}</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        isActive
+                          ? "bg-white/20"
+                          : "bg-black/10 dark:bg-white/10"
+                      }`}
+                    >
+                      {filter.count}
+                    </span>
                   </button>
                 );
               })}
+
+              {/* Low stock warning inline */}
+              {shouldShowLowStockBanner && (
+                <div className="ml-auto flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                  <span className="text-xs">
+                    ⚠️ {stockHealth.lowStock} sắp hết
+                  </span>
+                  <button
+                    onClick={() => handleStockFilterChange("low-stock")}
+                    className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-600 text-white hover:bg-amber-700"
+                  >
+                    Lọc
+                  </button>
+                </div>
+              )}
             </div>
 
             {showAdvancedFilters && (
-              <div className="rounded-2xl border border-primary-border bg-white/70 dark:bg-slate-900/40 p-4 grid gap-4 md:grid-cols-3">
+              <div className="rounded-xl border border-primary-border bg-white/70 dark:bg-slate-900/40 p-3 grid gap-3 md:grid-cols-3">
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wide text-secondary-text">
                     Trạng thái tồn kho
@@ -4862,7 +4869,7 @@ const InventoryManager: React.FC = () => {
                   <select
                     value={stockFilter}
                     onChange={(e) => handleStockFilterChange(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-secondary-border bg-primary-bg px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
+                    className="mt-1 w-full rounded-lg border border-secondary-border bg-primary-bg px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
                   >
                     <option value="all">Tất cả tồn kho</option>
                     <option value="in-stock">Còn hàng</option>
@@ -4877,7 +4884,7 @@ const InventoryManager: React.FC = () => {
                   <select
                     value={categoryFilter}
                     onChange={(e) => handleCategoryFilterChange(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-secondary-border bg-primary-bg px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
+                    className="mt-1 w-full rounded-lg border border-secondary-border bg-primary-bg px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
                   >
                     <option value="all">Tất cả danh mục</option>
                     {allCategories.map((cat) => (
@@ -4889,19 +4896,17 @@ const InventoryManager: React.FC = () => {
                 </div>
                 <div className="flex flex-col justify-end">
                   <label className="text-xs font-semibold uppercase tracking-wide text-secondary-text">
-                    Phát hiện trùng tên
+                    Phát hiện trùng mã
                   </label>
                   <button
                     onClick={() => setShowDuplicatesOnly((prev) => !prev)}
-                    className={`mt-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
+                    className={`mt-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
                       showDuplicatesOnly
                         ? "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-900/20"
                         : "border-secondary-border text-secondary-text hover:text-primary-text"
                     }`}
                   >
-                    {showDuplicatesOnly
-                      ? "Đang hiển thị sản phẩm trùng tên"
-                      : "Lọc sản phẩm trùng tên"}
+                    {showDuplicatesOnly ? "Đang lọc trùng mã" : "Lọc trùng mã"}
                   </button>
                 </div>
               </div>
@@ -4911,30 +4916,28 @@ const InventoryManager: React.FC = () => {
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-3">
         {activeTab === "stock" && (
-          <div className="space-y-3">
-            {/* Duplicate Warning Banner */}
-            {duplicateNames.size > 0 && (
-              <div className="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 p-3 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <span className="text-lg">⚠️</span>
-                  <div className="flex-1">
-                    <h3 className="text-xs font-semibold text-orange-800 dark:text-orange-300 mb-1">
-                      Phát hiện {duplicateNames.size} sản phẩm trùng tên
-                    </h3>
-                    <button
-                      onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
-                      className={`mt-1 px-2 py-1 rounded text-xs font-medium transition ${
-                        showDuplicatesOnly
-                          ? "bg-orange-600 text-white"
-                          : "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300"
-                      }`}
-                    >
-                      {showDuplicatesOnly ? "✓ Đang lọc" : "🔍 Lọc"}
-                    </button>
-                  </div>
+          <div className="space-y-2">
+            {/* Duplicate Warning Banner - More compact */}
+            {duplicateSkus.size > 0 && (
+              <div className="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 px-3 py-2 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span className="text-xs font-semibold text-orange-800 dark:text-orange-300">
+                    Phát hiện {duplicateSkus.size} sản phẩm trùng mã
+                  </span>
                 </div>
+                <button
+                  onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                    showDuplicatesOnly
+                      ? "bg-orange-600 text-white"
+                      : "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300"
+                  }`}
+                >
+                  {showDuplicatesOnly ? "✓ Đang lọc" : "🔍 Lọc"}
+                </button>
               </div>
             )}
 
@@ -4942,8 +4945,8 @@ const InventoryManager: React.FC = () => {
             <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
               {/* Bulk Actions Bar */}
               {selectedItems.length > 0 && (
-                <div className="px-6 py-3 bg-blue-100 dark:bg-blue-900/30 border-b border-primary-border flex items-center justify-between">
-                  <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                <div className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 border-b border-primary-border flex items-center justify-between">
+                  <div className="text-xs font-medium text-blue-900 dark:text-blue-100">
                     Đã chọn {selectedItems.length} sản phẩm
                   </div>
                   <button
@@ -4975,7 +4978,7 @@ const InventoryManager: React.FC = () => {
                     const stock = part.stock[currentBranchId] || 0;
                     const retailPrice = part.retailPrice[currentBranchId] || 0;
                     const value = stock * retailPrice;
-                    const isDuplicate = hasDuplicateName(part.name);
+                    const isDuplicate = hasDuplicateSku(part.sku || "");
                     // Lấy chữ cái đầu của tên sản phẩm để hiển thị khi không có ảnh
                     const initials = part.name
                       .split(/[-\s]/)
@@ -5101,8 +5104,8 @@ const InventoryManager: React.FC = () => {
               <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-tertiary-bg">
-                    <tr className="border-b border-primary-border text-xs font-semibold uppercase tracking-wider text-secondary-text">
-                      <th className="px-6 py-4 text-center w-12">
+                    <tr className="border-b border-primary-border text-[10px] font-semibold uppercase tracking-wider text-secondary-text">
+                      <th className="px-3 py-2.5 text-center w-10">
                         <input
                           type="checkbox"
                           checked={
@@ -5110,16 +5113,18 @@ const InventoryManager: React.FC = () => {
                             filteredParts.length > 0
                           }
                           onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 rounded border-secondary-border focus:ring-blue-500"
+                          className="w-3.5 h-3.5 text-blue-600 rounded border-secondary-border focus:ring-blue-500"
                         />
                       </th>
-                      <th className="px-6 py-4 text-left">Sản phẩm</th>
-                      <th className="px-6 py-4 text-center">Tồn kho</th>
-                      <th className="px-6 py-4 text-right">Giá nhập</th>
-                      <th className="px-6 py-4 text-right">Giá bán lẻ</th>
-                      <th className="px-6 py-4 text-right">Giá bán sỉ</th>
-                      <th className="px-6 py-4 text-right">Giá trị tồn</th>
-                      <th className="px-6 py-4 text-center w-16">Hành động</th>
+                      <th className="px-3 py-2.5 text-left">Sản phẩm</th>
+                      <th className="px-3 py-2.5 text-center">Tồn kho</th>
+                      <th className="px-3 py-2.5 text-right">Giá nhập</th>
+                      <th className="px-3 py-2.5 text-right">Giá bán lẻ</th>
+                      <th className="px-3 py-2.5 text-right">Giá bán sỉ</th>
+                      <th className="px-3 py-2.5 text-right">Giá trị tồn</th>
+                      <th className="px-3 py-2.5 text-center w-14">
+                        Hành động
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-primary-bg divide-y divide-primary-border">
@@ -5127,11 +5132,11 @@ const InventoryManager: React.FC = () => {
                       <tr>
                         <td
                           colSpan={8}
-                          className="px-6 py-8 text-center text-tertiary-text"
+                          className="px-4 py-6 text-center text-tertiary-text"
                         >
-                          <div className="text-6xl mb-4">🗂️</div>
-                          <div className="text-lg">Không có sản phẩm nào</div>
-                          <div className="text-sm">
+                          <div className="text-4xl mb-2">🗂️</div>
+                          <div className="text-sm">Không có sản phẩm nào</div>
+                          <div className="text-xs">
                             Hãy thử một bộ lọc khác hoặc thêm sản phẩm mới
                           </div>
                         </td>
@@ -5146,7 +5151,7 @@ const InventoryManager: React.FC = () => {
                         const costPrice = part.costPrice?.[branchKey] || 0;
                         const value = stock * retailPrice;
                         const isSelected = selectedItems.includes(part.id);
-                        const isDuplicate = hasDuplicateName(part.name);
+                        const isDuplicate = hasDuplicateSku(part.sku || "");
                         const stockStatusClass =
                           stock === 0
                             ? "border-red-300 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-950/50 dark:text-red-300"
@@ -5178,20 +5183,20 @@ const InventoryManager: React.FC = () => {
                             key={part.id}
                             className={`border-b border-primary-border hover:bg-tertiary-bg transition-colors ${rowHighlight}`}
                           >
-                            <td className="px-6 py-4 text-center">
+                            <td className="px-3 py-2 text-center">
                               <input
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={(e) =>
                                   handleSelectItem(part.id, e.target.checked)
                                 }
-                                className="w-4 h-4 text-blue-600 rounded border-secondary-border focus:ring-blue-500"
+                                className="w-3.5 h-3.5 text-blue-600 rounded border-secondary-border focus:ring-blue-500"
                               />
                             </td>
-                            <td className="px-6 py-4 min-w-[220px]">
-                              <div className="flex items-center gap-4">
+                            <td className="px-3 py-2 min-w-[180px]">
+                              <div className="flex items-center gap-3">
                                 <div
-                                  className="h-12 w-12 rounded-xl overflow-hidden flex items-center justify-center text-base font-semibold text-white"
+                                  className="h-9 w-9 rounded-lg overflow-hidden flex items-center justify-center text-sm font-semibold text-white flex-shrink-0"
                                   style={
                                     part.imageUrl
                                       ? undefined
@@ -5212,19 +5217,19 @@ const InventoryManager: React.FC = () => {
                                     <span>{productInitial}</span>
                                   )}
                                 </div>
-                                <div className="flex flex-col gap-1">
-                                  <div className="flex items-center gap-2 text-sm font-semibold text-primary-text">
+                                <div className="flex flex-col gap-0.5 min-w-0">
+                                  <div className="flex items-center gap-1.5 text-xs font-semibold text-primary-text truncate">
                                     {part.name}
                                     {isDuplicate && (
                                       <span
-                                        className="inline-flex items-center gap-1 rounded-full border border-orange-300 bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700 dark:bg-orange-900/30"
-                                        title="Sản phẩm có tên trùng lặp"
+                                        className="inline-flex items-center gap-0.5 rounded-full border border-orange-300 bg-orange-50 px-1.5 py-0 text-[9px] font-semibold text-orange-700 dark:bg-orange-900/30 flex-shrink-0"
+                                        title="Sản phẩm có mã trùng lặp"
                                       >
                                         ⚠️ Trùng
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-xs text-tertiary-text font-mono">
+                                  <div className="text-[10px] text-tertiary-text font-mono">
                                     {part.barcode ? (
                                       <span className="text-blue-600 dark:text-blue-400">
                                         Mã: {part.barcode}
@@ -5233,24 +5238,24 @@ const InventoryManager: React.FC = () => {
                                       <span>SKU: {part.sku || "N/A"}</span>
                                     )}
                                   </div>
-                                  <div className="text-xs text-tertiary-text">
+                                  <div className="text-[10px] text-tertiary-text truncate">
                                     {part.category || "Chưa phân loại"}
                                   </div>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                              <div className="flex flex-col items-center gap-1">
+                            <td className="px-3 py-2 whitespace-nowrap text-center">
+                              <div className="flex flex-col items-center gap-0.5">
                                 <span
-                                  className={`text-lg font-semibold ${stockQtyClass}`}
+                                  className={`text-sm font-semibold ${stockQtyClass}`}
                                 >
                                   {stock.toLocaleString()}
                                 </span>
                                 <span
-                                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold ${stockStatusClass}`}
+                                  className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0 text-[9px] font-semibold ${stockStatusClass}`}
                                 >
                                   <span
-                                    className={`h-1.5 w-1.5 rounded-full ${
+                                    className={`h-1 w-1 rounded-full ${
                                       stock === 0
                                         ? "bg-red-500"
                                         : stock <= LOW_STOCK_THRESHOLD
@@ -5262,19 +5267,19 @@ const InventoryManager: React.FC = () => {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-secondary-text">
+                            <td className="px-3 py-2 whitespace-nowrap text-right text-xs text-secondary-text">
                               {formatCurrency(costPrice)}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-primary-text">
+                            <td className="px-3 py-2 whitespace-nowrap text-right text-xs font-medium text-primary-text">
                               {formatCurrency(retailPrice)}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-secondary-text">
+                            <td className="px-3 py-2 whitespace-nowrap text-right text-xs text-secondary-text">
                               {formatCurrency(wholesalePrice)}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-primary-text">
+                            <td className="px-3 py-2 whitespace-nowrap text-right text-xs font-semibold text-primary-text">
                               {formatCurrency(value)}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <td className="px-3 py-2 whitespace-nowrap text-center">
                               <div className="relative flex justify-end">
                                 <button
                                   onClick={(event) => {

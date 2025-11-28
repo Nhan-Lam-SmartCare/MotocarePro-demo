@@ -378,19 +378,19 @@ const ReportsManager: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Mobile Controls */}
-      <div className="md:hidden space-y-3 mb-4">
+      <div className="md:hidden space-y-2 mb-3">
         {/* Report Type Selector */}
-        <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 block uppercase tracking-wider">
+        <div className="bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+          <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">
             Loại báo cáo
           </label>
           <div className="relative">
             <select
               value={activeTab}
               onChange={(e) => setActiveTab(e.target.value as ReportTab)}
-              className="w-full appearance-none p-3 pl-10 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              className="w-full appearance-none p-2 pl-8 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white font-medium text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
             >
               <option value="revenue">Doanh thu</option>
               <option value="cashflow">Thu chi</option>
@@ -398,14 +398,14 @@ const ReportsManager: React.FC = () => {
               <option value="payroll">Lương nhân viên</option>
               <option value="debt">Công nợ</option>
             </select>
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none">
-              {activeTab === "revenue" && <DollarSign className="w-5 h-5" />}
-              {activeTab === "cashflow" && <Wallet className="w-5 h-5" />}
-              {activeTab === "inventory" && <Boxes className="w-5 h-5" />}
+            <div className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none">
+              {activeTab === "revenue" && <DollarSign className="w-4 h-4" />}
+              {activeTab === "cashflow" && <Wallet className="w-4 h-4" />}
+              {activeTab === "inventory" && <Boxes className="w-4 h-4" />}
               {activeTab === "payroll" && (
-                <BriefcaseBusiness className="w-5 h-5" />
+                <BriefcaseBusiness className="w-4 h-4" />
               )}
-              {activeTab === "debt" && <ClipboardList className="w-5 h-5" />}
+              {activeTab === "debt" && <ClipboardList className="w-4 h-4" />}
             </div>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none">
               <svg
@@ -426,8 +426,8 @@ const ReportsManager: React.FC = () => {
         </div>
 
         {/* Date Range Selector */}
-        <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 block uppercase tracking-wider">
+        <div className="bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+          <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1.5 block uppercase tracking-wider">
             Thời gian
           </label>
           <div className="flex gap-2">
@@ -435,7 +435,7 @@ const ReportsManager: React.FC = () => {
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value as DateRange)}
-                className="w-full appearance-none p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                className="w-full appearance-none p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white font-medium text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
               >
                 <option value="today">Hôm nay</option>
                 <option value="week">7 ngày qua</option>
@@ -499,7 +499,7 @@ const ReportsManager: React.FC = () => {
       </div>
 
       {/* Desktop Controls - Hidden on Mobile */}
-      <div className="hidden md:flex items-center gap-3 flex-wrap">
+      <div className="hidden md:flex items-center gap-2 flex-wrap">
         {/* Report Tabs */}
         {REPORT_TAB_CONFIGS.map((tab) => {
           const isActive = activeTab === tab.key;
@@ -509,14 +509,14 @@ const ReportsManager: React.FC = () => {
               aria-pressed={isActive}
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-6 py-2 rounded-xl font-medium whitespace-nowrap transition-all border ${
+              className={`px-4 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all border text-sm ${
                 isActive ? tab.activeClass : tab.inactiveClass
               }`}
             >
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5">
                 <span
                   aria-hidden
-                  className={`w-2.5 h-2.5 rounded-full ${
+                  className={`w-2 h-2 rounded-full ${
                     isActive ? "bg-white/90" : tab.dotClass
                   }`}
                 ></span>
@@ -528,7 +528,7 @@ const ReportsManager: React.FC = () => {
         })}
 
         {/* Divider */}
-        <div className="h-8 w-px bg-slate-300 dark:bg-slate-600 mx-2"></div>
+        <div className="h-6 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
 
         {/* Date Range Selector */}
         {(["today", "week", "month", "quarter", "year", "custom"] as const).map(
@@ -536,7 +536,7 @@ const ReportsManager: React.FC = () => {
             <button
               key={range}
               onClick={() => setDateRange(range)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-all ${
                 dateRange === range
                   ? "bg-blue-600 text-white shadow-md"
                   : "bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -579,7 +579,7 @@ const ReportsManager: React.FC = () => {
         <div className="ml-auto flex gap-2">
           <button
             onClick={exportToExcel}
-            className="px-5 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center gap-2"
+            className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center gap-1.5 text-sm"
           >
             <FileSpreadsheet className="w-4 h-4" /> Xuất Excel
           </button>
@@ -587,7 +587,7 @@ const ReportsManager: React.FC = () => {
           {/* Advanced Reports Dropdown */}
           {activeTab === "revenue" && (
             <div className="relative group">
-              <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center gap-2">
+              <button className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center gap-1.5 text-sm">
                 <TrendingUp className="w-4 h-4" /> Báo cáo nâng cao
               </button>
 
@@ -654,60 +654,60 @@ const ReportsManager: React.FC = () => {
       </div>
 
       {/* Report Content */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
         {activeTab === "revenue" && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {salesLoading && (
               <div className="text-sm text-slate-500 dark:text-slate-400">
                 Đang tải doanh thu...
               </div>
             )}
             {/* Thống kê cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-1 text-sm font-medium text-blue-700 dark:text-blue-400 mb-2">
-                  <DollarSign className="w-4 h-4" /> Tổng doanh thu
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-400 mb-1.5">
+                  <DollarSign className="w-3.5 h-3.5" /> Tổng doanh thu
                 </div>
-                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {formatCurrency(revenueReport.totalRevenue).replace("₫", "")}
                 </div>
-                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">
                   đ
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-lg p-6 border border-red-200 dark:border-red-800">
-                <div className="flex items-center gap-1 text-sm font-medium text-red-700 dark:text-red-400 mb-2">
-                  <Wallet className="w-4 h-4" /> Tổng chi phí
+              <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                <div className="flex items-center gap-1 text-xs font-medium text-red-700 dark:text-red-400 mb-1.5">
+                  <Wallet className="w-3.5 h-3.5" /> Tổng chi phí
                 </div>
-                <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(revenueReport.totalCost).replace("₫", "")}
                 </div>
-                <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                <div className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">
                   đ
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-6 border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-1 text-sm font-medium text-green-700 dark:text-green-400 mb-2">
-                  <TrendingUp className="w-4 h-4" /> Lợi nhuận
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400 mb-1.5">
+                  <TrendingUp className="w-3.5 h-3.5" /> Lợi nhuận
                 </div>
-                <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(revenueReport.totalProfit).replace("₫", "")}
                 </div>
-                <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                <div className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">
                   đ
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-800">
-                <div className="flex items-center gap-1 text-sm font-medium text-purple-700 dark:text-purple-400 mb-2">
-                  <BadgePercent className="w-4 h-4" /> Tỷ suất lợi nhuận
+              <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center gap-1 text-xs font-medium text-purple-700 dark:text-purple-400 mb-1.5">
+                  <BadgePercent className="w-3.5 h-3.5" /> Tỷ suất lợi nhuận
                 </div>
-                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                   {revenueReport.profitMargin}
                 </div>
-                <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                <div className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5">
                   %
                 </div>
               </div>
@@ -715,8 +715,8 @@ const ReportsManager: React.FC = () => {
 
             {/* Bảng chi tiết theo ngày - Giống Excel */}
             <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white">
                   Chi tiết đơn hàng theo ngày (
                   {revenueReport.dailyReport.length} ngày)
                 </h3>
@@ -725,56 +725,56 @@ const ReportsManager: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-blue-600 text-white">
                     <tr>
-                      <th className="px-4 py-3 text-center text-xs font-bold uppercase">
+                      <th className="px-2 py-2 text-center text-[10px] font-bold uppercase">
                         #
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold uppercase">
+                      <th className="px-2 py-2 text-left text-[10px] font-bold uppercase">
                         Ngày
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold uppercase">
-                        Vốn nhập kho
+                      <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
+                        Vốn NK
                         <br />
                         (1)
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold uppercase">
+                      <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
                         Tiền hàng
                         <br />
                         (2)
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold uppercase">
-                        Vốn sửa chữa
+                      <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
+                        Vốn SC
                         <br />
                         (3)
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold uppercase">
-                        Công sửa chữa
+                      <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
+                        Công SC
                         <br />
                         (4)
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold uppercase">
+                      <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
                         Doanh thu
                         <br />
-                        (5 = 2 + 3 + 4)
+                        (5=2+3+4)
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold uppercase">
+                      <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
                         Lợi nhuận
                         <br />
-                        (6 = 2 - 1 - 4)
+                        (6=2-1-4)
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold uppercase">
+                      <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
                         Thu khác
                         <br />
                         (7)
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold uppercase">
+                      <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
                         Chi khác
                         <br />
                         (8)
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-bold uppercase bg-green-700">
-                        Lợi nhuận ròng
+                      <th className="px-2 py-2 text-right text-[10px] font-bold uppercase bg-green-700">
+                        LN ròng
                         <br />
-                        (9 = (6 + 7) - 8)
+                        (9=(6+7)-8)
                       </th>
                     </tr>
                   </thead>
@@ -796,37 +796,37 @@ const ReportsManager: React.FC = () => {
                           key={day.date}
                           className="hover:bg-slate-50 dark:hover:bg-slate-700/30"
                         >
-                          <td className="px-4 py-3 text-center text-sm font-medium text-slate-900 dark:text-white">
+                          <td className="px-2 py-2 text-center text-xs font-medium text-slate-900 dark:text-white">
                             {index + 1}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 dark:text-white">
+                          <td className="px-2 py-2 whitespace-nowrap text-xs text-slate-900 dark:text-white">
                             {new Date(day.date).toLocaleDateString("vi-VN")}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white">
+                          <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
                             {formatCurrency(vonNhapKho)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm font-semibold text-blue-600 dark:text-blue-400">
+                          <td className="px-2 py-2 text-right text-xs font-semibold text-blue-600 dark:text-blue-400">
                             {formatCurrency(tienHang)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white">
+                          <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
                             {formatCurrency(vonSuaChua)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white">
+                          <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
                             {formatCurrency(congSuaChua)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm font-bold text-blue-600 dark:text-blue-400">
+                          <td className="px-2 py-2 text-right text-xs font-bold text-blue-600 dark:text-blue-400">
                             {formatCurrency(doanhThu)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm font-bold text-orange-600 dark:text-orange-400">
+                          <td className="px-2 py-2 text-right text-xs font-bold text-orange-600 dark:text-orange-400">
                             {formatCurrency(loiNhuan)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white">
+                          <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
                             {formatCurrency(thuKhac)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm text-red-600 dark:text-red-400">
+                          <td className="px-2 py-2 text-right text-xs text-red-600 dark:text-red-400">
                             {formatCurrency(chiKhac)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm font-black text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20">
+                          <td className="px-2 py-2 text-right text-xs font-black text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20">
                             {formatCurrency(loiNhuanRong)}
                           </td>
                         </tr>
@@ -837,35 +837,35 @@ const ReportsManager: React.FC = () => {
                       <tr className="bg-blue-50 dark:bg-blue-900/20 font-bold border-t-2 border-blue-600">
                         <td
                           colSpan={2}
-                          className="px-4 py-3 text-left text-sm font-black text-slate-900 dark:text-white"
+                          className="px-2 py-2 text-left text-xs font-black text-slate-900 dark:text-white"
                         >
                           Tổng:
                         </td>
-                        <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white">
+                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
                           {formatCurrency(0)}
                         </td>
-                        <td className="px-4 py-3 text-right text-sm font-black text-blue-600 dark:text-blue-400">
+                        <td className="px-2 py-2 text-right text-xs font-black text-blue-600 dark:text-blue-400">
                           {formatCurrency(revenueReport.totalRevenue)}
                         </td>
-                        <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white">
+                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
                           {formatCurrency(0)}
                         </td>
-                        <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white">
+                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
                           {formatCurrency(0)}
                         </td>
-                        <td className="px-4 py-3 text-right text-sm font-black text-blue-600 dark:text-blue-400">
+                        <td className="px-2 py-2 text-right text-xs font-black text-blue-600 dark:text-blue-400">
                           {formatCurrency(revenueReport.totalRevenue)}
                         </td>
-                        <td className="px-4 py-3 text-right text-sm font-black text-orange-600 dark:text-orange-400">
+                        <td className="px-2 py-2 text-right text-xs font-black text-orange-600 dark:text-orange-400">
                           {formatCurrency(revenueReport.totalProfit)}
                         </td>
-                        <td className="px-4 py-3 text-right text-sm text-slate-900 dark:text-white">
+                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
                           {formatCurrency(0)}
                         </td>
-                        <td className="px-4 py-3 text-right text-sm text-red-600 dark:text-red-400">
+                        <td className="px-2 py-2 text-right text-xs text-red-600 dark:text-red-400">
                           {formatCurrency(0)}
                         </td>
-                        <td className="px-4 py-3 text-right text-sm font-black text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30">
+                        <td className="px-2 py-2 text-right text-xs font-black text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30">
                           {formatCurrency(revenueReport.totalProfit)}
                         </td>
                       </tr>
@@ -907,18 +907,18 @@ const ReportsManager: React.FC = () => {
                           key={sale.id}
                           className="hover:bg-slate-50 dark:hover:bg-slate-700/30"
                         >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
+                          <td className="px-4 py-2.5 whitespace-nowrap text-xs text-slate-900 dark:text-white">
                             {formatDate(sale.date)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
+                          <td className="px-4 py-2.5 whitespace-nowrap text-xs font-medium text-slate-900 dark:text-white">
                             {sale.customer.name}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-slate-900 dark:text-white">
+                          <td className="px-4 py-2.5 whitespace-nowrap text-xs text-right font-semibold text-slate-900 dark:text-white">
                             {formatCurrency(sale.total)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <td className="px-4 py-2.5 whitespace-nowrap text-center">
                             <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                                 (sale as any).paymentStatus === "paid"
                                   ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                                   : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
@@ -940,37 +940,37 @@ const ReportsManager: React.FC = () => {
         )}
 
         {activeTab === "cashflow" && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {cashTxLoading && (
               <div className="text-sm text-slate-500 dark:text-slate-400">
                 Đang tải sổ quỹ...
               </div>
             )}
             {/* Thống kê cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-6 border border-green-200 dark:border-green-800">
-                <div className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                <div className="text-xs font-medium text-green-700 dark:text-green-400 mb-1.5">
                   <span className="inline-flex items-center gap-1">
-                    <Wallet className="w-4 h-4" /> Tổng thu
+                    <Wallet className="w-3.5 h-3.5" /> Tổng thu
                   </span>
                 </div>
-                <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(cashflowReport.totalIncome).replace("₫", "")}
                 </div>
-                <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                <div className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">
                   đ
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-lg p-6 border border-red-200 dark:border-red-800">
-                <div className="text-sm font-medium text-red-700 dark:text-red-400 mb-2 inline-flex items-center gap-1">
+              <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                <div className="text-xs font-medium text-red-700 dark:text-red-400 mb-1.5 inline-flex items-center gap-1">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    className="w-4 h-4"
+                    className="w-3.5 h-3.5"
                   >
                     <rect x="2" y="6" width="20" height="12" rx="2" ry="2" />
                     <circle cx="12" cy="12" r="2" />
@@ -978,16 +978,16 @@ const ReportsManager: React.FC = () => {
                   </svg>
                   Tổng chi
                 </div>
-                <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(cashflowReport.totalExpense).replace("₫", "")}
                 </div>
-                <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                <div className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">
                   đ
                 </div>
               </div>
 
               <div
-                className={`bg-gradient-to-br rounded-lg p-6 border ${
+                className={`bg-gradient-to-br rounded-lg p-4 border ${
                   cashflowReport.netCashFlow >= 0
                     ? "from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800"
                     : "from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border-orange-200 dark:border-orange-800"

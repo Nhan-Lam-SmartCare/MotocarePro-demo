@@ -97,10 +97,10 @@ const FixedAssetsManager: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
               Tài sản cố định
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -118,9 +118,9 @@ const FixedAssetsManager: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="p-4 md:p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+      <div className="p-3 md:p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
             <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
               Tổng giá trị mua
             </div>
@@ -128,7 +128,7 @@ const FixedAssetsManager: React.FC = () => {
               {formatCurrency(summary.totalValue)}
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
             <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
               Giá trị hiện tại
             </div>
@@ -136,7 +136,7 @@ const FixedAssetsManager: React.FC = () => {
               {formatCurrency(summary.currentValue)}
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
             <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
               Khấu hao lũy kế
             </div>
@@ -144,7 +144,7 @@ const FixedAssetsManager: React.FC = () => {
               {formatCurrency(summary.totalDepreciation)}
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
             <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
               Tài sản đang dùng
             </div>
@@ -155,7 +155,7 @@ const FixedAssetsManager: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 mb-4">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3 mb-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">

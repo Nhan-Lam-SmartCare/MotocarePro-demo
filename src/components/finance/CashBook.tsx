@@ -110,10 +110,10 @@ const CashBook: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
               Sổ quỹ
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -143,12 +143,12 @@ const CashBook: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="p-4 md:p-6">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border-2 border-green-200 dark:border-green-800">
-            <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-medium mb-2">
+      <div className="p-3 md:p-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3 mb-4">
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border-2 border-green-200 dark:border-green-800">
+            <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-xs font-medium mb-1">
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -162,15 +162,15 @@ const CashBook: React.FC = () => {
               </svg>
               <span>Thu</span>
             </div>
-            <div className="text-green-900 dark:text-green-100 text-2xl font-bold">
+            <div className="text-green-900 dark:text-green-100 text-xl font-bold">
               {formatCurrency(summary.income)}
             </div>
           </div>
 
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border-2 border-red-200 dark:border-red-800">
-            <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm font-medium mb-2">
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border-2 border-red-200 dark:border-red-800">
+            <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs font-medium mb-1">
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -184,39 +184,40 @@ const CashBook: React.FC = () => {
               </svg>
               <span>Chi</span>
             </div>
-            <div className="text-red-900 dark:text-red-100 text-2xl font-bold">
+            <div className="text-red-900 dark:text-red-100 text-xl font-bold">
               {formatCurrency(summary.expense)}
             </div>
           </div>
 
-          <div className="col-span-2 md:col-span-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800">
-            <div className="text-blue-600 dark:text-blue-400 text-sm font-medium mb-2">
+          <div className="col-span-2 md:col-span-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border-2 border-blue-200 dark:border-blue-800">
+            <div className="text-blue-600 dark:text-blue-400 text-xs font-medium mb-1">
               Chênh lệch
             </div>
             <div
-              className={`text-2xl font-bold ${summary.balance >= 0
+              className={`text-xl font-bold ${
+                summary.balance >= 0
                   ? "text-blue-900 dark:text-blue-100"
                   : "text-red-600 dark:text-red-400"
-                }`}
+              }`}
             >
               {formatCurrency(summary.balance)}
             </div>
           </div>
 
-          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border-2 border-amber-200 dark:border-amber-800">
-            <div className="text-amber-600 dark:text-amber-400 text-sm font-medium mb-2">
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border-2 border-amber-200 dark:border-amber-800">
+            <div className="text-amber-600 dark:text-amber-400 text-xs font-medium mb-1">
               Tiền mặt
             </div>
-            <div className="text-amber-900 dark:text-amber-100 text-2xl font-bold">
+            <div className="text-amber-900 dark:text-amber-100 text-xl font-bold">
               {formatCurrency(summary.cashBalance)}
             </div>
           </div>
 
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border-2 border-purple-200 dark:border-purple-800">
-            <div className="text-purple-600 dark:text-purple-400 text-sm font-medium mb-2">
+          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border-2 border-purple-200 dark:border-purple-800">
+            <div className="text-purple-600 dark:text-purple-400 text-xs font-medium mb-1">
               Ngân hàng
             </div>
-            <div className="text-purple-900 dark:text-purple-100 text-2xl font-bold">
+            <div className="text-purple-900 dark:text-purple-100 text-xl font-bold">
               {formatCurrency(summary.bankBalance)}
             </div>
           </div>
@@ -288,10 +289,11 @@ const CashBook: React.FC = () => {
                   <button
                     key={option.value}
                     onClick={() => setFilterType(option.value as any)}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${filterType === option.value
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      filterType === option.value
                         ? "bg-blue-600 text-white"
                         : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-                      }`}
+                    }`}
                   >
                     {option.label}
                   </button>
@@ -328,10 +330,11 @@ const CashBook: React.FC = () => {
                   <button
                     key={option.value}
                     onClick={() => setFilterDateRange(option.value as any)}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${filterDateRange === option.value
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      filterDateRange === option.value
                         ? "bg-blue-600 text-white"
                         : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-                      }`}
+                    }`}
                   >
                     {option.label}
                   </button>
@@ -363,10 +366,11 @@ const CashBook: React.FC = () => {
                     </div>
                   </div>
                   <div
-                    className={`font-bold ${tx.type === "income"
+                    className={`font-bold ${
+                      tx.type === "income"
                         ? "text-green-600 dark:text-green-400"
                         : "text-red-600 dark:text-red-400"
-                      }`}
+                    }`}
                   >
                     {tx.type === "income" ? "+" : "-"}
                     {formatCurrency(tx.amount)}
@@ -437,10 +441,11 @@ const CashBook: React.FC = () => {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${tx.type === "income"
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                          tx.type === "income"
                             ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                             : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                          }`}
+                        }`}
                       >
                         {tx.type === "income" ? "↑ Thu" : "↓ Chi"}
                       </span>
@@ -458,10 +463,11 @@ const CashBook: React.FC = () => {
                       {tx.paymentSourceId === "cash" ? "Tiền mặt" : "Ngân hàng"}
                     </td>
                     <td
-                      className={`px-4 py-3 text-right text-sm font-semibold ${tx.type === "income"
+                      className={`px-4 py-3 text-right text-sm font-semibold ${
+                        tx.type === "income"
                           ? "text-green-600 dark:text-green-400"
                           : "text-red-600 dark:text-red-400"
-                        }`}
+                      }`}
                     >
                       {tx.type === "income" ? "+" : "-"}
                       {formatCurrency(tx.amount)}
@@ -531,13 +537,13 @@ const CashBook: React.FC = () => {
                   prev.map((ps) =>
                     ps.id === transaction.paymentSourceId
                       ? {
-                        ...ps,
-                        balance: {
-                          ...ps.balance,
-                          [currentBranchId]:
-                            (ps.balance[currentBranchId] || 0) + delta,
-                        },
-                      }
+                          ...ps,
+                          balance: {
+                            ...ps.balance,
+                            [currentBranchId]:
+                              (ps.balance[currentBranchId] || 0) + delta,
+                          },
+                        }
                       : ps
                   )
                 );

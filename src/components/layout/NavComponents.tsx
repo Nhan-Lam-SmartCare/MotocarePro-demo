@@ -150,14 +150,14 @@ export const NavLink: React.FC<{
   return (
     <Link
       to={to}
-      className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition ${
+      className={`flex flex-col items-center gap-0.5 px-2.5 py-1 rounded-md transition ${
         isActive
           ? `${NAV_COLORS[colorKey].bg} ${NAV_COLORS[colorKey].text}`
           : `text-slate-600 dark:text-slate-300 ${NAV_COLORS[colorKey].hoverBg}`
       }`}
     >
       <span className="flex items-center justify-center">{icon}</span>
-      <span className="text-xs font-medium whitespace-nowrap">{label}</span>
+      <span className="text-[10px] font-medium whitespace-nowrap">{label}</span>
     </Link>
   );
 };

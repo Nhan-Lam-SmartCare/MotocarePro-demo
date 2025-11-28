@@ -58,37 +58,39 @@ export function Nav() {
 
   return (
     <nav className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
-      <div className="max-w-[1600px] mx-auto px-2 md:px-6 py-2 md:py-3">
+      <div className="max-w-[1600px] mx-auto px-2 md:px-4 py-1 md:py-1.5">
         <div className="flex items-center justify-between">
           {/* Left: Brand and Branch Selector */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-3">
             {/* Mobile Menu Button */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="md:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
+              className="md:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
               aria-label="Menu"
             >
-              <Menu className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+              <Menu className="w-5 h-5 text-slate-600 dark:text-slate-300" />
             </button>
 
             {/* Brand Logo acts as settings toggle */}
             <div className="relative">
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="group flex items-center gap-3 focus:outline-none"
+                className="group flex items-center gap-2 focus:outline-none"
                 aria-label="Mở cài đặt và tài khoản"
               >
                 <img
                   src="/logo-smartcare.png"
                   alt="SmartCare Logo"
-                  className="w-9 h-9 md:w-14 md:h-14 rounded-xl shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 group-hover:shadow-md group-hover:ring-emerald-400/60 dark:group-hover:ring-emerald-500/60 transition"
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-lg shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 group-hover:shadow-md group-hover:ring-emerald-400/60 dark:group-hover:ring-emerald-500/60 transition"
                 />
                 {/* Mobile: Shorter name */}
-                <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-emerald-600 to-blue-600 text-transparent bg-clip-text dark:from-emerald-400 dark:to-blue-400 lg:hidden">
-                  Nhạn-Lâm SmartCare
+                <span className="font-bold text-xs tracking-tight bg-gradient-to-r from-emerald-600 to-blue-600 text-transparent bg-clip-text dark:from-emerald-400 dark:to-blue-400 lg:hidden">
+                  Nhạn Lâm
+                  <br />
+                  SmartCare
                 </span>
                 {/* Desktop: Full name */}
-                <span className="font-bold text-lg md:text-xl tracking-tight bg-gradient-to-r from-emerald-600 to-blue-600 text-transparent bg-clip-text dark:from-emerald-400 dark:to-blue-400 hidden lg:inline">
+                <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-emerald-600 to-blue-600 text-transparent bg-clip-text dark:from-emerald-400 dark:to-blue-400 hidden lg:inline whitespace-nowrap">
                   Nhạn Lâm SmartCare
                 </span>
               </button>
@@ -209,42 +211,42 @@ export function Nav() {
           </div>
 
           {/* Center: Main Navigation - Hidden on mobile */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-1">
             <NavLink
               to="/dashboard"
               colorKey="blue"
-              icon={<LayoutDashboard className="w-5 h-5" />}
+              icon={<LayoutDashboard className="w-4 h-4" />}
               label="Tổng quan"
             />
             <NavLink
               to="/service"
               colorKey="violet"
-              icon={<Wrench className="w-5 h-5" />}
+              icon={<Wrench className="w-4 h-4" />}
               label="Sửa chữa"
             />
             <NavLink
               to="/sales"
               colorKey="emerald"
-              icon={<Cart className="w-5 h-5" />}
+              icon={<Cart className="w-4 h-4" />}
               label="Bán hàng"
             />
             <NavLink
               to="/inventory"
               colorKey="amber"
-              icon={<Boxes className="w-5 h-5" />}
+              icon={<Boxes className="w-4 h-4" />}
               label="Quản lý kho"
             />
             <NavLink
               to="/customers"
               colorKey="cyan"
-              icon={<Users className="w-5 h-5" />}
+              icon={<Users className="w-4 h-4" />}
               label="Khách hàng"
             />
             {can.viewEmployees && (
               <NavLink
                 to="/employees"
                 colorKey="indigo"
-                icon={<BriefcaseBusiness className="w-5 h-5" />}
+                icon={<BriefcaseBusiness className="w-4 h-4" />}
                 label="Nhân viên"
               />
             )}
@@ -252,7 +254,7 @@ export function Nav() {
               <NavLink
                 to="/finance"
                 colorKey="rose"
-                icon={<Landmark className="w-5 h-5" />}
+                icon={<Landmark className="w-4 h-4" />}
                 label="Tài chính"
               />
             )}
@@ -260,7 +262,7 @@ export function Nav() {
               <NavLink
                 to="/debt"
                 colorKey="orange"
-                icon={<HandCoins className="w-5 h-5" />}
+                icon={<HandCoins className="w-4 h-4" />}
                 label="Công nợ"
               />
             )}
@@ -268,14 +270,14 @@ export function Nav() {
               <NavLink
                 to="/analytics"
                 colorKey="teal"
-                icon={<BarChart3 className="w-5 h-5" />}
+                icon={<BarChart3 className="w-4 h-4" />}
                 label="Phân tích"
               />
             )}
             <NavLink
               to="/reports"
               colorKey="fuchsia"
-              icon={<FileText className="w-5 h-5" />}
+              icon={<FileText className="w-4 h-4" />}
               label="Báo cáo"
             />
           </div>

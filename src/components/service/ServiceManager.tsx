@@ -1534,27 +1534,27 @@ export default function ServiceManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Desktop insight cards */}
-      <div className="grid gap-4 xl:grid-cols-[2fr,1fr]">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="grid gap-3 lg:grid-cols-[2fr,1fr]">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                 Phiếu cần xử lý
               </p>
-              <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 {urgentTickets}
               </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Chiếm {urgentRatio}% của {totalOpenTickets || 0} phiếu đang mở
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                 Hoàn thành
               </p>
-              <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
+              <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
                 {completionRate}%
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -1563,36 +1563,34 @@ export default function ServiceManager() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {statusSnapshotCards.map((card) => (
               <button
                 key={card.key}
                 onClick={() =>
                   setActiveTab(activeTab === card.key ? "all" : card.key)
                 }
-                className={`text-left rounded-xl border p-4 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${
+                className={`text-left rounded-lg border p-3 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${
                   activeTab === card.key
                     ? "border-blue-500 bg-blue-50/60 dark:bg-blue-900/20"
                     : "border-slate-200 dark:border-slate-700"
                 }`}
               >
                 <div
-                  className={`rounded-lg bg-gradient-to-br ${card.accent} p-3`}
+                  className={`rounded-lg bg-gradient-to-br ${card.accent} p-2`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         {card.label}
                       </p>
-                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                      <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
                         {card.value}
                       </p>
                     </div>
-                    <span
-                      className={`h-2.5 w-2.5 rounded-full ${card.dot}`}
-                    ></span>
+                    <span className={`h-2 w-2 rounded-full ${card.dot}`}></span>
                   </div>
-                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
                     {card.subtitle}
                   </p>
                 </div>
@@ -1601,37 +1599,37 @@ export default function ServiceManager() {
           </div>
         </div>
 
-        <div className="grid gap-4">
-          <div className="rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-6 text-white shadow-lg">
+        <div className="grid gap-2">
+          <div className="rounded-lg bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 p-3 text-white shadow-lg">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-white/80">
+                <p className="text-[9px] font-semibold uppercase tracking-wide text-white/80">
                   Doanh thu hôm nay
                 </p>
-                <p className="mt-3 text-3xl font-semibold">
+                <p className="mt-1 text-xl font-semibold">
                   {formatCurrency(stats.todayRevenue)}
                 </p>
               </div>
-              <HandCoins className="w-10 h-10 text-white/80" />
+              <HandCoins className="w-6 h-6 text-white/80" />
             </div>
-            <p className="mt-4 text-sm text-white/80">
+            <p className="mt-1.5 text-[10px] text-white/80">
               Bao gồm các phiếu đã thanh toán trong ngày
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6">
+          <div className="rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
                   Lợi nhuận hôm nay
                 </p>
-                <p className="mt-3 text-3xl font-semibold text-slate-900 dark:text-slate-100">
+                <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-100">
                   {formatCurrency(stats.todayProfit)}
                 </p>
               </div>
-              <TrendingUp className="w-10 h-10 text-blue-500" />
+              <TrendingUp className="w-6 h-6 text-blue-500" />
             </div>
-            <div className="mt-4 flex items-center justify-between text-sm">
+            <div className="mt-1.5 flex items-center justify-between text-[10px]">
               <span className="text-slate-500 dark:text-slate-400">
                 Biên lợi nhuận
               </span>
@@ -1644,8 +1642,8 @@ export default function ServiceManager() {
       </div>
 
       {/* Quick status filters - Hidden on desktop (lg+) since we have the stat cards above */}
-      <div className="lg:hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 flex flex-wrap items-center gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+      <div className="lg:hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-wrap items-center gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
           Trạng thái nhanh
         </span>
         <div className="flex flex-wrap gap-2">
@@ -1674,78 +1672,72 @@ export default function ServiceManager() {
         </div>
       </div>
 
-      {/* Action Bar */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-          {/* Search + Filters Group */}
-          <div className="flex flex-col sm:flex-row flex-1 gap-3">
-            {/* Search */}
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Mã phiếu, tên khách, SĐT, xe, biển số..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400"
-                />
-                <Search
-                  className="absolute left-3 top-2.5 w-4 h-4 text-slate-400"
-                  aria-hidden="true"
-                />
-              </div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-              <select className={filterInputClass}>
-                <option>Tất cả ngày</option>
-                <option>Hôm nay</option>
-                <option>7 ngày qua</option>
-                <option>30 ngày qua</option>
-              </select>
-              <select className={filterInputClass}>
-                <option>Tất cả KTV</option>
-                <option>KTV 1</option>
-                <option>KTV 2</option>
-              </select>
-              <select className={filterInputClass}>
-                <option>Tất cả thanh toán</option>
-                <option>Đã thanh toán</option>
-                <option>Chưa thanh toán</option>
-              </select>
-            </div>
+      {/* Action Bar - Single row on desktop */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px] max-w-[280px]">
+            <input
+              type="text"
+              placeholder="Mã phiếu, tên khách..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400"
+            />
+            <Search
+              className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400"
+              aria-hidden="true"
+            />
           </div>
+
+          {/* Filters - inline */}
+          <select className="px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg">
+            <option>Tất cả ngày</option>
+            <option>Hôm nay</option>
+            <option>7 ngày qua</option>
+            <option>30 ngày qua</option>
+          </select>
+          <select className="px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg">
+            <option>Tất cả KTV</option>
+            <option>KTV 1</option>
+            <option>KTV 2</option>
+          </select>
+          <select className="px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg">
+            <option>Thanh toán</option>
+            <option>Đã TT</option>
+            <option>Chưa TT</option>
+          </select>
+
+          {/* Spacer */}
+          <div className="flex-1"></div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setShowTemplateModal(true)}
-              className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium flex items-center gap-2"
-              aria-label="Mở danh sách mẫu sửa chữa"
-            >
-              <FileText className="w-4 h-4" /> Mẫu SC
-            </button>
-            <Link
-              to="/service-history"
-              className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-            >
-              <History className="w-4 h-4" /> Lịch sử SC
-            </Link>
-            <button
-              onClick={() => {
-                if (window.innerWidth < 768) {
-                  setShowMobileModal(true);
-                } else {
-                  handleOpenModal();
-                }
-              }}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center gap-2"
-              aria-label="Tạo phiếu sửa chữa mới"
-            >
-              <Plus className="w-4 h-4" /> Thêm Phiếu
-            </button>
-          </div>
+          <button
+            onClick={() => setShowTemplateModal(true)}
+            className="px-2.5 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs font-medium flex items-center gap-1"
+            aria-label="Mở danh sách mẫu sửa chữa"
+          >
+            <FileText className="w-3.5 h-3.5" /> Mẫu SC
+          </button>
+          <Link
+            to="/service-history"
+            className="px-2.5 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-xs font-medium flex items-center gap-1 transition-colors"
+          >
+            <History className="w-3.5 h-3.5" /> Lịch sử SC
+          </Link>
+          <button
+            onClick={() => {
+              if (window.innerWidth < 768) {
+                setShowMobileModal(true);
+              } else {
+                handleOpenModal();
+              }
+            }}
+            className="px-2.5 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-medium flex items-center gap-1"
+            aria-label="Tạo phiếu sửa chữa mới"
+          >
+            <Plus className="w-3.5 h-3.5" /> Thêm Phiếu
+          </button>
         </div>
       </div>
 

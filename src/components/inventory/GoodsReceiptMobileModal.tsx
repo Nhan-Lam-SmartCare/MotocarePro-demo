@@ -84,6 +84,7 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
   const [barcodeInput, setBarcodeInput] = useState("");
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [showBarcodeInput, setShowBarcodeInput] = useState(false);
   const { data: suppliers = [] } = useSuppliers();
 
   console.log(
@@ -168,7 +169,7 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
   // Handle camera scan result - Modal tự đóng sau khi quét
   const handleCameraScan = (barcode: string) => {
     console.log("📷 Camera scanned:", barcode);
-    
+
     // Normalize barcode để so sánh
     const normalizeCode = (code: string): string =>
       code.toLowerCase().replace(/[-\s./\\]/g, "");
@@ -186,7 +187,9 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
 
     if (foundPart) {
       // Kiểm tra đã có trong phiếu chưa
-      const existing = receiptItems.find((item) => item.partId === foundPart.id);
+      const existing = receiptItems.find(
+        (item) => item.partId === foundPart.id
+      );
       if (existing) {
         // Chỉ tăng số lượng, KHÔNG hiện toast
         setReceiptItems((items) =>
@@ -223,12 +226,12 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
     }
   };
 
-  // Auto focus barcode input when modal opens
+  // Auto focus barcode input when showBarcodeInput is enabled
   useEffect(() => {
-    if (isOpen && step === 1) {
-      setTimeout(() => barcodeInputRef.current?.focus(), 300);
+    if (showBarcodeInput) {
+      setTimeout(() => barcodeInputRef.current?.focus(), 100);
     }
-  }, [isOpen, step]);
+  }, [showBarcodeInput]);
 
   const removeFromReceipt = (index: number) => {
     setReceiptItems((items) => items.filter((_, i) => i !== index));
@@ -343,11 +346,92 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
 
               {/* Sticky Search Bar */}
               <div className="p-3 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 flex-shrink-0 space-y-2">
-                {/* Barcode Scanner Input - Quick Entry */}
-                <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
+                {/* Barcode Scanner Input - Toggle visibility */}
+                {showBarcodeInput && (
+                  <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
+                    <div className="relative flex-1">
+                      <svg
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                        />
+                      </svg>
+                      <input
+                        ref={barcodeInputRef}
+                        type="text"
+                        placeholder="Nhập SKU hoặc quét..."
+                        value={barcodeInput}
+                        onChange={(e) => setBarcodeInput(e.target.value)}
+                        className="w-full px-4 py-3 pl-11 border-2 border-blue-400 dark:border-blue-600 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-slate-900 dark:text-slate-100 text-base font-mono placeholder:text-blue-500/70"
+                      />
+                      {barcodeInput && (
+                        <button
+                          type="button"
+                          onClick={() => setBarcodeInput("")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Close barcode input */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowBarcodeInput(false);
+                        setBarcodeInput("");
+                      }}
+                      className="w-12 h-[50px] flex items-center justify-center border-2 border-slate-300 dark:border-slate-600 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </form>
+                )}
+
+                {/* Manual Search with barcode toggle */}
+                <div className="flex gap-2">
                   <div className="relative flex-1">
+                    <input
+                      type="text"
+                      placeholder="Hoặc tìm kiếm thủ công..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full px-4 py-3 pl-10 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                    />
                     <svg
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -356,45 +440,42 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                       />
                     </svg>
-                    <input
-                      ref={barcodeInputRef}
-                      type="text"
-                      placeholder="Nhập SKU hoặc quét..."
-                      value={barcodeInput}
-                      onChange={(e) => setBarcodeInput(e.target.value)}
-                      className="w-full px-4 py-3 pl-11 border-2 border-blue-400 dark:border-blue-600 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-slate-900 dark:text-slate-100 text-base font-mono placeholder:text-blue-500/70"
-                    />
-                    {barcodeInput && (
-                      <button
-                        type="button"
-                        onClick={() => setBarcodeInput("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-                    )}
                   </div>
+
+                  {/* Barcode Toggle Button */}
+                  {!showBarcodeInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowBarcodeInput(true);
+                      }}
+                      className="w-12 h-[50px] flex items-center justify-center border-2 border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl transition-all active:scale-95"
+                      title="Quét mã vạch"
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                        />
+                      </svg>
+                    </button>
+                  )}
 
                   {/* Camera Button */}
                   <button
                     type="button"
                     onClick={() => setShowCameraScanner(true)}
-                    className="w-14 h-[50px] flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl shadow-lg transition-all active:scale-95"
+                    className="w-12 h-[50px] flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl shadow-lg transition-all active:scale-95"
                   >
                     <svg
                       className="w-6 h-6"
@@ -416,30 +497,6 @@ export const GoodsReceiptMobileModal: React.FC<Props> = ({
                       />
                     </svg>
                   </button>
-                </form>
-
-                {/* Manual Search */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Hoặc tìm kiếm thủ công..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-3 pl-10 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                  />
-                  <svg
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
                 </div>
               </div>
 

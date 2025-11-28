@@ -67,11 +67,11 @@ const FinanceManager: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header with Toggle Buttons */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 rounded-lg shadow-lg border border-primary-border p-4 md:p-6">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 rounded-lg shadow-lg border border-primary-border p-3 md:p-4">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
           <div>
-            <h1 className="flex items-center gap-2 text-2xl font-bold text-primary-text mb-2">
-              <PiggyBank className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+            <h1 className="flex items-center gap-2 text-xl font-bold text-primary-text mb-1">
+              <PiggyBank className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               Quản lý Tài chính
             </h1>
             <p className="text-secondary-text">
@@ -92,7 +92,7 @@ const FinanceManager: React.FC = () => {
                     key={tabKey}
                     aria-pressed={isActive}
                     onClick={() => setActiveTab(tabKey)}
-                    className={`px-4 md:px-6 py-2 md:py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 border ${
+                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg font-medium transition-all flex items-center justify-center gap-1.5 border text-sm ${
                       isActive
                         ? `${config.activeClass} scale-[1.03]`
                         : config.inactiveClass

@@ -143,89 +143,89 @@ const EmployeeManager: React.FC = () => {
   }, [employees]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           Quản lý nhân viên
         </h2>
         <button
           onClick={() => setShowForm(true)}
-          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center gap-2"
+          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium shadow-md hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center gap-1.5"
         >
-          <Plus className="w-5 h-5" /> Thêm nhân viên
+          <Plus className="w-4 h-4" /> Thêm nhân viên
         </button>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white/80 text-sm font-medium">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-white/80 text-xs font-medium">
               Tổng nhân viên
             </span>
-            <Users className="w-8 h-8" />
+            <Users className="w-6 h-6" />
           </div>
-          <div className="text-3xl font-bold">{stats.total}</div>
-          <div className="text-white/70 text-sm mt-1">
+          <div className="text-2xl font-bold">{stats.total}</div>
+          <div className="text-white/70 text-xs mt-1">
             {stats.active} đang làm việc
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white/80 text-sm font-medium">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-white/80 text-xs font-medium">
               Đang hoạt động
             </span>
-            <UserCheck className="w-8 h-8" />
+            <UserCheck className="w-6 h-6" />
           </div>
-          <div className="text-3xl font-bold">{stats.active}</div>
-          <div className="text-white/70 text-sm mt-1">Nhân viên active</div>
+          <div className="text-2xl font-bold">{stats.active}</div>
+          <div className="text-white/70 text-xs mt-1">Nhân viên active</div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white/80 text-sm font-medium">
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-white/80 text-xs font-medium">
               Tổng lương tháng
             </span>
-            <DollarSign className="w-8 h-8" />
+            <DollarSign className="w-6 h-6" />
           </div>
-          <div className="text-2xl font-bold">
+          <div className="text-xl font-bold">
             {formatCurrency(stats.totalSalary)}
           </div>
-          <div className="text-white/70 text-sm mt-1">Ước tính</div>
+          <div className="text-white/70 text-xs mt-1">Ước tính</div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
+      <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700">
         {[
           {
             key: "list",
             label: "Danh sách",
-            icon: <ClipboardList className="w-4 h-4" />,
+            icon: <ClipboardList className="w-3.5 h-3.5" />,
           },
           {
             key: "attendance",
             label: "Chấm công",
-            icon: <Clock className="w-4 h-4" />,
+            icon: <Clock className="w-3.5 h-3.5" />,
           },
           {
             key: "payroll",
             label: "Quản lý lương",
-            icon: <DollarSign className="w-4 h-4" />,
+            icon: <DollarSign className="w-3.5 h-3.5" />,
           },
           {
             key: "history",
             label: "Lịch sử",
-            icon: <History className="w-4 h-4" />,
+            icon: <History className="w-3.5 h-3.5" />,
           },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key as Tab)}
-            className={`px-6 py-3 font-medium transition-all ${
+            className={`px-4 py-2 text-sm font-medium transition-all ${
               activeTab === tab.key
                 ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"

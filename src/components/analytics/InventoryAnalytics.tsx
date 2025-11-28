@@ -22,7 +22,8 @@ import { formatCurrency } from "../../utils/format";
 const InventoryAnalytics: React.FC = () => {
   const { currentBranchId } = useAppContext();
   const { data: parts = [], isLoading: partsLoading } = usePartsRepo();
-  const { data: inventoryTransactions = [], isLoading: txLoading } = useInventoryTxRepo();
+  const { data: inventoryTransactions = [], isLoading: txLoading } =
+    useInventoryTxRepo();
 
   const isLoading = partsLoading || txLoading;
 
@@ -166,57 +167,57 @@ const InventoryAnalytics: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg border border-blue-200 dark:border-blue-700">
-          <div className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+          <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">
             Tổng giá trị tồn kho
           </div>
-          <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+          <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
             {formatCurrency(totalInventoryValue)}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 p-6 rounded-lg border border-emerald-200 dark:border-emerald-700">
-          <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-2">
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
+          <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">
             Tổng SL tồn kho
           </div>
-          <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">
+          <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
             {totalInventoryQty}
           </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-300 mt-1">
+          <div className="text-[10px] text-emerald-700 dark:text-emerald-300 mt-0.5">
             {parts.length} mã sản phẩm
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-6 rounded-lg border border-amber-200 dark:border-amber-700">
-          <div className="text-sm font-medium text-amber-600 dark:text-amber-400 mb-2">
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-4 rounded-lg border border-amber-200 dark:border-amber-700">
+          <div className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">
             Sắp hết hàng
           </div>
-          <div className="text-3xl font-bold text-amber-900 dark:text-amber-100">
+          <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">
             {lowStockItems.length}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-6 rounded-lg border border-red-200 dark:border-red-700">
-          <div className="text-sm font-medium text-red-600 dark:text-red-400 mb-2">
+        <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-4 rounded-lg border border-red-200 dark:border-red-700">
+          <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
             Hết hàng
           </div>
-          <div className="text-3xl font-bold text-red-900 dark:text-red-100">
+          <div className="text-2xl font-bold text-red-900 dark:text-red-100">
             {outOfStockCount}
           </div>
         </div>
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Category Distribution */}
-        <div className="bg-white dark:bg-[#1e293b] p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        <div className="bg-white dark:bg-[#1e293b] p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">
             Giá trị theo danh mục
           </h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
                 data={categoryData}
@@ -251,11 +252,11 @@ const InventoryAnalytics: React.FC = () => {
         </div>
 
         {/* Inventory Transactions */}
-        <div className="bg-white dark:bg-[#1e293b] p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        <div className="bg-white dark:bg-[#1e293b] p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">
             Nhập/Xuất kho (14 ngày gần nhất)
           </h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={250}>
             <LineChart data={recentTransactions}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="date" stroke="#94a3b8" />
@@ -287,36 +288,36 @@ const InventoryAnalytics: React.FC = () => {
       </div>
 
       {/* Top Items */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top Value Items */}
-        <div className="bg-white dark:bg-[#1e293b] p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        <div className="bg-white dark:bg-[#1e293b] p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">
             Top 10 sản phẩm giá trị cao
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {topValueItems.map((item, index) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-sm font-bold text-blue-600 dark:text-blue-400">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400">
                     {index + 1}
                   </div>
                   <div>
-                    <div className="font-medium text-slate-900 dark:text-slate-100">
+                    <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                       {item.name}
                     </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                    <div className="text-[10px] text-slate-600 dark:text-slate-400">
                       Tồn: {item.stock[currentBranchId] || 0}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold text-slate-900 dark:text-slate-100">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {formatCurrency(item.totalValue)}
                   </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">
+                  <div className="text-[10px] text-slate-600 dark:text-slate-400">
                     {formatCurrency(item.retailPrice[currentBranchId] || 0)}/sp
                   </div>
                 </div>
@@ -326,12 +327,12 @@ const InventoryAnalytics: React.FC = () => {
         </div>
 
         {/* Low Stock Alerts */}
-        <div className="bg-white dark:bg-[#1e293b] p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-[#1e293b] p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
             <span className="inline-flex">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5 text-amber-600"
+                className="w-4 h-4 text-amber-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -346,7 +347,7 @@ const InventoryAnalytics: React.FC = () => {
             </span>
             Cảnh báo tồn kho thấp
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {lowStockItems.map((item) => {
               const stock = item.stock[currentBranchId] || 0;
               const level =
@@ -355,29 +356,31 @@ const InventoryAnalytics: React.FC = () => {
               return (
                 <div
                   key={item.id}
-                  className={`flex items-center justify-between p-3 rounded-lg ${level === "critical"
-                    ? "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
-                    : level === "warning"
+                  className={`flex items-center justify-between p-2 rounded-lg ${
+                    level === "critical"
+                      ? "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+                      : level === "warning"
                       ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
                       : "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
-                    }`}
+                  }`}
                 >
                   <div>
-                    <div className="font-medium text-slate-900 dark:text-slate-100">
+                    <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                       {item.name}
                     </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                    <div className="text-[10px] text-slate-600 dark:text-slate-400">
                       SKU: {item.sku}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${level === "critical"
-                        ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                        : level === "warning"
+                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        level === "critical"
+                          ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                          : level === "warning"
                           ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
                           : "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
-                        }`}
+                      }`}
                     >
                       {stock} còn lại
                     </div>
@@ -386,7 +389,7 @@ const InventoryAnalytics: React.FC = () => {
               );
             })}
             {lowStockItems.length === 0 && (
-              <div className="text-center py-8 text-slate-600 dark:text-slate-400 flex items-center justify-center gap-2">
+              <div className="text-center py-6 text-slate-600 dark:text-slate-400 flex items-center justify-center gap-2 text-sm">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="w-5 h-5 text-green-500"

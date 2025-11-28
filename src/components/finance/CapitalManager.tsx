@@ -99,10 +99,10 @@ const CapitalManager: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
               Vốn đầu tư
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -120,9 +120,9 @@ const CapitalManager: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="p-4 md:p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border-2 border-purple-200 dark:border-purple-700 p-4">
+      <div className="p-3 md:p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border-2 border-purple-200 dark:border-purple-700 p-3">
             <div className="text-xs text-purple-700 dark:text-purple-300 mb-1 font-medium">
               Tổng vốn
             </div>
@@ -130,7 +130,7 @@ const CapitalManager: React.FC = () => {
               {formatCurrency(summary.totalCapital)}
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
             <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
               Vốn chủ
             </div>
@@ -138,7 +138,7 @@ const CapitalManager: React.FC = () => {
               {formatCurrency(summary.ownerCapital)}
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
             <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
               Vốn đầu tư
             </div>
@@ -146,7 +146,7 @@ const CapitalManager: React.FC = () => {
               {formatCurrency(summary.investorCapital)}
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
             <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
               Vốn vay
             </div>
@@ -157,7 +157,7 @@ const CapitalManager: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 mb-4">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3 mb-4">
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Loại nguồn vốn:

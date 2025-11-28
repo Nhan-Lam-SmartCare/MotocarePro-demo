@@ -112,24 +112,24 @@ const StatCard: React.FC<{
   const c = CARD_COLORS[colorKey];
   return (
     <div
-      className={`${c.card} rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow`}
+      className={`${c.card} rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow`}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2">
         <div>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">
+          <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-0.5">
             {title}
           </p>
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">
             {value}
           </h3>
         </div>
         <div
-          className={`w-10 h-10 rounded-lg ${c.icon} flex items-center justify-center`}
+          className={`w-8 h-8 rounded-lg ${c.icon} flex items-center justify-center`}
         >
           {icon}
         </div>
       </div>
-      <p className={`text-sm ${c.accent}`}>{subtitle}</p>
+      <p className={`text-xs ${c.accent}`}>{subtitle}</p>
     </div>
   );
 };
@@ -587,7 +587,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-3 md:space-y-4">
       {/* Header - Lời chào người dùng - Chỉ hiện trên mobile */}
       <div className="md:hidden bg-gradient-to-r from-blue-600 to-violet-600 dark:from-blue-700 dark:to-violet-800 rounded-2xl p-4 md:p-6 text-white shadow-lg">
         <div className="flex items-start justify-between">
@@ -1269,48 +1269,48 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Thống kê tổng quan */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
               Tổng khách hàng
             </h3>
             <Users className="w-5 h-5 text-slate-500" />
           </div>
-          <div className="text-3xl font-bold text-slate-900 dark:text-white">
+          <div className="text-2xl font-bold text-slate-900 dark:text-white">
             {customers.length}
           </div>
-          <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {customers.filter((c) => c.segment === "VIP").length} VIP
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
               Tổng nhân viên
             </h3>
             <BriefcaseBusiness className="w-5 h-5 text-slate-500" />
           </div>
-          <div className="text-3xl font-bold text-slate-900 dark:text-white">
+          <div className="text-2xl font-bold text-slate-900 dark:text-white">
             {employees.filter((e) => e.status === "active").length}
           </div>
-          <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Đang làm việc
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
               Tổng sản phẩm
             </h3>
             <Boxes className="w-5 h-5 text-slate-500" />
           </div>
-          <div className="text-3xl font-bold text-slate-900 dark:text-white">
+          <div className="text-2xl font-bold text-slate-900 dark:text-white">
             {parts.reduce((sum, p) => sum + (p.stock[currentBranchId] || 0), 0)}
           </div>
-          <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {parts.length} loại sản phẩm
           </div>
         </div>

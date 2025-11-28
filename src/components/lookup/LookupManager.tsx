@@ -114,8 +114,8 @@ const LookupManager: React.FC = () => {
       lastSold:
         partSales.length > 0
           ? partSales.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          )[0].date
+              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            )[0].date
           : null,
       workOrdersCount: partWorkOrders.length,
     };
@@ -128,8 +128,8 @@ const LookupManager: React.FC = () => {
       {/* Left Panel - Search & Filters */}
       <div className="w-96 bg-white dark:bg-[#1e293b] border-r border-slate-200 dark:border-slate-700 flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-1">
             Tra cứu sản phẩm
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -193,10 +193,10 @@ const LookupManager: React.FC = () => {
                     onChange={(e) =>
                       setStockFilter(
                         e.target.value as
-                        | "all"
-                        | "in-stock"
-                        | "low-stock"
-                        | "out-of-stock"
+                          | "all"
+                          | "in-stock"
+                          | "low-stock"
+                          | "out-of-stock"
                       )
                     }
                     className="w-4 h-4 text-blue-600"
@@ -276,10 +276,11 @@ const LookupManager: React.FC = () => {
                 <div
                   key={part.id}
                   onClick={() => setSelectedPart(part.id)}
-                  className={`bg-white dark:bg-[#1e293b] rounded-lg shadow-sm border-2 transition-all cursor-pointer ${selectedPart === part.id
-                    ? "border-blue-500 shadow-md"
-                    : "border-slate-200 dark:border-slate-700 hover:shadow-md"
-                    }`}
+                  className={`bg-white dark:bg-[#1e293b] rounded-lg shadow-sm border-2 transition-all cursor-pointer ${
+                    selectedPart === part.id
+                      ? "border-blue-500 shadow-md"
+                      : "border-slate-200 dark:border-slate-700 hover:shadow-md"
+                  }`}
                 >
                   <div className="p-4">
                     <div className="flex items-start justify-between mb-2">

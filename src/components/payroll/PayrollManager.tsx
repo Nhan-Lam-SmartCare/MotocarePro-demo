@@ -64,10 +64,10 @@ const PayrollManager: React.FC = () => {
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">
                 Quản lý lương
               </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -119,7 +119,7 @@ const PayrollManager: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4">
         {activeTab === "employees" ? (
           <EmployeeList
             employees={employees}

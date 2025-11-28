@@ -68,10 +68,10 @@ const LoansManager: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
               Quản lý vốn & vay
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -89,7 +89,7 @@ const LoansManager: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="p-4 md:p-6">
+      <div className="p-3 md:p-4">
         {loadingLoans || loadingPayments ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
@@ -99,8 +99,8 @@ const LoansManager: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3 mb-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border-2 border-blue-200 dark:border-blue-800">
                 <div className="text-blue-600 dark:text-blue-400 text-sm font-medium mb-2">
                   Tổng vay
                 </div>
@@ -109,7 +109,7 @@ const LoansManager: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border-2 border-red-200 dark:border-red-800">
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border-2 border-red-200 dark:border-red-800">
                 <div className="text-red-600 dark:text-red-400 text-sm font-medium mb-2">
                   Còn nợ
                 </div>
@@ -118,7 +118,7 @@ const LoansManager: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border-2 border-green-200 dark:border-green-800">
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border-2 border-green-200 dark:border-green-800">
                 <div className="text-green-600 dark:text-green-400 text-sm font-medium mb-2">
                   Đã trả
                 </div>
@@ -127,7 +127,7 @@ const LoansManager: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border-2 border-amber-200 dark:border-amber-800">
+              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border-2 border-amber-200 dark:border-amber-800">
                 <div className="text-amber-600 dark:text-amber-400 text-sm font-medium mb-2">
                   Đang vay
                 </div>
@@ -139,7 +139,7 @@ const LoansManager: React.FC = () => {
                 </div>
               </div>
 
-              <div className="col-span-2 md:col-span-1 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border-2 border-orange-200 dark:border-orange-800">
+              <div className="col-span-2 md:col-span-1 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 border-2 border-orange-200 dark:border-orange-800">
                 <div className="text-orange-600 dark:text-orange-400 text-sm font-medium mb-2">
                   Quá hạn
                 </div>

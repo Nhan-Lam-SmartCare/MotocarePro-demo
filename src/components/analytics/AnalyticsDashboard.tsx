@@ -89,15 +89,15 @@ const AnalyticsDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto">
+    <div className="p-4 max-w-[1600px] mx-auto">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               Báo cáo & Phân tích
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
+            <p className="text-slate-600 dark:text-slate-400 text-sm">
               Theo dõi và phân tích hiệu suất kinh doanh
             </p>
           </div>
@@ -107,14 +107,14 @@ const AnalyticsDashboard: React.FC = () => {
             {activeTab === "inventory" && (
               <button
                 onClick={handleExportLowStock}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors flex items-center gap-1.5 text-sm"
               >
                 <AlertTriangle className="w-4 h-4" /> Cảnh báo tồn kho
               </button>
             )}
             <button
               onClick={handleExportPDF}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-1.5 text-sm"
             >
               <FileText className="w-4 h-4" /> Xuất PDF
             </button>
@@ -122,18 +122,18 @@ const AnalyticsDashboard: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 font-medium transition-all relative ${
+              className={`px-4 py-2 font-medium transition-all relative text-sm ${
                 activeTab === tab.id
                   ? "text-blue-600 dark:text-blue-400"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               }`}
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5">
                 <span>{tab.icon}</span>
                 <span>{tab.label}</span>
               </span>

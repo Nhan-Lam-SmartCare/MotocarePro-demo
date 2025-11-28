@@ -164,10 +164,10 @@ const CategoriesManager: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-[#0f172a]">
       {/* Header */}
-      <div className="bg-white dark:bg-[#1e293b] shadow-sm border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+      <div className="bg-white dark:bg-[#1e293b] shadow-sm border-b border-slate-200 dark:border-slate-700 px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
               Danh mục sản phẩm
             </h1>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -200,29 +200,29 @@ const CategoriesManager: React.FC = () => {
       )}
 
       {/* Stats */}
-      <div className="px-6 py-4 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-700">
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+      <div className="px-4 py-3 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-700">
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
             <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
               Tổng danh mục
             </div>
-            <div className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
+            <div className="text-xl font-bold text-blue-900 dark:text-blue-100 mt-1">
               {categories.length}
             </div>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
+          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 p-3 rounded-lg border border-emerald-200 dark:border-emerald-700">
             <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
               Tổng sản phẩm
             </div>
-            <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-1">
+            <div className="text-xl font-bold text-emerald-900 dark:text-emerald-100 mt-1">
               {parts.length}
             </div>
           </div>
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-4 rounded-lg border border-amber-200 dark:border-amber-700">
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-3 rounded-lg border border-amber-200 dark:border-amber-700">
             <div className="text-sm font-medium text-amber-600 dark:text-amber-400">
               Chưa phân loại
             </div>
-            <div className="text-2xl font-bold text-amber-900 dark:text-amber-100 mt-1">
+            <div className="text-xl font-bold text-amber-900 dark:text-amber-100 mt-1">
               {parts.filter((p) => !p.category).length}
             </div>
           </div>
@@ -230,7 +230,7 @@ const CategoriesManager: React.FC = () => {
       </div>
 
       {/* Categories Grid */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {categories.map((category) => (
             <div
