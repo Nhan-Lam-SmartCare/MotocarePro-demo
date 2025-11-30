@@ -229,7 +229,76 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const upsertCustomer = useCallback(
-    (customer: Partial<Customer> & { id?: string }) => {
+    async (customer: Partial<Customer> & { id?: string }) => {
+      // Prepare customer data for database
+      const customerId =
+        customer.id ||
+        `CUS-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+      // Check if customer exists in local state
+      const existingCustomer = customers.find((c) => c.id === customer.id);
+
+      try {
+        if (existingCustomer) {
+          // Update existing customer in Supabase
+          const { error } = await supabase
+            .from("customers")
+            .update({
+              name: customer.name || existingCustomer.name,
+              phone: customer.phone || existingCustomer.phone || null,
+              vehiclemodel:
+                customer.vehicleModel || existingCustomer.vehicleModel || null,
+              licenseplate:
+                customer.licensePlate || existingCustomer.licensePlate || null,
+              vehicles: customer.vehicles || existingCustomer.vehicles || [],
+              status: customer.status || existingCustomer.status || "active",
+              segment: customer.segment || existingCustomer.segment || "New",
+              loyaltypoints:
+                customer.loyaltyPoints ?? existingCustomer.loyaltyPoints ?? 0,
+              totalspent:
+                customer.totalSpent ?? existingCustomer.totalSpent ?? 0,
+              visitcount:
+                customer.visitCount ?? existingCustomer.visitCount ?? 0,
+              lastvisit:
+                customer.lastVisit || existingCustomer.lastVisit || null,
+            })
+            .eq("id", customer.id);
+
+          if (error) {
+            console.error("Error updating customer in Supabase:", error);
+            showToast.error("Lỗi cập nhật khách hàng");
+          }
+        } else {
+          // Insert new customer to Supabase
+          const { error } = await supabase.from("customers").insert([
+            {
+              id: customerId,
+              name: customer.name || "Khách hàng",
+              phone: customer.phone || null,
+              vehiclemodel: customer.vehicleModel || null,
+              licenseplate: customer.licensePlate || null,
+              vehicles: customer.vehicles || [],
+              status: customer.status || "active",
+              segment: customer.segment || "New",
+              loyaltypoints: customer.loyaltyPoints ?? 0,
+              totalspent: customer.totalSpent ?? 0,
+              visitcount: customer.visitCount ?? 1,
+              lastvisit: customer.lastVisit || new Date().toISOString(),
+            },
+          ]);
+
+          if (error) {
+            console.error("Error inserting customer to Supabase:", error);
+            showToast.error("Lỗi lưu khách hàng mới");
+          } else {
+            showToast.success("Đã lưu khách hàng mới");
+          }
+        }
+      } catch (err) {
+        console.error("Error saving customer to database:", err);
+      }
+
+      // Update local state (keep all fields for UI)
       setCustomers((prev) => {
         if (customer.id) {
           // Update existing customer
@@ -250,9 +319,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           return [newCustomer, ...prev];
         }
         // No ID provided, generate new
-        const id = `CUS-${Date.now()}-${Math.random().toString(16).slice(2)}`;
         const newCustomer: Customer = {
-          id,
+          id: customerId,
           name: customer.name || "Khách hàng",
           phone: customer.phone,
           created_at: new Date().toISOString(),
@@ -261,7 +329,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         return [newCustomer, ...prev];
       });
     },
-    []
+    [customers]
   );
 
   const upsertSupplier = useCallback(
