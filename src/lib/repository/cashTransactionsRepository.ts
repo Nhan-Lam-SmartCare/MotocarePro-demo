@@ -102,7 +102,7 @@ export async function createCashTransaction(
       return failure({ code: "validation", message: "Thiếu loại thu/chi" });
 
     // Build payload with lowercase column names (PostgreSQL converts to lowercase)
-    // DB columns: id, type, category, amount, date, description, branchid, paymentsource, reference, created_at
+    // DB columns: id, type, category, amount, date, description, branchid, paymentsource, reference, created_at, recipient
     const payload: any = {
       id: crypto.randomUUID(),
       type: input.type, // Required: "income" or "expense"
@@ -114,6 +114,7 @@ export async function createCashTransaction(
         (input.type === "income" ? "general_income" : "general_expense"),
       date: input.date || new Date().toISOString(),
       description: input.notes || "",
+      recipient: input.recipient || null,
     };
 
     console.log("[CashTx] Creating transaction with payload:", payload);

@@ -738,7 +738,7 @@ const CashBook: React.FC = () => {
                       {(tx as any).recipient || "--"}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
-                      {tx.notes || "--"}
+                      {(tx as any).description || tx.notes || "--"}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
                       {(() => {
