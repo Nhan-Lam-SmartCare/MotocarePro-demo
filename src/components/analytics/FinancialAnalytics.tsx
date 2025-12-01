@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { useSalesRepo } from "../../hooks/useSalesRepository";
 import { usePartsRepo } from "../../hooks/usePartsRepository";
-import { useInventoryTxRepo } from "../../hooks/useInventoryTransactionsRepository";
+import { useWorkOrdersRepo } from "../../hooks/useWorkOrdersRepository";
 import {
   useCustomerDebtsRepo,
   useSupplierDebtsRepo,
@@ -30,8 +30,8 @@ const FinancialAnalytics: React.FC = () => {
   // --- Hook Data ---
   const { data: sales = [], isLoading: salesLoading } = useSalesRepo();
   const { data: parts = [], isLoading: partsLoading } = usePartsRepo();
-  const { data: inventoryTransactions = [], isLoading: invTxLoading } =
-    useInventoryTxRepo();
+  const { data: workOrders = [], isLoading: workOrdersLoading } =
+    useWorkOrdersRepo();
   const { data: customerDebts = [], isLoading: customerDebtsLoading } =
     useCustomerDebtsRepo();
   const { data: supplierDebts = [], isLoading: supplierDebtsLoading } =
@@ -40,7 +40,7 @@ const FinancialAnalytics: React.FC = () => {
   const isLoading =
     salesLoading ||
     partsLoading ||
-    invTxLoading ||
+    workOrdersLoading ||
     customerDebtsLoading ||
     supplierDebtsLoading;
   const [timeRange, setTimeRange] = useState<TimeRange>("30days");
@@ -54,7 +54,7 @@ const FinancialAnalytics: React.FC = () => {
     return cutoffDate;
   };
 
-  // Income from sales
+  // Income from Sales (bán hàng)
   const salesIncome = useMemo(() => {
     const cutoffDate = getCutoffDate();
     return sales
@@ -62,50 +62,132 @@ const FinancialAnalytics: React.FC = () => {
       .reduce((sum, s) => sum + s.total, 0);
   }, [sales, timeRange]);
 
-  // Expenses from inventory purchases
-  const inventoryExpenses = useMemo(() => {
+  // Income from Work Orders (sửa chữa) - tính các đơn đã trả máy hoặc đã thanh toán
+  const workOrderIncome = useMemo(() => {
     const cutoffDate = getCutoffDate();
-    return inventoryTransactions
-      .filter((tx) => tx.type === "Nhập kho" && new Date(tx.date) >= cutoffDate)
-      .reduce((sum, tx) => {
-        const part = parts.find((p) => p.id === tx.partId);
-        const cost = part?.wholesalePrice?.[currentBranchId] || 0;
-        return sum + cost * tx.quantity;
+    return workOrders
+      .filter((wo) => {
+        const woDate = new Date(wo.creationDate);
+        // Tính đơn đã trả máy HOẶC đã thanh toán (paid/partial) trong khoảng thời gian
+        // Không tính đơn đã hoàn tiền (refunded)
+        const isCompleted = wo.status === "Trả máy" || 
+                           wo.paymentStatus === "paid" || 
+                           wo.paymentStatus === "partial" ||
+                           (wo.totalPaid && wo.totalPaid > 0);
+        return woDate >= cutoffDate && isCompleted && !wo.refunded;
+      })
+      .reduce((sum, wo) => sum + (wo.totalPaid || wo.total || 0), 0);
+  }, [workOrders, timeRange]);
+
+  // Total Income
+  const totalIncome = salesIncome + workOrderIncome;
+
+  // Cost of Goods Sold from Sales
+  const salesCOGS = useMemo(() => {
+    const cutoffDate = getCutoffDate();
+    return sales
+      .filter((s) => new Date(s.date) >= cutoffDate)
+      .reduce((sum, sale) => {
+        const saleCost = sale.items.reduce((itemSum, item) => {
+          const part = parts.find((p) => p.id === item.partId);
+          const costPrice = part?.wholesalePrice?.[currentBranchId] || 0;
+          return itemSum + costPrice * item.quantity;
+        }, 0);
+        return sum + saleCost;
       }, 0);
-  }, [inventoryTransactions, parts, currentBranchId, timeRange]);
+  }, [sales, parts, currentBranchId, timeRange]);
 
-  // Net profit
-  const netProfit = salesIncome - inventoryExpenses;
-  const profitMargin = salesIncome > 0 ? (netProfit / salesIncome) * 100 : 0;
+  // Cost of Goods Sold from Work Orders
+  const workOrderCOGS = useMemo(() => {
+    const cutoffDate = getCutoffDate();
+    return workOrders
+      .filter((wo) => {
+        const woDate = new Date(wo.creationDate);
+        const isCompleted = wo.status === "Trả máy" || 
+                           wo.paymentStatus === "paid" || 
+                           wo.paymentStatus === "partial" ||
+                           (wo.totalPaid && wo.totalPaid > 0);
+        return woDate >= cutoffDate && isCompleted && !wo.refunded;
+      })
+      .reduce((sum, wo) => {
+        // Giá vốn phụ tùng trong work order
+        const partsCost = (wo.partsUsed || []).reduce((partSum, woPart) => {
+          const part = parts.find((p) => p.id === woPart.partId);
+          const costPrice = part?.wholesalePrice?.[currentBranchId] || 0;
+          return partSum + costPrice * woPart.quantity;
+        }, 0);
+        // Giá vốn dịch vụ bên ngoài (gia công)
+        const servicesCost = (wo.additionalServices || []).reduce(
+          (svcSum, svc) => svcSum + (svc.costPrice || 0) * svc.quantity,
+          0
+        );
+        return sum + partsCost + servicesCost;
+      }, 0);
+  }, [workOrders, parts, currentBranchId, timeRange]);
 
-  // Daily income vs expenses
+  // Total Cost of Goods Sold
+  const totalCOGS = salesCOGS + workOrderCOGS;
+
+  // Net profit = Doanh thu - Giá vốn hàng bán
+  const netProfit = totalIncome - totalCOGS;
+  const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
+
+  // Daily income vs cost of goods sold
   const dailyFinancials = useMemo(() => {
     const cutoffDate = getCutoffDate();
     const financialMap = new Map<string, { income: number; expense: number }>();
 
-    // Add sales income
+    // Add sales income and calculate COGS for each sale
     sales
       .filter((s) => new Date(s.date) >= cutoffDate)
       .forEach((sale) => {
         const date = sale.date.slice(0, 10);
         const existing = financialMap.get(date) || { income: 0, expense: 0 };
         existing.income += sale.total;
+        
+        // Calculate cost of goods sold for this sale
+        const saleCost = sale.items.reduce((itemSum, item) => {
+          const part = parts.find((p) => p.id === item.partId);
+          const costPrice = part?.wholesalePrice?.[currentBranchId] || 0;
+          return itemSum + costPrice * item.quantity;
+        }, 0);
+        existing.expense += saleCost;
+        
         financialMap.set(date, existing);
       });
 
-    // Add inventory expenses
-    inventoryTransactions
-      .filter((tx) => tx.type === "Nhập kho" && new Date(tx.date) >= cutoffDate)
-      .forEach((tx) => {
-        const date = tx.date.slice(0, 10);
-        const part = parts.find((p) => p.id === tx.partId);
-        const cost = part?.wholesalePrice?.[currentBranchId] || 0;
+    // Add work order income and COGS
+    workOrders
+      .filter((wo) => {
+        const woDate = new Date(wo.creationDate);
+        const isCompleted = wo.status === "Trả máy" || 
+                           wo.paymentStatus === "paid" || 
+                           wo.paymentStatus === "partial" ||
+                           (wo.totalPaid && wo.totalPaid > 0);
+        return woDate >= cutoffDate && isCompleted && !wo.refunded;
+      })
+      .forEach((wo) => {
+        const date = wo.creationDate.slice(0, 10);
         const existing = financialMap.get(date) || { income: 0, expense: 0 };
-        existing.expense += cost * tx.quantity;
+        existing.income += wo.totalPaid || wo.total || 0;
+        
+        // Calculate COGS for work order
+        const partsCost = (wo.partsUsed || []).reduce((partSum, woPart) => {
+          const part = parts.find((p) => p.id === woPart.partId);
+          const costPrice = part?.wholesalePrice?.[currentBranchId] || 0;
+          return partSum + costPrice * woPart.quantity;
+        }, 0);
+        const servicesCost = (wo.additionalServices || []).reduce(
+          (svcSum, svc) => svcSum + (svc.costPrice || 0) * svc.quantity,
+          0
+        );
+        existing.expense += partsCost + servicesCost;
+        
         financialMap.set(date, existing);
       });
 
     return Array.from(financialMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0])) // Sort by ISO date string (YYYY-MM-DD)
       .map(([date, data]) => ({
         date: new Date(date).toLocaleDateString("vi-VN", {
           day: "2-digit",
@@ -115,9 +197,8 @@ const FinancialAnalytics: React.FC = () => {
         expense: Math.round(data.expense),
         profit: Math.round(data.income - data.expense),
       }))
-      .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-30);
-  }, [sales, inventoryTransactions, parts, currentBranchId, timeRange]);
+  }, [sales, workOrders, parts, currentBranchId, timeRange]);
 
   // Customer debts summary
   const customerDebtStats = useMemo(() => {
@@ -203,16 +284,22 @@ const FinancialAnalytics: React.FC = () => {
             Thu nhập
           </div>
           <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
-            {formatCurrency(salesIncome)}
+            {formatCurrency(totalIncome)}
+          </div>
+          <div className="text-[10px] mt-1 text-emerald-600 dark:text-emerald-400">
+            Bán hàng: {formatCurrency(salesIncome)} | Sửa chữa: {formatCurrency(workOrderIncome)}
           </div>
         </div>
 
         <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-4 rounded-lg border border-red-200 dark:border-red-700">
           <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
-            Chi phí
+            Chi phí (Giá vốn)
           </div>
           <div className="text-2xl font-bold text-red-900 dark:text-red-100">
-            {formatCurrency(inventoryExpenses)}
+            {formatCurrency(totalCOGS)}
+          </div>
+          <div className="text-[10px] mt-1 text-red-600 dark:text-red-400">
+            Bán hàng: {formatCurrency(salesCOGS)} | Sửa chữa: {formatCurrency(workOrderCOGS)}
           </div>
         </div>
 

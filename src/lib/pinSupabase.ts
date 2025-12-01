@@ -39,19 +39,21 @@ export async function fetchPinCashTransactions(): Promise<
   return data || [];
 }
 
-// Fetch tổng số dư từ Pin DB
+// Fetch tổng số dư từ Pin DB (chia theo tiền mặt và ngân hàng)
 export async function fetchPinBalanceSummary(): Promise<{
   totalIncome: number;
   totalExpense: number;
   balance: number;
+  cash: number;
+  bank: number;
 }> {
   const { data, error } = await pinSupabase
     .from("cashtransactions")
-    .select("type, amount");
+    .select("type, amount, payment_method");
 
   if (error) {
     console.error("[PinSupabase] Error fetching balance:", error);
-    return { totalIncome: 0, totalExpense: 0, balance: 0 };
+    return { totalIncome: 0, totalExpense: 0, balance: 0, cash: 0, bank: 0 };
   }
 
   const totalIncome = (data || [])
@@ -62,9 +64,27 @@ export async function fetchPinBalanceSummary(): Promise<{
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
 
+  // Tính số dư tiền mặt
+  const cashIncome = (data || [])
+    .filter((t) => t.type === "income" && (t.payment_method === "cash" || !t.payment_method))
+    .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+  const cashExpense = (data || [])
+    .filter((t) => t.type === "expense" && (t.payment_method === "cash" || !t.payment_method))
+    .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+
+  // Tính số dư ngân hàng
+  const bankIncome = (data || [])
+    .filter((t) => t.type === "income" && t.payment_method === "bank")
+    .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+  const bankExpense = (data || [])
+    .filter((t) => t.type === "expense" && t.payment_method === "bank")
+    .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+
   return {
     totalIncome,
     totalExpense,
     balance: totalIncome - totalExpense,
+    cash: cashIncome - cashExpense,
+    bank: bankIncome - bankExpense,
   };
 }

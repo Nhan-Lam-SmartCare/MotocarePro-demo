@@ -159,20 +159,17 @@ const CombinedFinance: React.FC = () => {
 
   // Total balance
   const totalBalance = motocareBalance.total + pinBalance.balance;
+  const totalCash = motocareBalance.cash + (pinBalance.cash || 0);
+  const totalBank = motocareBalance.bank + (pinBalance.bank || 0);
 
   const isLoading = motocareLoading || pinLoading;
 
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">📊 Tổng hợp Tài chính</h1>
-            <p className="text-sm opacity-80 mt-1">
-              Kết hợp dữ liệu từ Motocare & Pin Factory
-            </p>
-          </div>
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-3">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-lg font-bold">📊 Tổng hợp Tài chính</h1>
           <button
             onClick={loadPinData}
             disabled={isLoading}
@@ -185,58 +182,50 @@ const CombinedFinance: React.FC = () => {
         </div>
 
         {/* Total Balance */}
-        <div className="mt-4 bg-white/10 backdrop-blur rounded-xl p-4">
-          <p className="text-sm opacity-80">Tổng số dư tất cả nguồn</p>
-          <p className="text-3xl font-bold mt-1">
+        <div className="bg-white/10 backdrop-blur rounded-xl p-3">
+          <p className="text-2xl font-bold">
             {formatCurrency(totalBalance)}
           </p>
+          <div className="mt-1 flex gap-4 text-xs opacity-80">
+            <span>💵 {formatCurrency(totalCash)}</span>
+            <span>🏦 {formatCurrency(totalBank)}</span>
+          </div>
         </div>
       </div>
 
       {/* Balance Cards */}
-      <div className="p-4 grid grid-cols-2 gap-3">
+      <div className="px-4 pt-3 grid grid-cols-2 gap-3">
         {/* Motocare Card */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <Wrench className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <span className="font-semibold text-slate-900 dark:text-white">
-              Motocare
-            </span>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border-2 border-blue-200 dark:border-blue-800 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Wrench className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="font-semibold text-sm text-slate-900 dark:text-white">Motocare</span>
           </div>
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
             {formatCurrency(motocareBalance.total)}
           </p>
-          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 space-y-0.5">
-            <p>💵 Tiền mặt: {formatCurrency(motocareBalance.cash)}</p>
-            <p>🏦 Ngân hàng: {formatCurrency(motocareBalance.bank)}</p>
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 flex gap-2">
+            <span>💵 {formatCurrency(motocareBalance.cash)}</span>
+            <span>🏦 {formatCurrency(motocareBalance.bank)}</span>
           </div>
         </div>
 
         {/* Pin Factory Card */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border-2 border-amber-200 dark:border-amber-800 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-              <Building2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-            </div>
-            <span className="font-semibold text-slate-900 dark:text-white">
-              Pin Factory
-            </span>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border-2 border-amber-200 dark:border-amber-800 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Building2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span className="font-semibold text-sm text-slate-900 dark:text-white">Pin Factory</span>
           </div>
           {pinLoading ? (
-            <div className="flex items-center gap-2 text-slate-500">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Đang tải...</span>
-            </div>
+            <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
           ) : (
             <>
-              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+              <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
                 {formatCurrency(pinBalance.balance)}
               </p>
-              <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 space-y-0.5">
-                <p>📈 Thu: {formatCurrency(pinBalance.totalIncome)}</p>
-                <p>📉 Chi: {formatCurrency(pinBalance.totalExpense)}</p>
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 flex gap-2">
+                <span>💵 {formatCurrency(pinBalance.cash || 0)}</span>
+                <span>🏦 {formatCurrency(pinBalance.bank || 0)}</span>
               </div>
             </>
           )}

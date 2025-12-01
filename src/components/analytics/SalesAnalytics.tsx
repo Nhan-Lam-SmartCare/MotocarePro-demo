@@ -71,6 +71,7 @@ const SalesAnalytics: React.FC = () => {
     });
 
     return Array.from(revenueByDate.entries())
+      .sort((a, b) => a[0].localeCompare(b[0])) // Sort by ISO date string (YYYY-MM-DD)
       .map(([date, revenue]) => ({
         date: new Date(date).toLocaleDateString("vi-VN", {
           day: "2-digit",
@@ -78,7 +79,6 @@ const SalesAnalytics: React.FC = () => {
         }),
         revenue: Math.round(revenue),
       }))
-      .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-30); // Last 30 data points
   }, [filteredSales]);
 
