@@ -17,6 +17,7 @@ import {
   Search,
   User,
 } from "lucide-react";
+import { NumberInput } from "../common/NumberInput";
 import {
   useQuickServices,
   useAllQuickServices,
@@ -770,14 +771,13 @@ const ServiceManagement: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Giá (VNĐ) *
                 </label>
-                <input
-                  type="number"
+                <NumberInput
                   value={formData.price}
-                  onChange={(e) =>
-                    setFormData({ ...formData, price: Number(e.target.value) })
+                  onChange={(val) =>
+                    setFormData({ ...formData, price: val })
                   }
                   className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                  placeholder="VD: 20000"
+                  placeholder="VD: 20.000"
                 />
               </div>
               <div>

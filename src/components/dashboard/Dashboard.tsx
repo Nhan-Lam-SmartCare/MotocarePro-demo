@@ -464,10 +464,12 @@ const Dashboard: React.FC = () => {
   const filteredStats = useMemo(() => {
     const now = new Date();
     let startDate: Date;
+    let endDate: Date = now; // Ngày hiện tại
 
     switch (reportFilter) {
       case "today":
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
       case "week":
         const dayOfWeek = now.getDay();
@@ -477,23 +479,50 @@ const Dashboard: React.FC = () => {
           now.getMonth(),
           now.getDate() - diff
         );
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
       case "month":
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
       case "year":
         startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
       default:
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     }
 
-    const startDateStr = startDate.toISOString().slice(0, 10);
+    // Sử dụng local date format YYYY-MM-DD thay vì ISO string (tránh lỗi timezone)
+    const formatLocalDate = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    // Chuyển ISO string hoặc date string sang local date string YYYY-MM-DD
+    const toLocalDateStr = (dateStr: string | undefined | null): string | null => {
+      if (!dateStr) return null;
+      try {
+        // Parse date string và chuyển sang local date
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return null;
+        return formatLocalDate(d);
+      } catch {
+        return null;
+      }
+    };
+    
+    const startDateStr = formatLocalDate(startDate);
+    const endDateStr = formatLocalDate(endDate);
 
-    // Sales
-    const filteredSales = sales.filter(
-      (s) => s.date.slice(0, 10) >= startDateStr
-    );
+    // Sales - lọc theo ngày giao dịch trong khoảng thời gian
+    const filteredSales = sales.filter((s) => {
+      const saleDate = toLocalDateStr(s.date);
+      return saleDate && saleDate >= startDateStr && saleDate <= endDateStr;
+    });
     const salesRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
     const salesProfit = filteredSales.reduce((sum, s) => {
       const cost = s.items.reduce((c, it) => {
@@ -507,16 +536,19 @@ const Dashboard: React.FC = () => {
       return sum + (s.total - cost);
     }, 0);
 
-    // Work Orders (đã thanh toán)
+    // Work Orders (đã thanh toán) - dùng paymentDate nếu có, fallback về creationDate
     const filteredWorkOrders = workOrders.filter((wo: any) => {
-      const woDate =
-        wo.creationDate?.slice(0, 10) || wo.creationdate?.slice(0, 10);
+      // Ưu tiên dùng ngày thanh toán, nếu không có thì dùng ngày tạo
+      const paymentDateRaw = wo.paymentDate || wo.paymentdate;
+      const creationDateRaw = wo.creationDate || wo.creationdate;
+      const woDate = toLocalDateStr(paymentDateRaw) || toLocalDateStr(creationDateRaw);
+      
       const isPaid =
         wo.paymentStatus === "paid" ||
         wo.paymentstatus === "paid" ||
         wo.paymentStatus === "partial" ||
         wo.paymentstatus === "partial";
-      return woDate >= startDateStr && isPaid;
+      return woDate && woDate >= startDateStr && woDate <= endDateStr && isPaid;
     });
     const woRevenue = filteredWorkOrders.reduce(
       (sum, wo: any) => sum + (wo.totalPaid || wo.totalpaid || wo.total || 0),
@@ -543,17 +575,22 @@ const Dashboard: React.FC = () => {
 
     // Cash transactions: thu/chi trong khoảng thời gian (loại trừ thu dịch vụ/bán hàng)
     const filteredIncome = cashTransactions
-      .filter(
-        (t) =>
+      .filter((t) => {
+        const txDate = toLocalDateStr(t.date);
+        return (
           t.type === "income" &&
           !isExcludedIncomeCategory(t.category) &&
-          t.date.slice(0, 10) >= startDateStr
-      )
+          txDate &&
+          txDate >= startDateStr &&
+          txDate <= endDateStr
+        );
+      })
       .reduce((sum, t) => sum + t.amount, 0);
     const filteredExpense = cashTransactions
-      .filter(
-        (t) => t.type === "expense" && t.date.slice(0, 10) >= startDateStr
-      )
+      .filter((t) => {
+        const txDate = toLocalDateStr(t.date);
+        return t.type === "expense" && txDate && txDate >= startDateStr && txDate <= endDateStr;
+      })
       .reduce((sum, t) => sum + t.amount, 0);
 
     // Doanh thu = Sales + Work Orders + Phiếu thu (không tính thu dịch vụ)
@@ -745,14 +782,16 @@ const Dashboard: React.FC = () => {
     const completed = (workOrders || []).filter(
       (wo) => wo.status === "Đã sửa xong"
     ).length;
-    const cancelled = (workOrders || []).filter(
-      (wo) => wo.status === "Trả máy"
+    // Đã trả/giao xe = status "Trả máy" hoặc "Đã giao"
+    const delivered = (workOrders || []).filter(
+      (wo) => wo.status === "Trả máy" || wo.status === "Đã giao"
     ).length;
-    const notRepairable = (workOrders || []).filter(
+    // Đã hủy
+    const cancelled = (workOrders || []).filter(
       (wo) => wo.status === "Đã hủy"
     ).length;
 
-    return { newOrders, inProgress, completed, cancelled, notRepairable };
+    return { newOrders, inProgress, completed, delivered, cancelled };
   }, [workOrders]);
 
   // Cảnh báo
@@ -940,15 +979,21 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:gap-4">
-          <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 md:p-4">
+          <Link
+            to="/reports"
+            className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 md:p-4 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          >
             <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mb-1">
               Doanh thu
             </p>
             <p className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400">
               {formatCurrency(filteredStats.revenue)}
             </p>
-          </div>
-          <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 md:p-4">
+          </Link>
+          <Link
+            to="/reports"
+            className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 md:p-4 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          >
             <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mb-1">
               Lợi nhuận
             </p>
@@ -961,7 +1006,7 @@ const Dashboard: React.FC = () => {
             >
               {formatCurrency(filteredStats.profit)}
             </p>
-          </div>
+          </Link>
         </div>
       </div>
 
@@ -990,15 +1035,15 @@ const Dashboard: React.FC = () => {
             color="amber"
           />
           <StatusItem
-            icon={<XCircle className="w-5 h-5" />}
-            label="Đã hủy"
-            count={workOrderStats.cancelled}
+            icon={<Car className="w-5 h-5" />}
+            label="Đã trả/giao xe"
+            count={workOrderStats.delivered}
             color="slate"
           />
           <StatusItem
-            icon={<Ban className="w-5 h-5" />}
-            label="Không sửa được"
-            count={workOrderStats.notRepairable}
+            icon={<XCircle className="w-5 h-5" />}
+            label="Đã hủy"
+            count={workOrderStats.cancelled}
             color="red"
           />
         </div>

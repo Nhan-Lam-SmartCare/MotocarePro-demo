@@ -23,6 +23,51 @@ export const formatCurrency = (v: number) =>
   );
 
 /**
+ * Formats a number with thousand separators (Vietnamese style: dots)
+ * Used for displaying numbers in input fields
+ *
+ * @param value - Number or string to format
+ * @returns Formatted string with dots as thousand separators (e.g., "1.500.000")
+ *
+ * @example
+ * ```typescript
+ * formatNumberWithDots(1500000)   // "1.500.000"
+ * formatNumberWithDots("1500000") // "1.500.000"
+ * formatNumberWithDots(0)         // "0"
+ * formatNumberWithDots("")        // ""
+ * ```
+ */
+export const formatNumberWithDots = (value: number | string | null | undefined): string => {
+  if (value === null || value === undefined || value === "") return "";
+  const num = typeof value === "string" ? parseFloat(value.replace(/\./g, "").replace(/,/g, "")) : value;
+  if (isNaN(num)) return "";
+  if (num === 0) return "0";
+  return new Intl.NumberFormat("vi-VN").format(num);
+};
+
+/**
+ * Parses a formatted number string (with dots) back to a number
+ *
+ * @param value - Formatted string with dots (e.g., "1.500.000")
+ * @returns The numeric value
+ *
+ * @example
+ * ```typescript
+ * parseFormattedNumber("1.500.000") // 1500000
+ * parseFormattedNumber("0")         // 0
+ * parseFormattedNumber("")          // 0
+ * ```
+ */
+export const parseFormattedNumber = (value: string | number | null | undefined): number => {
+  if (value === null || value === undefined || value === "") return 0;
+  if (typeof value === "number") return value;
+  // Remove all dots (thousand separators) and parse
+  const cleaned = value.replace(/\./g, "").replace(/,/g, ".");
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+};
+
+/**
  * Formats a date/ISO string to Vietnamese date format
  *
  * @param iso - ISO date string, Date object, or null/undefined

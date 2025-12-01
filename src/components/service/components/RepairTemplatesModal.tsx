@@ -6,6 +6,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Plus, X, Trash2, Search, Package } from "lucide-react";
 import { formatCurrency } from "../../../utils/format";
+import { NumberInput } from "../../common/NumberInput";
 import {
   useRepairTemplates,
   useCreateRepairTemplate,
@@ -454,16 +455,13 @@ export function RepairTemplatesModal({
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                       Chi phí công
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="10000"
+                    <NumberInput
                       placeholder="0"
                       value={templateForm.laborCost || ""}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         setTemplateForm({
                           ...templateForm,
-                          laborCost: Number(e.target.value),
+                          laborCost: val,
                         })
                       }
                       className="w-full px-3 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#2b2b40] text-slate-900 dark:text-white text-sm"

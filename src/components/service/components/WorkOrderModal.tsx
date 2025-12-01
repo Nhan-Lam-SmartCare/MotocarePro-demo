@@ -20,6 +20,7 @@ import type {
   Vehicle,
 } from "../../../types";
 import { formatCurrency, formatWorkOrderId } from "../../../utils/format";
+import { NumberInput } from "../../common/NumberInput";
 import { getCategoryColor } from "../../../utils/categoryColors";
 import {
   useCreateWorkOrderAtomicRepo,
@@ -2080,14 +2081,13 @@ const WorkOrderModal: React.FC<{
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Ph� d�9ch v� (C�ng th�)
                 </label>
-                <input
-                  type="number"
+                <NumberInput
                   placeholder="100.000"
                   value={formData.laborCost || ""}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     setFormData({
                       ...formData,
-                      laborCost: Number(e.target.value),
+                      laborCost: val,
                     })
                   }
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
@@ -2412,28 +2412,26 @@ const WorkOrderModal: React.FC<{
                       />
                     </td>
                     <td className="px-4 py-2">
-                      <input
-                        type="number"
-                        placeholder="Gi� nh�p"
+                      <NumberInput
+                        placeholder="Giá nhập"
                         value={newService.costPrice || ""}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           setNewService({
                             ...newService,
-                            costPrice: Number(e.target.value),
+                            costPrice: val,
                           })
                         }
                         className="w-full px-2 py-1 border border-orange-300 dark:border-orange-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
                       />
                     </td>
                     <td className="px-4 py-2">
-                      <input
-                        type="number"
-                        placeholder="�n gi�"
+                      <NumberInput
+                        placeholder="Đơn giá"
                         value={newService.price || ""}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           setNewService({
                             ...newService,
-                            price: Number(e.target.value),
+                            price: val,
                           })
                         }
                         className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
@@ -2486,12 +2484,11 @@ const WorkOrderModal: React.FC<{
                   {/* Deposit input - only show when checkbox is checked and not already deposited */}
                   {showDepositInput && !order?.depositAmount && (
                     <div className="pl-6">
-                      <input
-                        type="number"
-                        placeholder="S� ti�n ��t c�c"
+                      <NumberInput
+                        placeholder="Số tiền đặt cọc"
                         value={depositAmount || ""}
-                        onChange={(e) =>
-                          setDepositAmount(Number(e.target.value))
+                        onChange={(val) =>
+                          setDepositAmount(val)
                         }
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       />
@@ -2598,12 +2595,11 @@ const WorkOrderModal: React.FC<{
                             S� ti�n thanh to�n th�m:
                           </label>
                           <div className="flex items-center gap-2">
-                            <input
-                              type="number"
+                            <NumberInput
                               placeholder="0"
                               value={partialPayment || ""}
-                              onChange={(e) =>
-                                setPartialPayment(Number(e.target.value))
+                              onChange={(val) =>
+                                setPartialPayment(val)
                               }
                               className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                             />

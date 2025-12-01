@@ -5,6 +5,7 @@ import { useAppContext } from "../../../contexts/AppContext";
 import { usePartsRepo } from "../../../hooks/usePartsRepository";
 import type { CartItem, Part, Customer, Sale } from "../../../types";
 import { formatCurrency, formatDate, formatAnyId } from "../../../utils/format";
+import { NumberInput } from "../../common/NumberInput";
 import { getCategoryColor } from "../../../utils/categoryColors";
 import { showToast } from "../../../utils/toast";
 import { PlusIcon, XMarkIcon } from "../../Icons";
@@ -474,17 +475,14 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <input
-                          type="number"
+                        <NumberInput
                           value={item.sellingPrice}
-                          onChange={(e) =>
+                          onChange={(val) =>
                             handleUpdatePrice(
                               item.partId,
-                              parseFloat(e.target.value) || 0
+                              val
                             )
                           }
-                          min="0"
-                          step="1000"
                           className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                         />
                       </td>

@@ -49,6 +49,7 @@ import {
 import { useCustomers, useCreateCustomer } from "../../hooks/useSupabase";
 import BarcodeScannerModal from "../common/BarcodeScannerModal";
 import QuickServiceModal from "./QuickServiceModal";
+import { NumberInput } from "../common/NumberInput";
 import type { QuickService } from "../../hooks/useQuickServices";
 
 interface StoreSettings {
@@ -721,17 +722,14 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({
                         />
                       </td>
                       <td className="px-3 py-2">
-                        <input
-                          type="number"
+                        <NumberInput
                           value={item.sellingPrice}
-                          onChange={(e) =>
+                          onChange={(val) =>
                             handleUpdatePrice(
                               item.partId,
-                              parseFloat(e.target.value) || 0
+                              val
                             )
                           }
-                          min="0"
-                          step="1000"
                           className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                         />
                       </td>
@@ -4238,11 +4236,10 @@ const SalesManager: React.FC = () => {
                   <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
                     Số tiền khách trả
                   </label>
-                  <input
-                    type="number"
+                  <NumberInput
                     value={partialAmount}
-                    onChange={(e) =>
-                      setPartialAmount(Number(e.target.value) || 0)
+                    onChange={(val) =>
+                      setPartialAmount(val)
                     }
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                     placeholder="0"

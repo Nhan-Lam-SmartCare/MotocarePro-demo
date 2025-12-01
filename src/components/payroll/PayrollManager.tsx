@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useAppContext } from "../../contexts/AppContext";
 import { formatCurrency, formatDate } from "../../utils/format";
+import { NumberInput } from "../common/NumberInput";
 import type { Employee, PayrollRecord } from "../../types";
 import { PlusIcon } from "../Icons";
 import { useCreateCashTxRepo } from "../../hooks/useCashTransactionsRepository";
@@ -620,12 +621,10 @@ const AddEmployeeModal: React.FC<{
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Lương cơ bản *
             </label>
-            <input
-              type="number"
+            <NumberInput
               value={baseSalary}
-              onChange={(e) => setBaseSalary(e.target.value)}
+              onChange={(val) => setBaseSalary(String(val))}
               className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
-              required
             />
           </div>
 
@@ -812,28 +811,24 @@ const GeneratePayrollModal: React.FC<{
                         {formatCurrency(item.baseSalary)}
                       </td>
                       <td className="px-4 py-3">
-                        <input
-                          type="number"
+                        <NumberInput
                           value={item.bonus}
-                          onChange={(e) =>
-                            handleBonusChange(item.employeeId, e.target.value)
+                          onChange={(val) =>
+                            handleBonusChange(item.employeeId, String(val))
                           }
                           className="w-full px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-right text-slate-900 dark:text-white"
-                          min="0"
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <input
-                          type="number"
+                        <NumberInput
                           value={item.deduction}
-                          onChange={(e) =>
+                          onChange={(val) =>
                             handleDeductionChange(
                               item.employeeId,
-                              e.target.value
+                              String(val)
                             )
                           }
                           className="w-full px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-right text-slate-900 dark:text-white"
-                          min="0"
                         />
                       </td>
                       <td className="px-4 py-3 text-right text-blue-600 dark:text-blue-400 font-bold">

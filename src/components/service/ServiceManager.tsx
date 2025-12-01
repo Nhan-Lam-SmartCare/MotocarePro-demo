@@ -46,6 +46,7 @@ import {
   validatePhoneNumber,
   validateDepositAmount,
 } from "../../utils/validation";
+import { NumberInput } from "../common/NumberInput";
 import {
   detectMaintenancesFromWorkOrder,
   updateVehicleMaintenances,
@@ -6162,14 +6163,13 @@ const WorkOrderModal: React.FC<{
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Phí dịch vụ (Công thợ)
                 </label>
-                <input
-                  type="number"
+                <NumberInput
                   placeholder="100.000"
                   value={formData.laborCost || ""}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     setFormData({
                       ...formData,
-                      laborCost: Number(e.target.value),
+                      laborCost: val,
                     })
                   }
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
@@ -6502,28 +6502,26 @@ const WorkOrderModal: React.FC<{
                       />
                     </td>
                     <td className="px-4 py-2">
-                      <input
-                        type="number"
+                      <NumberInput
                         placeholder="Giá nhập"
                         value={newService.costPrice || ""}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           setNewService({
                             ...newService,
-                            costPrice: Number(e.target.value),
+                            costPrice: val,
                           })
                         }
                         className="w-full px-2 py-1 border border-orange-300 dark:border-orange-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
                       />
                     </td>
                     <td className="px-4 py-2">
-                      <input
-                        type="number"
+                      <NumberInput
                         placeholder="Đơn giá"
                         value={newService.price || ""}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           setNewService({
                             ...newService,
-                            price: Number(e.target.value),
+                            price: val,
                           })
                         }
                         className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
@@ -6576,12 +6574,11 @@ const WorkOrderModal: React.FC<{
                   {/* Deposit input - only show when checkbox is checked and not already deposited */}
                   {showDepositInput && !order?.depositAmount && (
                     <div className="pl-6">
-                      <input
-                        type="number"
+                      <NumberInput
                         placeholder="Số tiền đặt cọc"
                         value={depositAmount || ""}
-                        onChange={(e) =>
-                          setDepositAmount(Number(e.target.value))
+                        onChange={(val) =>
+                          setDepositAmount(val)
                         }
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       />
@@ -6688,12 +6685,11 @@ const WorkOrderModal: React.FC<{
                             Số tiền thanh toán thêm:
                           </label>
                           <div className="flex items-center gap-2">
-                            <input
-                              type="number"
+                            <NumberInput
                               placeholder="0"
                               value={partialPayment || ""}
-                              onChange={(e) =>
-                                setPartialPayment(Number(e.target.value))
+                              onChange={(val) =>
+                                setPartialPayment(val)
                               }
                               className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                             />
