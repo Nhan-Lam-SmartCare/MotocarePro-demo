@@ -1152,14 +1152,14 @@ const AddTransactionModal: React.FC<{
           {/* Notes */}
           <div>
             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">
-              Ghi chú
+              Nội dung
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 resize-none"
-              placeholder="Thêm ghi chú..."
+              placeholder="Nội dung giao dịch..."
             />
           </div>
 
