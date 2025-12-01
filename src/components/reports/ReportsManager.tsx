@@ -16,7 +16,8 @@ import { useAppContext } from "../../contexts/AppContext";
 import { useSalesRepo } from "../../hooks/useSalesRepository";
 import { useCashTxRepo } from "../../hooks/useCashTransactionsRepository";
 import { usePartsRepo } from "../../hooks/usePartsRepository";
-import type { Sale, Part } from "../../types";
+import { useWorkOrders } from "../../hooks/useSupabase";
+import type { Sale, Part, WorkOrder } from "../../types";
 import { showToast } from "../../utils/toast";
 import { formatCurrency, formatDate } from "../../utils/format";
 import {
@@ -99,6 +100,19 @@ const ReportsManager: React.FC = () => {
   // Repository data (Supabase-backed)
   const { data: salesData = [], isLoading: salesLoading } = useSalesRepo();
   const { data: partsData = [], isLoading: partsLoading } = usePartsRepo();
+  const { data: workOrdersData = [], isLoading: workOrdersLoading } =
+    useWorkOrders();
+
+  // Build parts cost lookup map
+  const partsCostMap = useMemo(() => {
+    const map = new Map<string, number>();
+    partsData.forEach((part: Part) => {
+      const costPrice = part.costPrice?.[currentBranchId] || 0;
+      map.set(part.id, costPrice);
+      map.set(part.sku, costPrice); // Also lookup by SKU
+    });
+    return map;
+  }, [partsData, currentBranchId]);
 
   const [activeTab, setActiveTab] = useState<ReportTab>("revenue");
   const [dateRange, setDateRange] = useState<DateRange>("month");
@@ -137,32 +151,79 @@ const ReportsManager: React.FC = () => {
     return { start, end };
   }, [dateRange, startDate, endDate]);
 
-  // Báo cáo doanh thu
+  // Báo cáo doanh thu (bao gồm cả Sales và Work Orders đã thanh toán)
   const revenueReport = useMemo(() => {
+    // Filter sales
     const filteredSales: Sale[] = salesData.filter((s: Sale) => {
       const saleDate = new Date(s.date);
       return saleDate >= start && saleDate <= end;
     });
 
-    const totalRevenue = filteredSales.reduce(
+    // Filter work orders (chỉ lấy những đơn đã thanh toán)
+    const filteredWorkOrders = workOrdersData.filter((wo: any) => {
+      const woDate = new Date(wo.creationDate || wo.creationdate);
+      const isPaid =
+        wo.paymentStatus === "paid" ||
+        wo.paymentstatus === "paid" ||
+        wo.paymentStatus === "partial" ||
+        wo.paymentstatus === "partial";
+      return woDate >= start && woDate <= end && isPaid;
+    });
+
+    // Helper function to get cost price from map or fallback
+    const getPartCost = (partId: string, sku: string, fallbackCost: number) => {
+      return (
+        partsCostMap.get(partId) || partsCostMap.get(sku) || fallbackCost || 0
+      );
+    };
+
+    // Sales totals
+    const salesRevenue = filteredSales.reduce(
       (sum: number, s: Sale) => sum + s.total,
       0
     );
-    const totalCost = filteredSales.reduce((sum: number, s: Sale) => {
-      const cost = s.items.reduce(
-        (c: number, it: any) => c + ((it as any).costPrice || 0) * it.quantity,
-        0
-      );
+    const salesCost = filteredSales.reduce((sum: number, s: Sale) => {
+      const cost = s.items.reduce((c: number, it: any) => {
+        // Try to get cost from partsData first, then fallback to item's costPrice
+        const partCost = getPartCost(
+          it.partId,
+          it.sku,
+          (it as any).costPrice || 0
+        );
+        return c + partCost * it.quantity;
+      }, 0);
       return sum + cost;
     }, 0);
+
+    // Work orders totals
+    const woRevenue = filteredWorkOrders.reduce(
+      (sum: number, wo: any) =>
+        sum + (wo.totalPaid || wo.totalpaid || wo.total || 0),
+      0
+    );
+    const woCost = filteredWorkOrders.reduce((sum: number, wo: any) => {
+      const parts = wo.partsUsed || wo.partsused || [];
+      const partsCost = parts.reduce((c: number, p: any) => {
+        const partId = p.partId || p.partid;
+        const sku = p.sku;
+        // Get cost from partsData, fallback to stored costPrice
+        const cost = getPartCost(partId, sku, p.costPrice || p.costprice || 0);
+        return c + cost * (p.quantity || 0);
+      }, 0);
+      return sum + partsCost;
+    }, 0);
+
+    const totalRevenue = salesRevenue + woRevenue;
+    const totalCost = salesCost + woCost;
     const totalProfit = totalRevenue - totalCost;
 
-    // Group sales by date for daily report
-    const salesByDate = new Map<
+    // Group by date for daily report (combine sales and work orders)
+    const dataByDate = new Map<
       string,
       {
         date: string;
         sales: Sale[];
+        workOrders: any[];
         totalRevenue: number;
         totalCost: number;
         totalProfit: number;
@@ -170,23 +231,29 @@ const ReportsManager: React.FC = () => {
       }
     >();
 
+    // Add sales to daily data
     filteredSales.forEach((sale) => {
       const dateKey = new Date(sale.date).toISOString().split("T")[0];
-      if (!salesByDate.has(dateKey)) {
-        salesByDate.set(dateKey, {
+      if (!dataByDate.has(dateKey)) {
+        dataByDate.set(dateKey, {
           date: dateKey,
           sales: [],
+          workOrders: [],
           totalRevenue: 0,
           totalCost: 0,
           totalProfit: 0,
           orderCount: 0,
         });
       }
-      const dayData = salesByDate.get(dateKey)!;
-      const saleCost = sale.items.reduce(
-        (c: number, it: any) => c + ((it as any).costPrice || 0) * it.quantity,
-        0
-      );
+      const dayData = dataByDate.get(dateKey)!;
+      const saleCost = sale.items.reduce((c: number, it: any) => {
+        const partCost = getPartCost(
+          it.partId,
+          it.sku,
+          (it as any).costPrice || 0
+        );
+        return c + partCost * it.quantity;
+      }, 0);
       dayData.sales.push(sale);
       dayData.totalRevenue += sale.total;
       dayData.totalCost += saleCost;
@@ -194,22 +261,57 @@ const ReportsManager: React.FC = () => {
       dayData.orderCount += 1;
     });
 
+    // Add work orders to daily data
+    filteredWorkOrders.forEach((wo: any) => {
+      const dateKey = new Date(wo.creationDate || wo.creationdate)
+        .toISOString()
+        .split("T")[0];
+      if (!dataByDate.has(dateKey)) {
+        dataByDate.set(dateKey, {
+          date: dateKey,
+          sales: [],
+          workOrders: [],
+          totalRevenue: 0,
+          totalCost: 0,
+          totalProfit: 0,
+          orderCount: 0,
+        });
+      }
+      const dayData = dataByDate.get(dateKey)!;
+      const parts = wo.partsUsed || wo.partsused || [];
+      const woCost = parts.reduce((c: number, p: any) => {
+        const partId = p.partId || p.partid;
+        const sku = p.sku;
+        const cost = getPartCost(partId, sku, p.costPrice || p.costprice || 0);
+        return c + cost * (p.quantity || 0);
+      }, 0);
+      const woTotal = wo.totalPaid || wo.totalpaid || wo.total || 0;
+      dayData.workOrders.push(wo);
+      dayData.totalRevenue += woTotal;
+      dayData.totalCost += woCost;
+      dayData.totalProfit += woTotal - woCost;
+      dayData.orderCount += 1;
+    });
+
     // Convert to array and sort by date
-    const dailyReport = Array.from(salesByDate.values()).sort(
+    const dailyReport = Array.from(dataByDate.values()).sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
 
     return {
       sales: filteredSales,
+      workOrders: filteredWorkOrders,
       dailyReport,
       totalRevenue,
       totalCost,
-      totalProfit,
+      totalProfit, // Lợi nhuận gộp (chưa trừ chi phí vận hành)
       profitMargin:
         totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0,
-      orderCount: filteredSales.length,
+      orderCount: filteredSales.length + filteredWorkOrders.length,
+      salesCount: filteredSales.length,
+      workOrdersCount: filteredWorkOrders.length,
     };
-  }, [salesData, start, end]);
+  }, [salesData, workOrdersData, partsCostMap, start, end]);
 
   // Báo cáo thu chi
   // Fetch cash transactions via repository with range filters
@@ -218,6 +320,41 @@ const ReportsManager: React.FC = () => {
     startDate: start.toISOString(),
     endDate: end.toISOString(),
   });
+
+  // Tính tổng thu/chi từ phiếu thu chi (loại trừ phiếu thu "Dịch vụ" vì đã tính trong doanh thu sửa chữa)
+  // Các category phiếu thu đã được tính trong doanh thu (Sales/Work Orders)
+  const excludedIncomeCategories = [
+    "service",
+    "Dịch vụ",
+    "sale_income",
+    "Bán hàng",
+  ];
+
+  const cashTotals = useMemo(() => {
+    const filteredTransactions = cashTxData.filter((t) => {
+      const txDate = new Date(t.date);
+      return txDate >= start && txDate <= end;
+    });
+    // Phiếu thu: loại trừ thu từ dịch vụ/bán hàng (đã tính trong Sales/Work Orders)
+    const totalIncome = filteredTransactions
+      .filter(
+        (t) =>
+          t.type === "income" &&
+          !excludedIncomeCategories.includes(t.category || "")
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+    // Phiếu chi: tính tất cả
+    const totalExpense = filteredTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+    return { totalIncome, totalExpense };
+  }, [cashTxData, start, end]);
+
+  // Doanh thu tổng hợp = Doanh thu bán hàng + Phiếu thu
+  const combinedRevenue = revenueReport.totalRevenue + cashTotals.totalIncome;
+  // Lợi nhuận thuần = Lợi nhuận gộp - Phiếu chi
+  const netProfit = revenueReport.totalProfit - cashTotals.totalExpense;
+
   const cashflowReport = useMemo(() => {
     const filteredTransactions = cashTxData.filter((t) => {
       const txDate = new Date(t.date);
@@ -669,10 +806,11 @@ const ReportsManager: React.FC = () => {
                   <DollarSign className="w-3.5 h-3.5" /> Tổng doanh thu
                 </div>
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {formatCurrency(revenueReport.totalRevenue).replace("₫", "")}
+                  {formatCurrency(combinedRevenue).replace("₫", "")}
                 </div>
-                <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">
-                  đ
+                <div className="text-[10px] text-blue-600/70 dark:text-blue-400/70 mt-0.5">
+                  đ (Bán hàng: {formatCurrency(revenueReport.totalRevenue)} +
+                  Phiếu thu: {formatCurrency(cashTotals.totalIncome)})
                 </div>
               </div>
 
@@ -681,34 +819,47 @@ const ReportsManager: React.FC = () => {
                   <Wallet className="w-3.5 h-3.5" /> Tổng chi phí
                 </div>
                 <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  {formatCurrency(revenueReport.totalCost).replace("₫", "")}
+                  {formatCurrency(
+                    revenueReport.totalCost + cashTotals.totalExpense
+                  ).replace("₫", "")}
                 </div>
-                <div className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">
-                  đ
+                <div className="text-[10px] text-red-600/70 dark:text-red-400/70 mt-0.5">
+                  đ (Giá vốn: {formatCurrency(revenueReport.totalCost)} + Phiếu
+                  chi: {formatCurrency(cashTotals.totalExpense)})
                 </div>
               </div>
 
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
                 <div className="flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400 mb-1.5">
-                  <TrendingUp className="w-3.5 h-3.5" /> Lợi nhuận
+                  <TrendingUp className="w-3.5 h-3.5" /> Lợi nhuận thuần
                 </div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {formatCurrency(revenueReport.totalProfit).replace("₫", "")}
+                <div
+                  className={`text-2xl font-bold ${
+                    netProfit >= 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {formatCurrency(netProfit).replace("₫", "")}
                 </div>
-                <div className="text-[10px] text-green-600 dark:text-green-400 mt-0.5">
-                  đ
+                <div className="text-[10px] text-green-600/70 dark:text-green-400/70 mt-0.5">
+                  đ (Lợi nhuận gộp: {formatCurrency(revenueReport.totalProfit)}{" "}
+                  - Phiếu chi: {formatCurrency(cashTotals.totalExpense)})
                 </div>
               </div>
 
               <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
                 <div className="flex items-center gap-1 text-xs font-medium text-purple-700 dark:text-purple-400 mb-1.5">
                   <BadgePercent className="w-3.5 h-3.5" /> Tỷ suất lợi nhuận
+                  thuần
                 </div>
                 <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {revenueReport.profitMargin}
+                  {combinedRevenue > 0
+                    ? ((netProfit / combinedRevenue) * 100).toFixed(1)
+                    : 0}
                 </div>
-                <div className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5">
-                  %
+                <div className="text-[10px] text-purple-600/70 dark:text-purple-400/70 mt-0.5">
+                  % (Lợi nhuận thuần / Doanh thu tổng)
                 </div>
               </div>
             </div>
@@ -780,15 +931,33 @@ const ReportsManager: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                     {revenueReport.dailyReport.map((day, index) => {
-                      // Tính toán giống như Excel
-                      const vonNhapKho = 0; // Cần lấy từ inventory transactions
-                      const tienHang = day.totalRevenue; // Doanh thu từ bán hàng
-                      const vonSuaChua = 0; // Vốn phụ tùng sửa chữa
-                      const congSuaChua = 0; // Công thợ sửa chữa
-                      const doanhThu = tienHang + vonSuaChua + congSuaChua;
-                      const loiNhuan = tienHang - vonNhapKho - congSuaChua;
-                      const thuKhac = 0; // Thu khác
-                      const chiKhac = 0; // Chi khác
+                      // Tính toán từ dữ liệu thực
+                      const vonNhapKho = day.totalCost; // Giá vốn phụ tùng
+                      const tienHang = day.totalRevenue; // Doanh thu từ bán hàng + sửa chữa
+                      const vonSuaChua = 0; // Đã tính trong vonNhapKho
+                      const congSuaChua = 0; // Công thợ (nếu cần tách riêng)
+                      const doanhThu = tienHang;
+                      const loiNhuan = day.totalProfit; // Doanh thu - Giá vốn
+
+                      // Tính phiếu thu/chi theo ngày từ cashTxData (loại trừ thu "Dịch vụ")
+                      const dayDateStr = day.date; // Format: YYYY-MM-DD
+                      const thuKhac = cashTxData
+                        .filter(
+                          (t) =>
+                            t.type === "income" &&
+                            !excludedIncomeCategories.includes(
+                              t.category || ""
+                            ) &&
+                            t.date.slice(0, 10) === dayDateStr
+                        )
+                        .reduce((sum, t) => sum + t.amount, 0);
+                      const chiKhac = cashTxData
+                        .filter(
+                          (t) =>
+                            t.type === "expense" &&
+                            t.date.slice(0, 10) === dayDateStr
+                        )
+                        .reduce((sum, t) => sum + t.amount, 0);
                       const loiNhuanRong = loiNhuan + thuKhac - chiKhac;
 
                       return (
@@ -842,19 +1011,19 @@ const ReportsManager: React.FC = () => {
                           Tổng:
                         </td>
                         <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
-                          {formatCurrency(0)}
+                          {formatCurrency(revenueReport.totalCost)}
                         </td>
                         <td className="px-2 py-2 text-right text-xs font-black text-blue-600 dark:text-blue-400">
                           {formatCurrency(revenueReport.totalRevenue)}
                         </td>
-                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
-                          {formatCurrency(0)}
+                        <td className="px-2 py-2 text-right text-xs text-green-600 dark:text-green-400">
+                          {formatCurrency(cashTotals.totalIncome)}
                         </td>
-                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
-                          {formatCurrency(0)}
+                        <td className="px-2 py-2 text-right text-xs text-red-600 dark:text-red-400">
+                          {formatCurrency(cashTotals.totalExpense)}
                         </td>
                         <td className="px-2 py-2 text-right text-xs font-black text-blue-600 dark:text-blue-400">
-                          {formatCurrency(revenueReport.totalRevenue)}
+                          {formatCurrency(combinedRevenue)}
                         </td>
                         <td className="px-2 py-2 text-right text-xs font-black text-orange-600 dark:text-orange-400">
                           {formatCurrency(revenueReport.totalProfit)}
@@ -863,10 +1032,16 @@ const ReportsManager: React.FC = () => {
                           {formatCurrency(0)}
                         </td>
                         <td className="px-2 py-2 text-right text-xs text-red-600 dark:text-red-400">
-                          {formatCurrency(0)}
+                          {formatCurrency(cashTotals.totalExpense)}
                         </td>
-                        <td className="px-2 py-2 text-right text-xs font-black text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30">
-                          {formatCurrency(revenueReport.totalProfit)}
+                        <td
+                          className={`px-2 py-2 text-right text-xs font-black ${
+                            netProfit >= 0
+                              ? "text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30"
+                              : "text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30"
+                          }`}
+                        >
+                          {formatCurrency(netProfit)}
                         </td>
                       </tr>
                     )}

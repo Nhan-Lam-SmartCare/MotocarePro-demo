@@ -2299,6 +2299,7 @@ const EditReceiptModal: React.FC<{
   onSave: (data: any) => void;
   currentBranchId: string;
 }> = ({ receipt, onClose, onSave, currentBranchId }) => {
+  const { profile } = useAuth();
   const [supplier, setSupplier] = useState(receipt.supplier);
   const [supplierPhone, setSupplierPhone] = useState("");
   const [supplierSearchTerm, setSupplierSearchTerm] = useState(
@@ -2936,6 +2937,7 @@ const EditReceiptModal: React.FC<{
 const InventoryHistorySection: React.FC<{
   transactions: InventoryTransaction[];
 }> = ({ transactions }) => {
+  const { profile } = useAuth();
   const queryClient = useQueryClient();
   const { data: supplierDebts = [] } = useSupplierDebtsRepo();
   const [activeTimeFilter, setActiveTimeFilter] = useState("7days");
@@ -3427,7 +3429,8 @@ const InventoryHistorySection: React.FC<{
                         {receipt.items[0].notes
                           ?.split("NV:")[1]
                           ?.split("NCC:")[0]
-                          ?.trim() || "Xuân Nhan"}
+                          ?.split(" ")[0]
+                          ?.trim() || "Nhân viên"}
                       </div>
                     </div>
                   </div>
@@ -3701,7 +3704,7 @@ const InventoryHistorySection: React.FC<{
                       updatedData.items[0].notes
                         ?.split("NV:")[1]
                         ?.split("NCC:")[0]
-                        ?.trim() || "Xuân Nhan"
+                        ?.trim() || profile?.full_name || "Nhân viên"
                     } NCC:${updatedData.supplier}${
                       updatedData.supplierPhone
                         ? ` Phone:${updatedData.supplierPhone}`
@@ -3816,7 +3819,7 @@ const InventoryHistorySection: React.FC<{
                       updatedData.items[0].notes
                         ?.split("NV:")[1]
                         ?.split("NCC:")[0]
-                        ?.trim() || "Xuân Nhan"
+                        ?.trim() || profile?.full_name || "Nhân viên"
                     } NCC:${updatedData.supplier}${
                       updatedData.supplierPhone
                         ? ` Phone:${updatedData.supplierPhone}`
@@ -4581,9 +4584,7 @@ const InventoryManager: React.FC = () => {
           supplierId,
           branchId: currentBranchId,
           userId: profile?.id || "unknown",
-          notes: `${receiptCode} | NCC: ${supplierName}${
-            note ? " | " + note : ""
-          }`,
+          notes: `NV:${profile?.full_name || "Nhân viên"} NCC:${supplierName}${note ? " | " + note : ""}`,
         });
 
         // Create supplier debt if payment is partial or deferred

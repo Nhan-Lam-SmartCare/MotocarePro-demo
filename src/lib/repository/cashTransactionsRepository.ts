@@ -35,11 +35,16 @@ export async function fetchCashTransactions(params?: {
       .from(TABLE)
       .select("*")
       .order("date", { ascending: false });
-    if (params?.branchId) query = query.eq("branchId", params.branchId);
+
+    // Filter by branchId - PostgreSQL stores column as lowercase "branchid"
+    if (params?.branchId) {
+      query = query.eq("branchid", params.branchId);
+    }
     if (params?.startDate) query = query.gte("date", params.startDate);
     if (params?.endDate) query = query.lte("date", params.endDate);
     if (params?.limit) query = query.limit(params.limit);
-    if (params?.type) query = query.eq("type", params.type); // requires column 'type' to exist; if not present will fail
+    // Don't filter by type at DB level - some old records may not have it
+
     const { data, error } = await query;
     if (error)
       return failure({
@@ -48,13 +53,30 @@ export async function fetchCashTransactions(params?: {
         cause: error,
       });
 
-    // Map DB columns to TypeScript interface
-    const mappedData = (data || []).map((row: any) => ({
+    // Map DB columns to TypeScript interface (handle both lowercase and camelCase)
+    let mappedData = (data || []).map((row: any) => ({
       ...row,
       paymentSourceId:
         row.paymentsource || row.paymentSource || row.paymentSourceId || "cash",
-      branchId: row.branchid || row.branchId,
+      branchId: row.branchid || row.branchId || row.branch_id,
+      // Infer type from category if not present
+      type:
+        row.type ||
+        ([
+          "sale_income",
+          "service_income",
+          "other_income",
+          "debt_collection",
+          "general_income",
+        ].includes(row.category)
+          ? "income"
+          : "expense"),
     })) as CashTransaction[];
+
+    // Filter by type at client level (for backwards compatibility)
+    if (params?.type) {
+      mappedData = mappedData.filter((tx) => tx.type === params.type);
+    }
 
     return success(mappedData);
   } catch (e: any) {
@@ -79,45 +101,61 @@ export async function createCashTransaction(
     if (!input.type)
       return failure({ code: "validation", message: "Thiếu loại thu/chi" });
 
-    // Build payload with only columns that exist in DB schema
-    // Required columns: id, category, amount, date, branchId, paymentSource
-    // Optional columns (after migration): type, notes, recipient, saleId, workOrderId, etc.
+    // Build payload with lowercase column names (PostgreSQL converts to lowercase)
+    // DB columns: id, type, category, amount, date, description, branchid, paymentsource, reference, created_at
     const payload: any = {
-      id: crypto.randomUUID(), // Generate unique ID
+      id: crypto.randomUUID(),
+      type: input.type, // Required: "income" or "expense"
       amount: input.amount,
-      branchId: input.branchId,
-      paymentSource: input.paymentSourceId, // DB column name
+      branchid: input.branchId,
+      paymentsource: input.paymentSourceId,
       category:
         input.category ||
         (input.type === "income" ? "general_income" : "general_expense"),
       date: input.date || new Date().toISOString(),
-      description: input.notes || "", // Map notes to description (existing column)
+      description: input.notes || "",
     };
 
-    // Add optional columns (these will be ignored by Supabase if they don't exist after migration)
-    // Only add if migration has been run - for now, use description for notes
-    if (input.type) payload.type = input.type;
-    if (input.recipient) payload.recipient = input.recipient;
-    if (input.saleId) payload.saleId = input.saleId;
-    if (input.workOrderId) payload.workOrderId = input.workOrderId;
-    if (input.payrollRecordId) payload.payrollRecordId = input.payrollRecordId;
-    if (input.loanPaymentId) payload.loanPaymentId = input.loanPaymentId;
-    if (input.supplierId) payload.supplierId = input.supplierId;
-    if (input.customerId) payload.customerId = input.customerId;
-    if (input.notes) payload.notes = input.notes;
+    console.log("[CashTx] Creating transaction with payload:", payload);
 
     const { data, error } = await supabase
       .from(TABLE)
       .insert([payload])
       .select()
       .single();
+
+    if (error) {
+      console.error("[CashTx] Supabase error:", error);
+      console.error(
+        "[CashTx] Error details - code:",
+        error.code,
+        "message:",
+        error.message,
+        "details:",
+        error.details,
+        "hint:",
+        error.hint
+      );
+    }
+
     if (error || !data)
       return failure({
         code: "supabase",
         message: "Ghi sổ quỹ thất bại",
         cause: error,
       });
-    const created = data as CashTransaction;
+
+    // Map lowercase DB columns to camelCase for TypeScript interface
+    const created: CashTransaction = {
+      ...data,
+      branchId: data.branchid || data.branchId,
+      paymentSourceId:
+        data.paymentsource ||
+        data.paymentSource ||
+        data.paymentSourceId ||
+        "cash",
+    };
+
     // Best-effort audit: manual cash entry (exclude those tied to sale/debt if category already specific?)
     try {
       // Determine if this is manual: no saleId/workOrderId/payrollRecordId/loanPaymentId
@@ -143,6 +181,142 @@ export async function createCashTransaction(
     return failure({
       code: "network",
       message: "Lỗi kết nối khi ghi sổ quỹ",
+      cause: e,
+    });
+  }
+}
+
+export interface UpdateCashTxInput {
+  id: string;
+  type?: CashTransaction["type"];
+  amount?: number;
+  paymentSourceId?: string;
+  date?: string;
+  notes?: string;
+  category?: string;
+  recipient?: string;
+}
+
+// Update cash transaction
+export async function updateCashTransaction(
+  input: UpdateCashTxInput
+): Promise<RepoResult<CashTransaction>> {
+  try {
+    if (!input.id) {
+      return failure({ code: "validation", message: "Thiếu ID giao dịch" });
+    }
+
+    // Build payload with only provided fields, using lowercase column names
+    const payload: any = {};
+    if (input.type !== undefined) payload.type = input.type;
+    if (input.amount !== undefined) payload.amount = input.amount;
+    if (input.paymentSourceId !== undefined)
+      payload.paymentsource = input.paymentSourceId;
+    if (input.date !== undefined) payload.date = input.date;
+    if (input.notes !== undefined) payload.description = input.notes;
+    if (input.category !== undefined) payload.category = input.category;
+    if (input.recipient !== undefined) payload.recipient = input.recipient;
+
+    // Get old data for audit
+    const { data: oldData } = await supabase
+      .from(TABLE)
+      .select("*")
+      .eq("id", input.id)
+      .single();
+
+    const { data, error } = await supabase
+      .from(TABLE)
+      .update(payload)
+      .eq("id", input.id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      return failure({
+        code: "supabase",
+        message: "Cập nhật giao dịch thất bại",
+        cause: error,
+      });
+    }
+
+    // Map to TypeScript interface
+    const updated: CashTransaction = {
+      ...data,
+      branchId: data.branchid || data.branchId,
+      paymentSourceId:
+        data.paymentsource ||
+        data.paymentSource ||
+        data.paymentSourceId ||
+        "cash",
+    };
+
+    // Audit
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const userId = userRes?.user?.id || null;
+      void safeAudit(userId, {
+        action: "cash.update",
+        tableName: TABLE,
+        recordId: updated.id,
+        oldData,
+        newData: updated,
+      });
+    } catch {}
+
+    return success(updated);
+  } catch (e: any) {
+    return failure({
+      code: "network",
+      message: "Lỗi kết nối khi cập nhật giao dịch",
+      cause: e,
+    });
+  }
+}
+
+// Delete cash transaction
+export async function deleteCashTransaction(
+  id: string
+): Promise<RepoResult<{ id: string }>> {
+  try {
+    if (!id) {
+      return failure({ code: "validation", message: "Thiếu ID giao dịch" });
+    }
+
+    // Get old data for audit
+    const { data: oldData } = await supabase
+      .from(TABLE)
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    const { error } = await supabase.from(TABLE).delete().eq("id", id);
+
+    if (error) {
+      return failure({
+        code: "supabase",
+        message: "Xóa giao dịch thất bại",
+        cause: error,
+      });
+    }
+
+    // Audit
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const userId = userRes?.user?.id || null;
+      void safeAudit(userId, {
+        action: "cash.delete",
+        tableName: TABLE,
+        recordId: id,
+        oldData,
+        newData: null,
+      });
+    } catch {}
+
+    return success({ id });
+  } catch (e: any) {
+    return failure({
+      code: "network",
+      message: "Lỗi kết nối khi xóa giao dịch",
       cause: e,
     });
   }

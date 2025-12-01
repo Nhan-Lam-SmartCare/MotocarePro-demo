@@ -1000,7 +1000,32 @@ const WorkOrderModal: React.FC<{
           };
 
           // Update cash transactions in context (for UI consistency)
+          // 🔹 Also INSERT to database for persistence
           if (depositTxId && depositAmount > 0) {
+            // INSERT deposit transaction to database
+            try {
+              const { error: depositDbError } = await supabase
+                .from("cash_transactions")
+                .insert({
+                  id: depositTxId,
+                  type: "income",
+                  category: "service_deposit",
+                  amount: depositAmount,
+                  date: new Date().toISOString(),
+                  description: `Dat coc sua chua #${(
+                    formatWorkOrderId(orderId, storeSettings?.work_order_prefix) || ""
+                  ).split("-").pop()} - ${formData.customerName}`,
+                  branchid: currentBranchId,
+                  paymentsource: formData.paymentMethod,
+                  workorderid: orderId,
+                });
+              if (depositDbError) {
+                console.error("[WorkOrderModal] deposit insert error:", depositDbError);
+              }
+            } catch (e) {
+              console.error("[WorkOrderModal] deposit insert exception:", e);
+            }
+
             setCashTransactions((prev: any[]) => [
               ...prev,
               {
@@ -1041,6 +1066,30 @@ const WorkOrderModal: React.FC<{
           }
 
           if (paymentTxId && totalAdditionalPayment > 0) {
+            // INSERT payment transaction to database
+            try {
+              const { error: paymentDbError } = await supabase
+                .from("cash_transactions")
+                .insert({
+                  id: paymentTxId,
+                  type: "income",
+                  category: "service_income",
+                  amount: totalAdditionalPayment,
+                  date: new Date().toISOString(),
+                  description: `Thu tien sua chua #${(
+                    formatWorkOrderId(orderId, storeSettings?.work_order_prefix) || ""
+                  ).split("-").pop()} - ${formData.customerName}`,
+                  branchid: currentBranchId,
+                  paymentsource: formData.paymentMethod,
+                  workorderid: orderId,
+                });
+              if (paymentDbError) {
+                console.error("[WorkOrderModal] payment insert error:", paymentDbError);
+              }
+            } catch (e) {
+              console.error("[WorkOrderModal] payment insert exception:", e);
+            }
+
             setCashTransactions((prev: any[]) => [
               ...prev,
               {
@@ -1362,8 +1411,33 @@ const WorkOrderModal: React.FC<{
                   : order.paymentDate,
               };
 
-          // Update cash transactions in context if new transactions created
+          // Update cash transactions in context AND database if new transactions created
           if (depositTxId && depositAmount > order.depositAmount!) {
+            const additionalDeposit = depositAmount - (order.depositAmount || 0);
+            // INSERT additional deposit to database
+            try {
+              const { error: addDepositErr } = await supabase
+                .from("cash_transactions")
+                .insert({
+                  id: depositTxId,
+                  type: "income",
+                  category: "service_deposit",
+                  amount: additionalDeposit,
+                  date: new Date().toISOString(),
+                  description: `Dat coc bo sung #${(
+                    formatWorkOrderId(order.id, storeSettings?.work_order_prefix) || ""
+                  ).split("-").pop()} - ${formData.customerName}`,
+                  branchid: currentBranchId,
+                  paymentsource: formData.paymentMethod,
+                  workorderid: order.id,
+                });
+              if (addDepositErr) {
+                console.error("[WorkOrderModal-update] additional deposit error:", addDepositErr);
+              }
+            } catch (e) {
+              console.error("[WorkOrderModal-update] additional deposit exception:", e);
+            }
+
             setCashTransactions((prev: any[]) => [
               ...prev,
               {
@@ -1408,6 +1482,31 @@ const WorkOrderModal: React.FC<{
             paymentTxId &&
             totalAdditionalPayment > (order.additionalPayment || 0)
           ) {
+            const additionalPaymentAmount = totalAdditionalPayment - (order.additionalPayment || 0);
+            // INSERT additional payment to database
+            try {
+              const { error: addPaymentErr } = await supabase
+                .from("cash_transactions")
+                .insert({
+                  id: paymentTxId,
+                  type: "income",
+                  category: "service_income",
+                  amount: additionalPaymentAmount,
+                  date: new Date().toISOString(),
+                  description: `Thu tien bo sung #${(
+                    formatWorkOrderId(order.id, storeSettings?.work_order_prefix) || ""
+                  ).split("-").pop()} - ${formData.customerName}`,
+                  branchid: currentBranchId,
+                  paymentsource: formData.paymentMethod,
+                  workorderid: order.id,
+                });
+              if (addPaymentErr) {
+                console.error("[WorkOrderModal-update] additional payment error:", addPaymentErr);
+              }
+            } catch (e) {
+              console.error("[WorkOrderModal-update] additional payment exception:", e);
+            }
+
             setCashTransactions((prev: any[]) => [
               ...prev,
               {

@@ -197,13 +197,41 @@ export const supabaseHelpers = {
 
     if (error) throw error;
 
-    // Map DB columns to TypeScript interface
-    return (data || []).map((row: any) => ({
+    console.log(
+      "[supabase.getCashTransactions] Raw data from DB:",
+      data?.length,
+      "records"
+    );
+    if (data?.length) {
+      console.log("[supabase.getCashTransactions] Sample record:", data[0]);
+    }
+
+    // Map DB columns to TypeScript interface (handle both lowercase and camelCase)
+    const mapped = (data || []).map((row: any) => ({
       ...row,
       paymentSourceId:
         row.paymentsource || row.paymentSource || row.paymentSourceId || "cash",
-      branchId: row.branchid || row.branchId,
+      branchId: row.branchid || row.branchId || row.branch_id,
+      // Infer type from category if not present
+      type:
+        row.type ||
+        ([
+          "sale_income",
+          "service_income",
+          "other_income",
+          "debt_collection",
+          "general_income",
+        ].includes(row.category)
+          ? "income"
+          : "expense"),
     }));
+
+    console.log(
+      "[supabase.getCashTransactions] Mapped data:",
+      mapped?.length,
+      "records"
+    );
+    return mapped;
   },
 
   async createCashTransaction(transaction: any) {

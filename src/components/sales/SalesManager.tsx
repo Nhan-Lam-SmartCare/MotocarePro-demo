@@ -3062,7 +3062,7 @@ const SalesManager: React.FC = () => {
         customer: customerObj,
         paymentMethod: paymentMethod!,
         userId: profile?.id || "local-user",
-        userName: profile?.email || profile?.full_name || "Local User",
+        userName: profile?.full_name || profile?.email || "Nhân viên",
         branchId: currentBranchId,
       } as any);
       if ((rpcRes as any)?.error) throw (rpcRes as any).error;
@@ -3134,7 +3134,7 @@ const SalesManager: React.FC = () => {
             total: total,
             customer: customerObj,
             paymentMethod: paymentMethod,
-            userName: profile?.email || profile?.full_name || "Local User",
+            userName: profile?.full_name || profile?.email || "Nhân viên",
             userId: profile?.id || "",
             branchId: currentBranchId || "",
           } as Sale);

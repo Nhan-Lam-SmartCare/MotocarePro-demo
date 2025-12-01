@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   DollarSign,
   TrendingUp,
@@ -283,6 +283,25 @@ const Dashboard: React.FC = () => {
   const [showBalance, setShowBalance] = useState(false);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
+  // Build parts cost lookup map
+  const partsCostMap = useMemo(() => {
+    const map = new Map<string, number>();
+    parts.forEach((part) => {
+      const costPrice = part.costPrice?.[currentBranchId] || 0;
+      map.set(part.id, costPrice);
+      if (part.sku) map.set(part.sku, costPrice);
+    });
+    return map;
+  }, [parts, currentBranchId]);
+
+  // Helper to get cost (memoized)
+  const getPartCost = useCallback(
+    (partId: string, sku: string, fallback: number) => {
+      return partsCostMap.get(partId) || partsCostMap.get(sku) || fallback || 0;
+    },
+    [partsCostMap]
+  );
+
   // Calculate inventory stats from parts data directly
   const totalInvQty = useMemo(() => {
     return parts.reduce((sum, part) => {
@@ -326,25 +345,111 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Thống kê hôm nay
+  // Các category phiếu thu đã được tính trong doanh thu (Sales/Work Orders)
+  const excludedIncomeCategories = [
+    "service",
+    "Dịch vụ",
+    "sale_income",
+    "Bán hàng",
+  ];
+
+  // Thống kê hôm nay (bao gồm cả Sales và Work Orders đã thanh toán)
   const todayStats = useMemo(() => {
+    // Sales revenue
     const todaySales = sales.filter((s) => s.date.slice(0, 10) === today);
-    const revenue = todaySales.reduce((sum, s) => sum + s.total, 0);
-    const profit = todaySales.reduce((sum, s) => {
-      const cost = s.items.reduce(
-        (c, it) => c + ((it as any).costPrice || 0) * it.quantity,
-        0
-      );
+    const salesRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
+    const salesProfit = todaySales.reduce((sum, s) => {
+      const cost = s.items.reduce((c, it) => {
+        const partCost = getPartCost(
+          it.partId,
+          it.sku,
+          (it as any).costPrice || 0
+        );
+        return c + partCost * it.quantity;
+      }, 0);
       return sum + (s.total - cost);
     }, 0);
-    const customerCount = new Set(
-      todaySales.map((s) => s.customer.phone || s.customer.name)
-    ).size;
 
-    return { revenue, profit, customerCount, orderCount: todaySales.length };
-  }, [sales, today]);
+    // Work Orders revenue (chỉ tính những đơn đã thanh toán - paid hoặc partial)
+    const todayWorkOrders = workOrders.filter((wo: any) => {
+      const woDate =
+        wo.creationDate?.slice(0, 10) || wo.creationdate?.slice(0, 10);
+      const isPaid =
+        wo.paymentStatus === "paid" ||
+        wo.paymentstatus === "paid" ||
+        wo.paymentStatus === "partial" ||
+        wo.paymentstatus === "partial";
+      return woDate === today && isPaid;
+    });
+    const woRevenue = todayWorkOrders.reduce(
+      (sum, wo: any) => sum + (wo.totalPaid || wo.totalpaid || wo.total || 0),
+      0
+    );
+    const woProfit = todayWorkOrders.reduce((sum, wo: any) => {
+      const partsCost = (wo.partsUsed || wo.partsused || []).reduce(
+        (c: number, p: any) => {
+          const partId = p.partId || p.partid;
+          const sku = p.sku;
+          const cost = getPartCost(
+            partId,
+            sku,
+            p.costPrice || p.costprice || 0
+          );
+          return c + cost * (p.quantity || 0);
+        },
+        0
+      );
+      return (
+        sum + ((wo.totalPaid || wo.totalpaid || wo.total || 0) - partsCost)
+      );
+    }, 0);
 
-  // Thống kê theo filter (để hiển thị trên mobile)
+    // Cash transactions: thu/chi trong ngày (loại trừ thu dịch vụ/bán hàng đã tính trong Sales/WO)
+    const todayIncome = cashTransactions
+      .filter(
+        (t) =>
+          t.type === "income" &&
+          !excludedIncomeCategories.includes(t.category || "") &&
+          t.date.slice(0, 10) === today
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+    const todayExpense = cashTransactions
+      .filter((t) => t.type === "expense" && t.date.slice(0, 10) === today)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Doanh thu = Sales + Work Orders + Phiếu thu (không tính thu dịch vụ)
+    const revenue = salesRevenue + woRevenue + todayIncome;
+    // Lợi nhuận thuần = (Doanh thu bán hàng - Giá vốn) - Phiếu chi
+    const grossProfit = salesProfit + woProfit; // Lợi nhuận gộp
+    const profit = grossProfit - todayExpense; // Lợi nhuận thuần
+
+    // Count unique customers
+    const salesCustomers = todaySales.map(
+      (s) => s.customer.phone || s.customer.name
+    );
+    const woCustomers = todayWorkOrders.map(
+      (wo: any) =>
+        wo.customerPhone ||
+        wo.customerphone ||
+        wo.customerName ||
+        wo.customername
+    );
+    const customerCount = new Set([...salesCustomers, ...woCustomers]).size;
+
+    return {
+      revenue,
+      profit,
+      grossProfit,
+      income: todayIncome,
+      expense: todayExpense,
+      customerCount,
+      orderCount: todaySales.length + todayWorkOrders.length,
+      salesCount: todaySales.length,
+      workOrdersCount: todayWorkOrders.length,
+    };
+  }, [sales, workOrders, cashTransactions, today, getPartCost]);
+
+  // Thống kê theo filter (bao gồm cả Sales và Work Orders)
   const filteredStats = useMemo(() => {
     const now = new Date();
     let startDate: Date;
@@ -373,34 +478,132 @@ const Dashboard: React.FC = () => {
     }
 
     const startDateStr = startDate.toISOString().slice(0, 10);
+
+    // Sales
     const filteredSales = sales.filter(
       (s) => s.date.slice(0, 10) >= startDateStr
     );
-
-    const revenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
-    const profit = filteredSales.reduce((sum, s) => {
-      const cost = s.items.reduce(
-        (c, it) => c + ((it as any).costPrice || 0) * it.quantity,
-        0
-      );
+    const salesRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
+    const salesProfit = filteredSales.reduce((sum, s) => {
+      const cost = s.items.reduce((c, it) => {
+        const partCost = getPartCost(
+          it.partId,
+          it.sku,
+          (it as any).costPrice || 0
+        );
+        return c + partCost * it.quantity;
+      }, 0);
       return sum + (s.total - cost);
     }, 0);
-    const customerCount = new Set(
-      filteredSales.map((s) => s.customer.phone || s.customer.name)
-    ).size;
 
-    return { revenue, profit, customerCount, orderCount: filteredSales.length };
-  }, [sales, reportFilter]);
+    // Work Orders (đã thanh toán)
+    const filteredWorkOrders = workOrders.filter((wo: any) => {
+      const woDate =
+        wo.creationDate?.slice(0, 10) || wo.creationdate?.slice(0, 10);
+      const isPaid =
+        wo.paymentStatus === "paid" ||
+        wo.paymentstatus === "paid" ||
+        wo.paymentStatus === "partial" ||
+        wo.paymentstatus === "partial";
+      return woDate >= startDateStr && isPaid;
+    });
+    const woRevenue = filteredWorkOrders.reduce(
+      (sum, wo: any) => sum + (wo.totalPaid || wo.totalpaid || wo.total || 0),
+      0
+    );
+    const woProfit = filteredWorkOrders.reduce((sum, wo: any) => {
+      const partsCost = (wo.partsUsed || wo.partsused || []).reduce(
+        (c: number, p: any) => {
+          const partId = p.partId || p.partid;
+          const sku = p.sku;
+          const cost = getPartCost(
+            partId,
+            sku,
+            p.costPrice || p.costprice || 0
+          );
+          return c + cost * (p.quantity || 0);
+        },
+        0
+      );
+      return (
+        sum + ((wo.totalPaid || wo.totalpaid || wo.total || 0) - partsCost)
+      );
+    }, 0);
 
-  // Dữ liệu doanh thu 7 ngày gần nhất
+    // Cash transactions: thu/chi trong khoảng thời gian (loại trừ thu dịch vụ/bán hàng)
+    const filteredIncome = cashTransactions
+      .filter(
+        (t) =>
+          t.type === "income" &&
+          !excludedIncomeCategories.includes(t.category || "") &&
+          t.date.slice(0, 10) >= startDateStr
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+    const filteredExpense = cashTransactions
+      .filter(
+        (t) => t.type === "expense" && t.date.slice(0, 10) >= startDateStr
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Doanh thu = Sales + Work Orders + Phiếu thu (không tính thu dịch vụ)
+    const revenue = salesRevenue + woRevenue + filteredIncome;
+    // Lợi nhuận thuần = (Doanh thu bán hàng - Giá vốn) - Phiếu chi
+    const grossProfit = salesProfit + woProfit;
+    const profit = grossProfit - filteredExpense;
+
+    const salesCustomers = filteredSales.map(
+      (s) => s.customer.phone || s.customer.name
+    );
+    const woCustomers = filteredWorkOrders.map(
+      (wo: any) =>
+        wo.customerPhone ||
+        wo.customerphone ||
+        wo.customerName ||
+        wo.customername
+    );
+    const customerCount = new Set([...salesCustomers, ...woCustomers]).size;
+
+    return {
+      revenue,
+      profit,
+      grossProfit,
+      income: filteredIncome,
+      expense: filteredExpense,
+      customerCount,
+      orderCount: filteredSales.length + filteredWorkOrders.length,
+    };
+  }, [sales, workOrders, cashTransactions, reportFilter, getPartCost]);
+
+  // Dữ liệu doanh thu 7 ngày gần nhất (bao gồm cả Sales và Work Orders)
   const last7DaysRevenue = useMemo(() => {
     const data = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().slice(0, 10);
+
+      // Sales revenue
       const daySales = sales.filter((s) => s.date.slice(0, 10) === dateStr);
-      const revenue = daySales.reduce((sum, s) => sum + s.total, 0);
+      const salesRevenue = daySales.reduce((sum, s) => sum + s.total, 0);
+
+      // Work Orders revenue (đã thanh toán)
+      const dayWorkOrders = workOrders.filter((wo: any) => {
+        const woDate =
+          wo.creationDate?.slice(0, 10) || wo.creationdate?.slice(0, 10);
+        const isPaid =
+          wo.paymentStatus === "paid" ||
+          wo.paymentstatus === "paid" ||
+          wo.paymentStatus === "partial" ||
+          wo.paymentstatus === "partial";
+        return woDate === dateStr && isPaid;
+      });
+      const woRevenue = dayWorkOrders.reduce(
+        (sum, wo: any) => sum + (wo.totalPaid || wo.totalpaid || wo.total || 0),
+        0
+      );
+
+      const revenue = salesRevenue + woRevenue;
+
       const expense = cashTransactions
         .filter((t) => t.type === "expense" && t.date.slice(0, 10) === dateStr)
         .reduce((sum, t) => sum + t.amount, 0);
@@ -416,7 +619,7 @@ const Dashboard: React.FC = () => {
       });
     }
     return data;
-  }, [sales, cashTransactions]);
+  }, [sales, workOrders, cashTransactions]);
 
   // Dữ liệu thu chi
   const incomeExpenseData = useMemo(() => {
@@ -433,10 +636,11 @@ const Dashboard: React.FC = () => {
     ];
   }, [cashTransactions]);
 
-  // Top sản phẩm bán chạy
+  // Top sản phẩm bán chạy (từ cả Sales và Work Orders)
   const topProducts = useMemo(() => {
     const productSales: Record<string, { name: string; quantity: number }> = {};
 
+    // From sales
     sales.forEach((sale) => {
       sale.items.forEach((item) => {
         if (!productSales[item.partId]) {
@@ -449,10 +653,28 @@ const Dashboard: React.FC = () => {
       });
     });
 
+    // From work orders
+    workOrders.forEach((wo: any) => {
+      const parts = wo.partsUsed || wo.partsused || [];
+      parts.forEach((part: any) => {
+        const partId = part.partId || part.partid;
+        const partName = part.partName || part.partname;
+        if (partId && partName) {
+          if (!productSales[partId]) {
+            productSales[partId] = {
+              name: partName,
+              quantity: 0,
+            };
+          }
+          productSales[partId].quantity += part.quantity || 0;
+        }
+      });
+    });
+
     return Object.values(productSales)
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 5);
-  }, [sales]);
+  }, [sales, workOrders]);
 
   // Số dư tài khoản
   const cashBalance =

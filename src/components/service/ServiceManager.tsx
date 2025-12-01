@@ -5044,8 +5044,40 @@ const WorkOrderModal: React.FC<{
             creationDate: new Date().toISOString(),
           };
 
-          // Update cash transactions in context (for UI consistency)
+          // Update cash transactions in context (for UI consistency) AND insert to database
           if (depositTxId && depositAmount > 0) {
+            // INSERT deposit transaction to database
+            try {
+              const { error: depositError } = await supabase
+                .from("cash_transactions")
+                .insert({
+                  id: depositTxId,
+                  type: "income",
+                  category: "service_deposit",
+                  amount: depositAmount,
+                  date: new Date().toISOString(),
+                  description: `Đặt cọc sửa chữa #${(
+                    formatWorkOrderId(
+                      orderId,
+                      storeSettings?.work_order_prefix
+                    ) || ""
+                  )
+                    .split("-")
+                    .pop()} - ${formData.customerName}`,
+                  branchid: currentBranchId,
+                  paymentsource: formData.paymentMethod,
+                  workorderid: orderId,
+                });
+              if (depositError) {
+                console.error(
+                  "[handleSave] Failed to insert deposit transaction:",
+                  depositError
+                );
+              }
+            } catch (err) {
+              console.error("[handleSave] Error inserting deposit tx:", err);
+            }
+
             setCashTransactions((prev: any[]) => [
               ...prev,
               {
@@ -5086,6 +5118,38 @@ const WorkOrderModal: React.FC<{
           }
 
           if (paymentTxId && totalAdditionalPayment > 0) {
+            // INSERT payment transaction to database
+            try {
+              const { error: paymentError } = await supabase
+                .from("cash_transactions")
+                .insert({
+                  id: paymentTxId,
+                  type: "income",
+                  category: "service_income",
+                  amount: totalAdditionalPayment,
+                  date: new Date().toISOString(),
+                  description: `Thu tiền sửa chữa #${(
+                    formatWorkOrderId(
+                      orderId,
+                      storeSettings?.work_order_prefix
+                    ) || ""
+                  )
+                    .split("-")
+                    .pop()} - ${formData.customerName}`,
+                  branchid: currentBranchId,
+                  paymentsource: formData.paymentMethod,
+                  workorderid: orderId,
+                });
+              if (paymentError) {
+                console.error(
+                  "[handleSave] Failed to insert payment transaction:",
+                  paymentError
+                );
+              }
+            } catch (err) {
+              console.error("[handleSave] Error inserting payment tx:", err);
+            }
+
             setCashTransactions((prev: any[]) => [
               ...prev,
               {
@@ -5409,15 +5473,52 @@ const WorkOrderModal: React.FC<{
                   : order.paymentDate,
               };
 
-          // Update cash transactions in context if new transactions created
+          // Update cash transactions in context AND insert to database if new transactions created
           if (depositTxId && depositAmount > order.depositAmount!) {
+            const additionalDeposit =
+              depositAmount - (order.depositAmount || 0);
+            // INSERT additional deposit to database
+            try {
+              const { error: depositError } = await supabase
+                .from("cash_transactions")
+                .insert({
+                  id: depositTxId,
+                  type: "income",
+                  category: "service_deposit",
+                  amount: additionalDeposit,
+                  date: new Date().toISOString(),
+                  description: `Đặt cọc bổ sung #${(
+                    formatWorkOrderId(
+                      order.id,
+                      storeSettings?.work_order_prefix
+                    ) || ""
+                  )
+                    .split("-")
+                    .pop()} - ${formData.customerName}`,
+                  branchid: currentBranchId,
+                  paymentsource: formData.paymentMethod,
+                  workorderid: order.id,
+                });
+              if (depositError) {
+                console.error(
+                  "[handleSave-update] Failed to insert additional deposit:",
+                  depositError
+                );
+              }
+            } catch (err) {
+              console.error(
+                "[handleSave-update] Error inserting additional deposit:",
+                err
+              );
+            }
+
             setCashTransactions((prev: any[]) => [
               ...prev,
               {
                 id: depositTxId,
                 type: "income",
                 category: "service_deposit",
-                amount: depositAmount - (order.depositAmount || 0),
+                amount: additionalDeposit,
                 date: new Date().toISOString(),
                 description: `Đặt cọc bổ sung #${(
                   formatWorkOrderId(
@@ -5441,8 +5542,7 @@ const WorkOrderModal: React.FC<{
                     balance: {
                       ...ps.balance,
                       [currentBranchId]:
-                        (ps.balance[currentBranchId] || 0) +
-                        (depositAmount - (order.depositAmount || 0)),
+                        (ps.balance[currentBranchId] || 0) + additionalDeposit,
                     },
                   };
                 }
@@ -5455,13 +5555,50 @@ const WorkOrderModal: React.FC<{
             paymentTxId &&
             totalAdditionalPayment > (order.additionalPayment || 0)
           ) {
+            const additionalPaymentAmount =
+              totalAdditionalPayment - (order.additionalPayment || 0);
+            // INSERT additional payment to database
+            try {
+              const { error: paymentError } = await supabase
+                .from("cash_transactions")
+                .insert({
+                  id: paymentTxId,
+                  type: "income",
+                  category: "service_income",
+                  amount: additionalPaymentAmount,
+                  date: new Date().toISOString(),
+                  description: `Thu tiền bổ sung #${(
+                    formatWorkOrderId(
+                      order.id,
+                      storeSettings?.work_order_prefix
+                    ) || ""
+                  )
+                    .split("-")
+                    .pop()} - ${formData.customerName}`,
+                  branchid: currentBranchId,
+                  paymentsource: formData.paymentMethod,
+                  workorderid: order.id,
+                });
+              if (paymentError) {
+                console.error(
+                  "[handleSave-update] Failed to insert additional payment:",
+                  paymentError
+                );
+              }
+            } catch (err) {
+              console.error(
+                "[handleSave-update] Error inserting additional payment:",
+                err
+              );
+            }
+
             setCashTransactions((prev: any[]) => [
               ...prev,
               {
                 id: paymentTxId,
                 type: "income",
                 category: "service_income",
-                amount: totalAdditionalPayment - (order.additionalPayment || 0),
+                amount: additionalPaymentAmount,
                 date: new Date().toISOString(),
                 description: `Thu tiền bổ sung #${(
                   formatWorkOrderId(
@@ -5486,8 +5623,7 @@ const WorkOrderModal: React.FC<{
                       ...ps.balance,
                       [currentBranchId]:
                         (ps.balance[currentBranchId] || 0) +
-                        (totalAdditionalPayment -
-                          (order.additionalPayment || 0)),
+                        additionalPaymentAmount,
                     },
                   };
                 }

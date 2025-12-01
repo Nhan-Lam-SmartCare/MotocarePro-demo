@@ -5,19 +5,29 @@ import { showToast } from "../../utils/toast";
 import { formatCurrency, formatDate } from "../../utils/format";
 import type { CashTransaction } from "../../types";
 import { PlusIcon } from "../Icons";
-import { useCreateCashTxRepo } from "../../hooks/useCashTransactionsRepository";
+import {
+  useCashTxRepo,
+  useCreateCashTxRepo,
+  useUpdateCashTxRepo,
+  useDeleteCashTxRepo,
+} from "../../hooks/useCashTransactionsRepository";
 import { useUpdatePaymentSourceBalanceRepo } from "../../hooks/usePaymentSourcesRepository";
 
 const CashBook: React.FC = () => {
   const {
-    cashTransactions,
     paymentSources,
     currentBranchId,
     setCashTransactions,
     setPaymentSources,
   } = useAppContext();
+
+  // Fetch cash transactions from database instead of localStorage
+  const { data: cashTransactions = [], isLoading: isCashTxLoading } =
+    useCashTxRepo({ branchId: currentBranchId });
   const authCtx = useAuth();
   const createCashTxRepo = useCreateCashTxRepo();
+  const updateCashTxRepo = useUpdateCashTxRepo();
+  const deleteCashTxRepo = useDeleteCashTxRepo();
   const updatePaymentSourceBalanceRepo = useUpdatePaymentSourceBalanceRepo();
   const [filterType, setFilterType] = useState<"all" | "income" | "expense">(
     "all"
@@ -27,6 +37,10 @@ const CashBook: React.FC = () => {
     "today" | "week" | "month" | "all"
   >("month");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] =
+    useState<CashTransaction | null>(null);
+  const [deletingTransaction, setDeletingTransaction] =
+    useState<CashTransaction | null>(null);
 
   // Filter transactions
   const filteredTransactions = useMemo(() => {
@@ -350,7 +364,12 @@ const CashBook: React.FC = () => {
 
         {/* Transactions List (Mobile) */}
         <div className="md:hidden space-y-3">
-          {filteredTransactions.length === 0 ? (
+          {isCashTxLoading ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              Đang tải dữ liệu...
+            </div>
+          ) : filteredTransactions.length === 0 ? (
             <div className="text-center py-8 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
               Không có giao dịch nào
             </div>
@@ -369,32 +388,72 @@ const CashBook: React.FC = () => {
                       {formatDate(new Date(tx.date))}
                     </div>
                   </div>
-                  <div
-                    className={`font-bold ${
-                      isIncomeType(tx.type)
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {isIncomeType(tx.type) ? "+" : "-"}
-                    {formatCurrency(Math.abs(tx.amount))}
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`font-bold ${
+                        isIncomeType(tx.type)
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {isIncomeType(tx.type) ? "+" : "-"}
+                      {formatCurrency(Math.abs(tx.amount))}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400 truncate max-w-[60%]">
+                  <span className="text-slate-600 dark:text-slate-400 truncate max-w-[50%]">
                     {tx.notes || "--"}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                    {(() => {
-                      const source =
-                        tx.paymentSourceId ||
-                        (tx as any).paymentsource ||
-                        (tx as any).paymentSource;
-                      if (source === "cash") return "Tiền mặt";
-                      if (source === "bank") return "Ngân hàng";
-                      return source || "--";
-                    })()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                      {(() => {
+                        const source =
+                          tx.paymentSourceId ||
+                          (tx as any).paymentsource ||
+                          (tx as any).paymentSource;
+                        if (source === "cash") return "Tiền mặt";
+                        if (source === "bank") return "Ngân hàng";
+                        return source || "--";
+                      })()}
+                    </span>
+                    <button
+                      onClick={() => setEditingTransaction(tx)}
+                      className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setDeletingTransaction(tx)}
+                      className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
@@ -433,7 +492,17 @@ const CashBook: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {filteredTransactions.length === 0 ? (
+              {isCashTxLoading ? (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-4 py-8 text-center text-slate-500 dark:text-slate-400"
+                  >
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    Đang tải dữ liệu...
+                  </td>
+                </tr>
+              ) : filteredTransactions.length === 0 ? (
                 <tr>
                   <td
                     colSpan={8}
@@ -493,21 +562,46 @@ const CashBook: React.FC = () => {
                       {formatCurrency(Math.abs(tx.amount))}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setEditingTransaction(tx)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="Chỉnh sửa"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                          />
-                        </svg>
-                      </button>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setDeletingTransaction(tx)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Xóa"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -571,6 +665,53 @@ const CashBook: React.FC = () => {
                 setShowAddModal(false);
               } else if (res?.error) {
                 showToast.error(res.error.message || "Ghi giao dịch thất bại");
+              }
+            } catch (e: any) {
+              showToast.error(e?.message || "Lỗi không xác định");
+            }
+          }}
+        />
+      )}
+
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <EditTransactionModal
+          transaction={editingTransaction}
+          onClose={() => setEditingTransaction(null)}
+          onSave={async (updatedData) => {
+            try {
+              const res = await updateCashTxRepo.mutateAsync({
+                id: editingTransaction.id,
+                ...updatedData,
+              });
+              if (res?.ok) {
+                showToast.success("Đã cập nhật giao dịch");
+                setEditingTransaction(null);
+              } else if (res?.error) {
+                showToast.error(res.error.message || "Cập nhật thất bại");
+              }
+            } catch (e: any) {
+              showToast.error(e?.message || "Lỗi không xác định");
+            }
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingTransaction && (
+        <DeleteConfirmModal
+          transaction={deletingTransaction}
+          onClose={() => setDeletingTransaction(null)}
+          onConfirm={async () => {
+            try {
+              const res = await deleteCashTxRepo.mutateAsync(
+                deletingTransaction.id
+              );
+              if (res?.ok) {
+                showToast.success("Đã xóa giao dịch");
+                setDeletingTransaction(null);
+              } else if (res?.error) {
+                showToast.error(res.error.message || "Xóa thất bại");
               }
             } catch (e: any) {
               showToast.error(e?.message || "Lỗi không xác định");
@@ -811,6 +952,344 @@ const AddTransactionModal: React.FC<{
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// Edit Transaction Modal Component
+const EditTransactionModal: React.FC<{
+  transaction: CashTransaction;
+  onClose: () => void;
+  onSave: (updatedData: any) => void;
+}> = ({ transaction, onClose, onSave }) => {
+  const [type, setType] = useState<"income" | "expense">(
+    transaction.type === "income" || transaction.type === "deposit"
+      ? "income"
+      : "expense"
+  );
+  const [amount, setAmount] = useState(String(Math.abs(transaction.amount)));
+  const [category, setCategory] = useState(transaction.category || "");
+  const [paymentSource, setPaymentSource] = useState(
+    transaction.paymentSourceId || (transaction as any).paymentsource || "cash"
+  );
+  const [recipient, setRecipient] = useState(
+    (transaction as any).recipient || ""
+  );
+  const [notes, setNotes] = useState(
+    transaction.notes || (transaction as any).description || ""
+  );
+  const [date, setDate] = useState(
+    transaction.date
+      ? new Date(transaction.date).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0]
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      type,
+      amount: parseFloat(amount),
+      category,
+      paymentSourceId: paymentSource,
+      recipient,
+      notes,
+      date: new Date(date).toISOString(),
+    });
+  };
+
+  const incomeCategories = [
+    { value: "sale_income", label: "Tiền bán hàng" },
+    { value: "service_income", label: "Tiền dịch vụ" },
+    { value: "service_deposit", label: "Đặt cọc dịch vụ" },
+    { value: "debt_collection", label: "Thu nợ khách hàng" },
+    { value: "other_income", label: "Thu nhập khác" },
+    { value: "general_income", label: "Thu chung" },
+  ];
+
+  const expenseCategories = [
+    { value: "inventory_purchase", label: "Mua hàng" },
+    { value: "salary", label: "Lương nhân viên" },
+    { value: "rent", label: "Tiền thuê mặt bằng" },
+    { value: "utilities", label: "Điện nước" },
+    { value: "outsourcing", label: "Gia công ngoài" },
+    { value: "loan_payment", label: "Trả nợ vay" },
+    { value: "debt_payment", label: "Trả nợ nhà cung cấp" },
+    { value: "sale_refund", label: "Hoàn trả khách hàng" },
+    { value: "other_expense", label: "Chi phí khác" },
+    { value: "general_expense", label: "Chi chung" },
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-lg w-full border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+            Chỉnh sửa giao dịch
+          </h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Type Selection */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Loại giao dịch
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="income"
+                  checked={type === "income"}
+                  onChange={(e) => setType(e.target.value as "income")}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-slate-900 dark:text-white">Thu tiền</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="expense"
+                  checked={type === "expense"}
+                  onChange={(e) => setType(e.target.value as "expense")}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-slate-900 dark:text-white">Chi tiền</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Số tiền
+            </label>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+              required
+            />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Danh mục
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+            >
+              <option value="">Chọn danh mục</option>
+              {(type === "income" ? incomeCategories : expenseCategories).map(
+                (cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
+
+          {/* Recipient/Payer */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Đối tượng
+            </label>
+            <input
+              type="text"
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              placeholder={
+                type === "income" ? "Thu tiền từ ai?" : "Chi tiền cho ai?"
+              }
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+            />
+          </div>
+
+          {/* Payment Source */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Nguồn tiền
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="cash"
+                  checked={paymentSource === "cash"}
+                  onChange={(e) => setPaymentSource(e.target.value)}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-slate-900 dark:text-white">Tiền mặt</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="bank"
+                  checked={paymentSource === "bank"}
+                  onChange={(e) => setPaymentSource(e.target.value)}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-slate-900 dark:text-white">
+                  Ngân hàng
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Ngày giao dịch
+            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+              required
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Nội dung
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+              placeholder="Ghi chú về giao dịch..."
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-lg font-medium transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Cập nhật
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Delete Confirmation Modal Component
+const DeleteConfirmModal: React.FC<{
+  transaction: CashTransaction;
+  onClose: () => void;
+  onConfirm: () => void;
+}> = ({ transaction, onClose, onConfirm }) => {
+  const isIncome =
+    transaction.type === "income" || transaction.type === "deposit";
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full border border-slate-200 dark:border-slate-700">
+        <div className="p-6">
+          <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-full">
+            <svg
+              className="w-6 h-6 text-red-600 dark:text-red-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white text-center mb-2">
+            Xác nhận xóa giao dịch
+          </h3>
+
+          <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-slate-500 dark:text-slate-400">
+                Loại:
+              </span>
+              <span
+                className={`text-sm font-medium ${
+                  isIncome ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {isIncome ? "Thu" : "Chi"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-slate-500 dark:text-slate-400">
+                Số tiền:
+              </span>
+              <span
+                className={`text-sm font-bold ${
+                  isIncome ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {isIncome ? "+" : "-"}
+                {formatCurrency(Math.abs(transaction.amount))}
+              </span>
+            </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-slate-500 dark:text-slate-400">
+                Ngày:
+              </span>
+              <span className="text-sm text-slate-900 dark:text-white">
+                {formatDate(new Date(transaction.date))}
+              </span>
+            </div>
+            {transaction.notes && (
+              <div className="flex justify-between items-start">
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                  Nội dung:
+                </span>
+                <span className="text-sm text-slate-900 dark:text-white text-right max-w-[60%]">
+                  {transaction.notes}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6">
+            Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa giao
+            dịch này?
+          </p>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-lg font-medium transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Xóa
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

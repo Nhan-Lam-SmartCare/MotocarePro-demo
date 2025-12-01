@@ -62,6 +62,7 @@ const AnalyticsDashboard = lazy(
 const AuditLogsViewer = lazy(
   () => import("./components/admin/AuditLogsViewer")
 );
+const MigrationTool = lazy(() => import("./components/admin/MigrationTool"));
 const SettingsManager = lazy(() =>
   import("./components/settings/SettingsManager").then((m) => ({
     default: m.SettingsManager,
@@ -298,6 +299,16 @@ const MainLayout: React.FC = () => {
             element={
               <ProtectedRoute requiredRoles={["owner", "manager"]}>
                 <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/migration"
+            element={
+              <ProtectedRoute requiredRoles={["owner"]}>
+                <Suspense fallback={<PageLoader />}>
+                  <MigrationTool />
+                </Suspense>
               </ProtectedRoute>
             }
           />
