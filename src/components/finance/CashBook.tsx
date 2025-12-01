@@ -42,6 +42,19 @@ const CashBook: React.FC = () => {
   const [deletingTransaction, setDeletingTransaction] =
     useState<CashTransaction | null>(null);
 
+  // State cho modal cài đặt số dư ban đầu
+  const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);
+  const [initialCashBalance, setInitialCashBalance] = useState("");
+  const [initialBankBalance, setInitialBankBalance] = useState("");
+
+  // Lấy số dư ban đầu từ paymentSources (đã lưu trong DB)
+  const savedInitialCash =
+    paymentSources.find((ps) => ps.id === "cash")?.balance[currentBranchId] ||
+    0;
+  const savedInitialBank =
+    paymentSources.find((ps) => ps.id === "bank")?.balance[currentBranchId] ||
+    0;
+
   // Filter transactions
   const filteredTransactions = useMemo(() => {
     let filtered = cashTransactions.filter(
@@ -107,13 +120,37 @@ const CashBook: React.FC = () => {
 
     const balance = income - expense;
 
-    // Current balances
-    const cashBalance =
-      paymentSources.find((ps) => ps.id === "cash")?.balance[currentBranchId] ||
-      0;
-    const bankBalance =
-      paymentSources.find((ps) => ps.id === "bank")?.balance[currentBranchId] ||
-      0;
+    // Tính số dư thực tế từ TẤT CẢ giao dịch (không filter theo thời gian)
+    // để hiển thị đúng số dư hiện tại của quỹ
+    const allBranchTransactions = cashTransactions.filter(
+      (tx) => tx.branchId === currentBranchId
+    );
+
+    // Tính biến động tiền mặt từ transactions
+    const cashTransactionsDelta = allBranchTransactions
+      .filter((tx) => tx.paymentSourceId === "cash")
+      .reduce((sum, tx) => {
+        if (isIncomeType(tx.type)) {
+          return sum + Math.abs(tx.amount);
+        } else {
+          return sum - Math.abs(tx.amount);
+        }
+      }, 0);
+
+    // Tính biến động ngân hàng từ transactions
+    const bankTransactionsDelta = allBranchTransactions
+      .filter((tx) => tx.paymentSourceId === "bank")
+      .reduce((sum, tx) => {
+        if (isIncomeType(tx.type)) {
+          return sum + Math.abs(tx.amount);
+        } else {
+          return sum - Math.abs(tx.amount);
+        }
+      }, 0);
+
+    // Số dư hiện tại = Số dư ban đầu + Biến động từ giao dịch
+    const cashBalance = savedInitialCash + cashTransactionsDelta;
+    const bankBalance = savedInitialBank + bankTransactionsDelta;
 
     return {
       income,
@@ -123,7 +160,61 @@ const CashBook: React.FC = () => {
       bankBalance,
       totalBalance: cashBalance + bankBalance,
     };
-  }, [filteredTransactions, paymentSources, currentBranchId]);
+  }, [
+    filteredTransactions,
+    cashTransactions,
+    currentBranchId,
+    savedInitialCash,
+    savedInitialBank,
+  ]);
+
+  // Hàm lưu số dư ban đầu
+  const handleSaveInitialBalance = async () => {
+    try {
+      const cashAmount =
+        parseFloat(initialCashBalance.replace(/[,.]/g, "")) || 0;
+      const bankAmount =
+        parseFloat(initialBankBalance.replace(/[,.]/g, "")) || 0;
+
+      // Cập nhật số dư tiền mặt
+      await updatePaymentSourceBalanceRepo.mutateAsync({
+        id: "cash",
+        branchId: currentBranchId,
+        delta: cashAmount - savedInitialCash, // Delta để đạt được số dư mới
+      });
+
+      // Cập nhật số dư ngân hàng
+      await updatePaymentSourceBalanceRepo.mutateAsync({
+        id: "bank",
+        branchId: currentBranchId,
+        delta: bankAmount - savedInitialBank,
+      });
+
+      // Cập nhật local state
+      setPaymentSources((prev) =>
+        prev.map((ps) => {
+          if (ps.id === "cash") {
+            return {
+              ...ps,
+              balance: { ...ps.balance, [currentBranchId]: cashAmount },
+            };
+          }
+          if (ps.id === "bank") {
+            return {
+              ...ps,
+              balance: { ...ps.balance, [currentBranchId]: bankAmount },
+            };
+          }
+          return ps;
+        })
+      );
+
+      showToast.success("Đã cập nhật số dư ban đầu");
+      setShowInitialBalanceModal(false);
+    } catch (error) {
+      showToast.error("Lỗi khi cập nhật số dư");
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900">
@@ -138,27 +229,136 @@ const CashBook: React.FC = () => {
               Theo dõi thu chi tiền mặt và chuyển khoản
             </p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setInitialCashBalance(savedInitialCash.toString());
+                setInitialBankBalance(savedInitialBank.toString());
+                setShowInitialBalanceModal(true);
+              }}
+              className="flex items-center gap-2 px-3 py-2.5 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-lg font-medium transition-colors"
+              title="Cài đặt số dư ban đầu"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            <span>Thêm giao dịch</span>
-          </button>
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <span className="hidden md:inline">Số dư ban đầu</span>
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>Thêm giao dịch</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Modal cài đặt số dư ban đầu */}
+      {showInitialBalanceModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                Cài đặt số dư ban đầu
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Nhập số dư thực tế khi bắt đầu sử dụng hệ thống
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  💵 Tiền mặt
+                </label>
+                <input
+                  type="text"
+                  value={initialCashBalance}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, "");
+                    setInitialCashBalance(value);
+                  }}
+                  placeholder="0"
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-lg font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Hiển thị:{" "}
+                  {formatCurrency(parseFloat(initialCashBalance) || 0)}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  🏦 Ngân hàng
+                </label>
+                <input
+                  type="text"
+                  value={initialBankBalance}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, "");
+                    setInitialBankBalance(value);
+                  }}
+                  placeholder="0"
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-lg font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Hiển thị:{" "}
+                  {formatCurrency(parseFloat(initialBankBalance) || 0)}
+                </p>
+              </div>
+              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  ⚠️ Số dư ban đầu là số tiền thực tế bạn có{" "}
+                  <strong>trước khi</strong> bắt đầu ghi chép. Các giao dịch sau
+                  sẽ được cộng/trừ từ số này.
+                </p>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex gap-3">
+              <button
+                onClick={() => setShowInitialBalanceModal(false)}
+                className="flex-1 px-4 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-lg font-medium transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSaveInitialBalance}
+                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Lưu số dư
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="p-3 md:p-4">

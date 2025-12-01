@@ -348,10 +348,21 @@ const Dashboard: React.FC = () => {
   // Các category phiếu thu đã được tính trong doanh thu (Sales/Work Orders)
   const excludedIncomeCategories = [
     "service",
-    "Dịch vụ",
-    "sale_income",
-    "Bán hàng",
+    "dịch vụ",
+    "sale_income", // Thu từ bán hàng
+    "bán hàng",
+    "service_income", // Thu từ phiếu sửa chữa
+    "service_deposit", // Đặt cọc dịch vụ
   ];
+
+  // Helper function để check exclude với case-insensitive
+  const isExcludedIncomeCategory = (category: string | undefined | null) => {
+    if (!category) return false;
+    const lowerCat = category.toLowerCase().trim();
+    return excludedIncomeCategories.some(
+      (exc) => exc.toLowerCase() === lowerCat
+    );
+  };
 
   // Thống kê hôm nay (bao gồm cả Sales và Work Orders đã thanh toán)
   const todayStats = useMemo(() => {
@@ -409,7 +420,7 @@ const Dashboard: React.FC = () => {
       .filter(
         (t) =>
           t.type === "income" &&
-          !excludedIncomeCategories.includes(t.category || "") &&
+          !isExcludedIncomeCategory(t.category) &&
           t.date.slice(0, 10) === today
       )
       .reduce((sum, t) => sum + t.amount, 0);
@@ -535,7 +546,7 @@ const Dashboard: React.FC = () => {
       .filter(
         (t) =>
           t.type === "income" &&
-          !excludedIncomeCategories.includes(t.category || "") &&
+          !isExcludedIncomeCategory(t.category) &&
           t.date.slice(0, 10) >= startDateStr
       )
       .reduce((sum, t) => sum + t.amount, 0);
@@ -676,13 +687,52 @@ const Dashboard: React.FC = () => {
       .slice(0, 5);
   }, [sales, workOrders]);
 
-  // Số dư tài khoản
-  const cashBalance =
+  // Helper to check income type
+  const isIncomeType = (type: string | undefined) =>
+    type === "income" || type === "deposit";
+
+  // Lấy số dư ban đầu từ paymentSources (đã lưu trong DB)
+  const savedInitialCash =
     paymentSources.find((ps) => ps.id === "cash")?.balance[currentBranchId] ||
     0;
-  const bankBalance =
+  const savedInitialBank =
     paymentSources.find((ps) => ps.id === "bank")?.balance[currentBranchId] ||
     0;
+
+  // Số dư tài khoản - tính từ số dư ban đầu + biến động từ giao dịch
+  const { cashBalance, bankBalance } = useMemo(() => {
+    const branchTransactions = cashTransactions.filter(
+      (tx) => tx.branchId === currentBranchId
+    );
+
+    // Tính biến động tiền mặt từ transactions
+    const cashDelta = branchTransactions
+      .filter((tx) => tx.paymentSourceId === "cash")
+      .reduce((sum, tx) => {
+        if (isIncomeType(tx.type)) {
+          return sum + Math.abs(tx.amount);
+        } else {
+          return sum - Math.abs(tx.amount);
+        }
+      }, 0);
+
+    // Tính biến động ngân hàng từ transactions
+    const bankDelta = branchTransactions
+      .filter((tx) => tx.paymentSourceId === "bank")
+      .reduce((sum, tx) => {
+        if (isIncomeType(tx.type)) {
+          return sum + Math.abs(tx.amount);
+        } else {
+          return sum - Math.abs(tx.amount);
+        }
+      }, 0);
+
+    // Số dư = Số dư ban đầu + Biến động
+    return {
+      cashBalance: savedInitialCash + cashDelta,
+      bankBalance: savedInitialBank + bankDelta,
+    };
+  }, [cashTransactions, currentBranchId, savedInitialCash, savedInitialBank]);
 
   // Thống kê work orders (phiếu sửa chữa)
   const workOrderStats = useMemo(() => {

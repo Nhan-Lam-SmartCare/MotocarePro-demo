@@ -325,10 +325,21 @@ const ReportsManager: React.FC = () => {
   // Các category phiếu thu đã được tính trong doanh thu (Sales/Work Orders)
   const excludedIncomeCategories = [
     "service",
-    "Dịch vụ",
-    "sale_income",
-    "Bán hàng",
+    "dịch vụ",
+    "sale_income", // Thu từ bán hàng
+    "bán hàng",
+    "service_income", // Thu từ phiếu sửa chữa
+    "service_deposit", // Đặt cọc dịch vụ
   ];
+
+  // Helper function để check exclude với case-insensitive
+  const isExcludedIncomeCategory = (category: string | undefined | null) => {
+    if (!category) return false;
+    const lowerCat = category.toLowerCase().trim();
+    return excludedIncomeCategories.some(
+      (exc) => exc.toLowerCase() === lowerCat
+    );
+  };
 
   const cashTotals = useMemo(() => {
     const filteredTransactions = cashTxData.filter((t) => {
@@ -338,15 +349,29 @@ const ReportsManager: React.FC = () => {
     // Phiếu thu: loại trừ thu từ dịch vụ/bán hàng (đã tính trong Sales/Work Orders)
     const totalIncome = filteredTransactions
       .filter(
-        (t) =>
-          t.type === "income" &&
-          !excludedIncomeCategories.includes(t.category || "")
+        (t) => t.type === "income" && !isExcludedIncomeCategory(t.category)
       )
       .reduce((sum, t) => sum + t.amount, 0);
     // Phiếu chi: tính tất cả
     const totalExpense = filteredTransactions
       .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + t.amount, 0);
+
+    // Debug log
+    console.log("[ReportsManager] Cash totals:", {
+      totalTransactions: filteredTransactions.length,
+      incomeAfterFilter: totalIncome,
+      expense: totalExpense,
+      excludedCategories: excludedIncomeCategories,
+      incomeByCategory: filteredTransactions
+        .filter((t) => t.type === "income")
+        .reduce((acc, t) => {
+          const cat = t.category || "unknown";
+          acc[cat] = (acc[cat] || 0) + t.amount;
+          return acc;
+        }, {} as Record<string, number>),
+    });
+
     return { totalIncome, totalExpense };
   }, [cashTxData, start, end]);
 
@@ -905,12 +930,12 @@ const ReportsManager: React.FC = () => {
                       <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
                         Doanh thu
                         <br />
-                        (5=2+3+4)
+                        (5=2)
                       </th>
                       <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
                         Lợi nhuận
                         <br />
-                        (6=2-1-4)
+                        (6=2-1)
                       </th>
                       <th className="px-2 py-2 text-right text-[10px] font-bold uppercase">
                         Thu khác
@@ -945,9 +970,7 @@ const ReportsManager: React.FC = () => {
                         .filter(
                           (t) =>
                             t.type === "income" &&
-                            !excludedIncomeCategories.includes(
-                              t.category || ""
-                            ) &&
+                            !isExcludedIncomeCategory(t.category) &&
                             t.date.slice(0, 10) === dayDateStr
                         )
                         .reduce((sum, t) => sum + t.amount, 0);
@@ -1010,30 +1033,39 @@ const ReportsManager: React.FC = () => {
                         >
                           Tổng:
                         </td>
+                        {/* Vốn NK (1) */}
                         <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
                           {formatCurrency(revenueReport.totalCost)}
                         </td>
+                        {/* Tiền hàng (2) */}
                         <td className="px-2 py-2 text-right text-xs font-black text-blue-600 dark:text-blue-400">
                           {formatCurrency(revenueReport.totalRevenue)}
                         </td>
-                        <td className="px-2 py-2 text-right text-xs text-green-600 dark:text-green-400">
-                          {formatCurrency(cashTotals.totalIncome)}
-                        </td>
-                        <td className="px-2 py-2 text-right text-xs text-red-600 dark:text-red-400">
-                          {formatCurrency(cashTotals.totalExpense)}
-                        </td>
-                        <td className="px-2 py-2 text-right text-xs font-black text-blue-600 dark:text-blue-400">
-                          {formatCurrency(combinedRevenue)}
-                        </td>
-                        <td className="px-2 py-2 text-right text-xs font-black text-orange-600 dark:text-orange-400">
-                          {formatCurrency(revenueReport.totalProfit)}
-                        </td>
+                        {/* Vốn SC (3) = 0 */}
                         <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
                           {formatCurrency(0)}
                         </td>
+                        {/* Công SC (4) = 0 */}
+                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
+                          {formatCurrency(0)}
+                        </td>
+                        {/* Doanh thu (5) = Tiền hàng */}
+                        <td className="px-2 py-2 text-right text-xs font-black text-blue-600 dark:text-blue-400">
+                          {formatCurrency(revenueReport.totalRevenue)}
+                        </td>
+                        {/* Lợi nhuận (6) */}
+                        <td className="px-2 py-2 text-right text-xs font-black text-orange-600 dark:text-orange-400">
+                          {formatCurrency(revenueReport.totalProfit)}
+                        </td>
+                        {/* Thu khác (7) */}
+                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
+                          {formatCurrency(cashTotals.totalIncome)}
+                        </td>
+                        {/* Chi khác (8) */}
                         <td className="px-2 py-2 text-right text-xs text-red-600 dark:text-red-400">
                           {formatCurrency(cashTotals.totalExpense)}
                         </td>
+                        {/* LN ròng (9) */}
                         <td
                           className={`px-2 py-2 text-right text-xs font-black ${
                             netProfit >= 0
