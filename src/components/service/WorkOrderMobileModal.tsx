@@ -1951,48 +1951,40 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
         {/* Desktop modal would go here - keeping original unchanged */}
       </div>
 
-      {/* Part Search Bottom Sheet - Fixed for keyboard visibility */}
+      {/* Part Search Top Sheet - Fixed at top for keyboard visibility */}
       {showPartSearch && (
         <div className="fixed inset-0 bg-black/70 z-[110] flex flex-col">
-          {/* Spacer to push content up when keyboard appears */}
+          {/* Top Sheet Container - positioned at TOP so input is always visible above keyboard */}
           <div
-            className="flex-1 min-h-[10vh]"
-            onClick={() => {
-              setShowPartSearch(false);
-              setPartSearchTerm("");
-            }}
-          />
-
-          {/* Bottom Sheet Container - positioned at bottom, height adjusts with keyboard */}
-          <div
-            className="w-full bg-[#151521] rounded-t-2xl flex flex-col"
-            style={{ maxHeight: "70vh" }}
+            className="w-full bg-[#151521] rounded-b-2xl flex flex-col"
+            style={{ maxHeight: "60vh" }}
           >
+            {/* Header */}
             <div className="flex-shrink-0 p-3 border-b border-slate-700 flex items-center justify-between">
               <h3 className="text-white font-semibold text-sm">
-                Chọn phụ tùng
+                🔍 Tìm phụ tùng
               </h3>
               <button
                 onClick={() => {
                   setShowPartSearch(false);
                   setPartSearchTerm("");
                 }}
-                className="p-1.5 text-slate-400"
+                className="p-1.5 text-slate-400 hover:text-white"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Search Input - Sticky at top */}
-            <div className="flex-shrink-0 p-3 bg-[#151521] sticky top-0 z-10">
+            {/* Search Input - Always visible at top */}
+            <div className="flex-shrink-0 p-3 bg-[#151521]">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   value={partSearchTerm}
                   onChange={(e) => setPartSearchTerm(e.target.value)}
-                  placeholder="Tìm tên hoặc SKU..."
-                  className="w-full pl-9 pr-3 py-2.5 bg-[#2b2b40] rounded-lg text-white text-sm"
+                  placeholder="Nhập tên hoặc SKU phụ tùng..."
+                  className="w-full pl-10 pr-3 py-3 bg-[#2b2b40] border border-slate-600 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
                   autoFocus
                 />
               </div>
@@ -2022,7 +2014,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     <div
                       key={part.id}
                       onClick={() => handleAddPart(part)}
-                      className="p-2.5 bg-[#1e1e2d] rounded-lg cursor-pointer hover:bg-[#2b2b40] transition-colors"
+                      className="p-2.5 bg-[#1e1e2d] rounded-lg cursor-pointer hover:bg-[#2b2b40] active:bg-blue-600/20 transition-colors"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
@@ -2052,6 +2044,15 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Tap outside to close */}
+          <div
+            className="flex-1"
+            onClick={() => {
+              setShowPartSearch(false);
+              setPartSearchTerm("");
+            }}
+          />
         </div>
       )}
 
