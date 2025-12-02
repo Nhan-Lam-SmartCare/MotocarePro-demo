@@ -1818,7 +1818,7 @@ export default function ServiceManager() {
                 partId: "",
                 partName: p.name,
                 quantity: p.quantity,
-                unitPrice: p.price,
+                price: p.price,
               })),
               notes: "",
               total: 0,
@@ -2400,10 +2400,11 @@ export default function ServiceManager() {
             assignedTechnician: "",
             laborCost: template.laborCost,
             partsUsed: template.parts.map((p) => ({
-              partId: "",
+              partId: p.partId || "",
               partName: p.name,
               quantity: p.quantity,
-              unitPrice: p.price,
+              price: p.price,
+              sku: p.sku || "",
             })),
             notes: "",
             total: 0,
@@ -6577,9 +6578,7 @@ const WorkOrderModal: React.FC<{
                       <NumberInput
                         placeholder="Số tiền đặt cọc"
                         value={depositAmount || ""}
-                        onChange={(val) =>
-                          setDepositAmount(val)
-                        }
+                        onChange={(val) => setDepositAmount(val)}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                       />
                     </div>
@@ -6688,9 +6687,7 @@ const WorkOrderModal: React.FC<{
                             <NumberInput
                               placeholder="0"
                               value={partialPayment || ""}
-                              onChange={(val) =>
-                                setPartialPayment(val)
-                              }
+                              onChange={(val) => setPartialPayment(val)}
                               className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                             />
                             <button

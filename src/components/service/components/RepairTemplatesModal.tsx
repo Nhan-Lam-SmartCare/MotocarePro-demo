@@ -20,6 +20,8 @@ interface TemplatePart {
   quantity: number;
   price: number;
   unit: string;
+  sku?: string;
+  partId?: string;
 }
 
 interface ServiceTemplate {
@@ -194,6 +196,8 @@ export function RepairTemplatesModal({
             quantity: 1,
             price: part.retailPrice?.[currentBranchId || ""] || 0,
             unit: "cái",
+            sku: part.sku || "",
+            partId: part.id || "",
           },
         ],
       });
