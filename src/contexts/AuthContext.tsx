@@ -1,7 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 // Use a single Supabase client app-wide to avoid multiple GoTrue instances
 import { supabase } from "../supabaseClient";
-import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
+import type {
+  User,
+  Session,
+  AuthChangeEvent,
+  AuthenticatorAssuranceLevels,
+} from "@supabase/supabase-js";
 import { safeAudit } from "../lib/repository/auditLogsRepository";
 import { showToast } from "../utils/toast";
 
@@ -22,9 +27,21 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   error: string | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  // MFA state
+  mfaRequired: boolean;
+  currentAAL: AuthenticatorAssuranceLevels | null;
+  // Methods
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ mfaRequired: boolean }>;
   signOut: () => Promise<void>;
   hasRole: (roles: UserRole[]) => boolean;
+  completeMFAVerification: () => void;
+  checkMFAStatus: () => Promise<{
+    hasMFA: boolean;
+    requiresVerification: boolean;
+  }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,6 +60,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // MFA state
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [currentAAL, setCurrentAAL] =
+    useState<AuthenticatorAssuranceLevels | null>(null);
 
   useEffect(() => {
     // Get initial session
@@ -118,16 +139,71 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (
+    email: string,
+    password: string
+  ): Promise<{ mfaRequired: boolean }> => {
     const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     if (error) throw error;
     setError(null);
-    // Audit login (best-effort)
+
+    // Check if MFA is required
+    const { data: aalData } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (aalData) {
+      setCurrentAAL(aalData.currentLevel);
+
+      // If user has MFA enrolled and hasn't verified yet (AAL1 but needs AAL2)
+      if (aalData.nextLevel === "aal2" && aalData.currentLevel === "aal1") {
+        setMfaRequired(true);
+        // Audit login attempt (best-effort)
+        const userId = data?.user?.id || null;
+        void safeAudit(userId, { action: "auth.login_mfa_pending" });
+        return { mfaRequired: true };
+      }
+    }
+
+    // No MFA required, complete login
     const userId = data?.user?.id || null;
     void safeAudit(userId, { action: "auth.login" });
+    return { mfaRequired: false };
+  };
+
+  // Called after successful MFA verification
+  const completeMFAVerification = () => {
+    setMfaRequired(false);
+    setCurrentAAL("aal2");
+    // Audit successful MFA login
+    if (user?.id) {
+      void safeAudit(user.id, { action: "auth.login_mfa_success" });
+    }
+  };
+
+  // Check MFA status for current user
+  const checkMFAStatus = async (): Promise<{
+    hasMFA: boolean;
+    requiresVerification: boolean;
+  }> => {
+    try {
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const { data: aalData } =
+        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+      const verifiedFactors =
+        factorsData?.totp?.filter((f) => f.status === "verified") || [];
+      const hasMFA = verifiedFactors.length > 0;
+      const requiresVerification =
+        aalData?.nextLevel === "aal2" && aalData?.currentLevel === "aal1";
+
+      return { hasMFA, requiresVerification };
+    } catch (err) {
+      console.error("Error checking MFA status:", err);
+      return { hasMFA: false, requiresVerification: false };
+    }
   };
 
   const signOut = async () => {
@@ -150,9 +226,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     session,
     loading,
     error,
+    // MFA
+    mfaRequired,
+    currentAAL,
+    // Methods
     signIn,
     signOut,
     hasRole,
+    completeMFAVerification,
+    checkMFAStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

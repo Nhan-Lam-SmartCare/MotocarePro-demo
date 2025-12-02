@@ -2,14 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { showToast } from "../../utils/toast";
+import { MFAVerify } from "./MFAVerify";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, completeMFAVerification, mfaRequired } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showMFAVerify, setShowMFAVerify] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +19,15 @@ export const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      await signIn(email, password);
+      const result = await signIn(email, password);
+
+      if (result.mfaRequired) {
+        // Show MFA verification screen
+        setShowMFAVerify(true);
+        setIsLoading(false);
+        return;
+      }
+
       showToast.success("Đăng nhập thành công!");
       navigate("/dashboard");
     } catch (err: unknown) {
@@ -30,6 +40,31 @@ export const LoginPage = () => {
       setIsLoading(false);
     }
   };
+
+  const handleMFASuccess = () => {
+    completeMFAVerification();
+    showToast.success("Đăng nhập thành công!");
+    navigate("/dashboard");
+  };
+
+  const handleMFACancel = async () => {
+    setShowMFAVerify(false);
+    setPassword("");
+    // Sign out the partial session
+    try {
+      const { supabase } = await import("../../supabaseClient");
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Error signing out:", err);
+    }
+  };
+
+  // Show MFA verification screen if required
+  if (showMFAVerify || mfaRequired) {
+    return (
+      <MFAVerify onSuccess={handleMFASuccess} onCancel={handleMFACancel} />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
