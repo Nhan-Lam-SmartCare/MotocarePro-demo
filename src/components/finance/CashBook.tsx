@@ -942,7 +942,7 @@ const getCategoryLabel = (category?: string) => {
     general_expense: "Chi chung",
     supplier_payment: "Chi trả NCC",
     utilities: "Điện nước",
-    rent: "Tiền thuê",
+    rent: "Tiền thuê mặt bằng",
   };
   return category ? labels[category] || category : "--";
 };
