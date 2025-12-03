@@ -158,6 +158,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     () => initialData?.supplierDebts || []
   );
 
+  // --- Fetch paymentSources from DB on mount to sync with Supabase ---
+  useEffect(() => {
+    const fetchPaymentSources = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("payment_sources")
+          .select("*");
+        if (!error && data) {
+          setPaymentSources(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch payment sources:", err);
+      }
+    };
+    fetchPaymentSources();
+  }, []);
+
   // --- Persist to localStorage ---
   useEffect(() => {
     const data = {

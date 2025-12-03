@@ -48,6 +48,7 @@ import {
 import { useSalesRepo } from "../../hooks/useSalesRepository";
 import { usePartsRepo } from "../../hooks/usePartsRepository";
 import { useCashTxRepo } from "../../hooks/useCashTransactionsRepository";
+import { useCashBalance } from "../../hooks/useCashBalance";
 import { useCustomers, useWorkOrders } from "../../hooks/useSupabase";
 import { useEmployeesRepo } from "../../hooks/useEmployeesRepository";
 import { useLoansRepo } from "../../hooks/useLoansRepository";
@@ -258,7 +259,10 @@ const Dashboard: React.FC = () => {
   const { data: loans = [], isLoading: loansLoading } = useLoansRepo();
   const { data: workOrders = [], isLoading: workOrdersLoading } =
     useWorkOrders();
-  const { currentBranchId, paymentSources } = useAppContext(); // Get paymentSources from context for consistency with CashBook
+  const { currentBranchId } = useAppContext();
+
+  // Sử dụng hook chung để tính số dư quỹ - đảm bảo đồng bộ với CashBook
+  const { cashBalance, bankBalance } = useCashBalance();
 
   const isLoading =
     salesLoading ||
@@ -724,53 +728,6 @@ const Dashboard: React.FC = () => {
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 5);
   }, [sales, workOrders]);
-
-  // Helper to check income type
-  const isIncomeType = (type: string | undefined) =>
-    type === "income" || type === "deposit";
-
-  // Lấy số dư ban đầu từ paymentSources (đã lưu trong DB)
-  const savedInitialCash =
-    paymentSources.find((ps) => ps.id === "cash")?.balance[currentBranchId] ||
-    0;
-  const savedInitialBank =
-    paymentSources.find((ps) => ps.id === "bank")?.balance[currentBranchId] ||
-    0;
-
-  // Số dư tài khoản - tính từ số dư ban đầu + biến động từ giao dịch
-  const { cashBalance, bankBalance } = useMemo(() => {
-    const branchTransactions = cashTransactions.filter(
-      (tx) => tx.branchId === currentBranchId
-    );
-
-    // Tính biến động tiền mặt từ transactions
-    const cashDelta = branchTransactions
-      .filter((tx) => tx.paymentSourceId === "cash")
-      .reduce((sum, tx) => {
-        if (isIncomeType(tx.type)) {
-          return sum + Math.abs(tx.amount);
-        } else {
-          return sum - Math.abs(tx.amount);
-        }
-      }, 0);
-
-    // Tính biến động ngân hàng từ transactions
-    const bankDelta = branchTransactions
-      .filter((tx) => tx.paymentSourceId === "bank")
-      .reduce((sum, tx) => {
-        if (isIncomeType(tx.type)) {
-          return sum + Math.abs(tx.amount);
-        } else {
-          return sum - Math.abs(tx.amount);
-        }
-      }, 0);
-
-    // Số dư = Số dư ban đầu + Biến động
-    return {
-      cashBalance: savedInitialCash + cashDelta,
-      bankBalance: savedInitialBank + bankDelta,
-    };
-  }, [cashTransactions, currentBranchId, savedInitialCash, savedInitialBank]);
 
   // Thống kê work orders (phiếu sửa chữa)
   const workOrderStats = useMemo(() => {
