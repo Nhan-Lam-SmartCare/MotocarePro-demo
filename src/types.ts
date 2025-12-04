@@ -25,6 +25,8 @@ export interface Vehicle {
   licensePlate: string; // Biển số
   isPrimary?: boolean; // Xe chính (mặc định)
   currentKm?: number; // Số km hiện tại (cập nhật mỗi lần vào xưởng)
+  firstRecordedKm?: number; // Số km lần đầu ghi nhận (khi khách mới đến)
+  firstRecordedDate?: string; // Ngày lần đầu ghi nhận km (ISO string)
   lastMaintenances?: VehicleMaintenances; // Lịch sử bảo dưỡng gần nhất
 }
 

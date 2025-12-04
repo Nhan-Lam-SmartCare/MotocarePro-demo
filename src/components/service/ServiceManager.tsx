@@ -4635,6 +4635,10 @@ const WorkOrderModal: React.FC<{
       // Find and update the vehicle in customer's vehicles array
       const updatedVehicles = (customer.vehicles || []).map((v: any) => {
         if (v.id === vehicleId) {
+          // Nếu xe chưa có firstRecordedKm (khách mới lần đầu ghi nhận km)
+          // thì lưu lại để tính grace period cho nhắc nhở bảo dưỡng
+          const isFirstKmRecord = !v.firstRecordedKm && !v.currentKm;
+
           // If maintenances detected, update lastMaintenances
           if (detectedMaintenances.length > 0) {
             const updatedVehicle = updateVehicleMaintenances(
@@ -4646,9 +4650,26 @@ const WorkOrderModal: React.FC<{
               `[updateVehicleKmAndMaintenance] Updated maintenances:`,
               detectedMaintenances
             );
+            // Thêm firstRecordedKm và firstRecordedDate nếu là lần đầu
+            if (isFirstKmRecord) {
+              return {
+                ...updatedVehicle,
+                firstRecordedKm: newKm,
+                firstRecordedDate: new Date().toISOString(),
+              };
+            }
             return updatedVehicle;
           }
           // Otherwise just update km
+          // Thêm firstRecordedKm và firstRecordedDate nếu là lần đầu
+          if (isFirstKmRecord) {
+            return {
+              ...v,
+              currentKm: newKm,
+              firstRecordedKm: newKm,
+              firstRecordedDate: new Date().toISOString(),
+            };
+          }
           return { ...v, currentKm: newKm };
         }
         return v;

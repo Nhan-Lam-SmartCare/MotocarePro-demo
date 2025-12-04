@@ -18,6 +18,9 @@ export const MAINTENANCE_CYCLES = {
     warningThreshold: 1000, // Cảnh báo khi còn 500km
     icon: "🛢️",
     color: "orange",
+    // Đối với khách mới, cảnh báo sau 1 tháng hoặc 1500km từ lần đầu ghi nhận
+    newCustomerGracePeriodDays: 30,
+    newCustomerGraceKm: 1500,
   },
   gearboxOil: {
     name: "Thay nhớt hộp số",
@@ -59,6 +62,47 @@ export interface VehicleMaintenanceStatus {
 }
 
 /**
+ * Kiểm tra xem khách hàng mới có đủ điều kiện nhắc nhở bảo dưỡng chưa
+ * Đối với thay nhớt: phải qua 1 tháng HOẶC 1500km từ lần đầu ghi nhận
+ */
+function shouldShowNewCustomerReminder(
+  vehicle: Vehicle,
+  maintenanceType: MaintenanceType
+): boolean {
+  const config = MAINTENANCE_CYCLES[maintenanceType];
+
+  // Nếu không có grace period config (ví dụ: gearboxOil, throttleClean), luôn hiển thị
+  if (!("newCustomerGracePeriodDays" in config)) {
+    return true;
+  }
+
+  const { firstRecordedKm, firstRecordedDate, currentKm } = vehicle;
+
+  // Nếu không có thông tin lần đầu ghi nhận, không hiển thị (chưa đủ dữ liệu)
+  if (!firstRecordedKm || !firstRecordedDate || !currentKm) {
+    return false;
+  }
+
+  const gracePeriodDays = config.newCustomerGracePeriodDays;
+  const graceKm = config.newCustomerGraceKm;
+
+  // Tính số ngày từ lần đầu ghi nhận
+  const firstDate = new Date(firstRecordedDate);
+  const now = new Date();
+  const daysSinceFirstRecord = Math.floor(
+    (now.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  // Tính số km đã đi từ lần đầu ghi nhận
+  const kmSinceFirstRecord = currentKm - firstRecordedKm;
+
+  // Hiển thị cảnh báo nếu: đã qua grace period HOẶC đã đi đủ km
+  return (
+    daysSinceFirstRecord >= gracePeriodDays || kmSinceFirstRecord >= graceKm
+  );
+}
+
+/**
  * Kiểm tra tình trạng bảo dưỡng của một xe
  */
 export function checkVehicleMaintenance(
@@ -76,26 +120,61 @@ export function checkVehicleMaintenance(
     const lastService = maintenances[maintenanceType];
     const lastServiceKm = lastService?.km || 0;
 
-    const kmSinceLastService = currentKm - lastServiceKm;
-    const kmUntilDue = config.interval - kmSinceLastService;
+    // Nếu khách hàng mới (chưa có lịch sử bảo dưỡng cho loại này)
+    // kiểm tra xem có đủ điều kiện hiển thị cảnh báo chưa
+    const isNewCustomerForThisService = !lastService;
+    if (isNewCustomerForThisService) {
+      // Kiểm tra grace period cho khách mới
+      if (!shouldShowNewCustomerReminder(vehicle, maintenanceType)) {
+        continue; // Bỏ qua, chưa đủ điều kiện nhắc nhở
+      }
 
-    const isOverdue = kmSinceLastService >= config.interval;
-    const isDueSoon =
-      kmSinceLastService >= config.warningThreshold && !isOverdue;
+      // Đối với khách mới, tính km từ lần đầu ghi nhận thay vì từ 0
+      const baseKm = vehicle.firstRecordedKm || 0;
+      const kmSinceFirstRecord = currentKm - baseKm;
+      const kmUntilDue = config.interval - kmSinceFirstRecord;
 
-    if (isOverdue || isDueSoon) {
-      warnings.push({
-        type: maintenanceType,
-        name: config.name,
-        icon: config.icon,
-        color: config.color,
-        kmSinceLastService,
-        kmUntilDue,
-        isOverdue,
-        isDueSoon,
-        lastServiceKm: lastService?.km,
-        lastServiceDate: lastService?.date,
-      });
+      const isOverdue = kmSinceFirstRecord >= config.interval;
+      const isDueSoon =
+        kmSinceFirstRecord >= config.warningThreshold && !isOverdue;
+
+      if (isOverdue || isDueSoon) {
+        warnings.push({
+          type: maintenanceType,
+          name: config.name,
+          icon: config.icon,
+          color: config.color,
+          kmSinceLastService: kmSinceFirstRecord,
+          kmUntilDue,
+          isOverdue,
+          isDueSoon,
+          lastServiceKm: undefined,
+          lastServiceDate: vehicle.firstRecordedDate,
+        });
+      }
+    } else {
+      // Khách hàng cũ - logic ban đầu
+      const kmSinceLastService = currentKm - lastServiceKm;
+      const kmUntilDue = config.interval - kmSinceLastService;
+
+      const isOverdue = kmSinceLastService >= config.interval;
+      const isDueSoon =
+        kmSinceLastService >= config.warningThreshold && !isOverdue;
+
+      if (isOverdue || isDueSoon) {
+        warnings.push({
+          type: maintenanceType,
+          name: config.name,
+          icon: config.icon,
+          color: config.color,
+          kmSinceLastService,
+          kmUntilDue,
+          isOverdue,
+          isDueSoon,
+          lastServiceKm: lastService?.km,
+          lastServiceDate: lastService?.date,
+        });
+      }
     }
   }
 
