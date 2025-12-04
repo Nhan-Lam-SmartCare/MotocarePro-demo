@@ -91,6 +91,7 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
   const [selectedService, setSelectedService] = useState<QuickService | null>(
     null
   );
+  const [customPrice, setCustomPrice] = useState<number | null>(null); // Custom price for editing
   const [licensePlate, setLicensePlate] = useState("");
   const [foundCustomer, setFoundCustomer] = useState<CustomerInfo | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -102,6 +103,7 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
 
   const resetPaymentFlow = () => {
     setSelectedService(null);
+    setCustomPrice(null);
     setLicensePlate("");
     setFoundCustomer(null);
     setPaymentMethod(null);
@@ -109,9 +111,16 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
 
   const handleSelectService = (service: QuickService) => {
     setSelectedService(service);
+    setCustomPrice(null); // Reset custom price when selecting new service
     setLicensePlate("");
     setFoundCustomer(null);
     setPaymentMethod(null);
+  };
+
+  // Get current price (custom or default)
+  const getCurrentPrice = () => {
+    if (!selectedService) return 0;
+    return customPrice !== null ? customPrice : selectedService.price;
   };
 
   const handleSearchCustomer = async () => {
@@ -262,6 +271,7 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
     if (!selectedService || !paymentMethod) return;
 
     const qty = quantities[selectedService.id] || 1;
+    const finalPrice = getCurrentPrice();
     const customer: CustomerInfo = foundCustomer || {
       name: "Khách vãng lai",
       phone: "",
@@ -269,7 +279,13 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
       licensePlate: licensePlate || "",
     };
 
-    onComplete(selectedService, qty, paymentMethod, customer);
+    // Pass service with custom price if modified
+    const serviceWithPrice = {
+      ...selectedService,
+      price: finalPrice,
+    };
+
+    onComplete(serviceWithPrice, qty, paymentMethod, customer);
     resetPaymentFlow();
     onClose();
   };
@@ -436,11 +452,11 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                     {selectedService.name}
                   </h3>
                   <p className="text-white/80 text-sm">
-                    {formatCurrency(selectedService.price)} x{" "}
+                    {formatCurrency(getCurrentPrice())} x{" "}
                     {quantities[selectedService.id] || 1} ={" "}
                     <span className="font-bold">
                       {formatCurrency(
-                        selectedService.price *
+                        getCurrentPrice() *
                           (quantities[selectedService.id] || 1)
                       )}
                     </span>
@@ -457,6 +473,37 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
 
             {/* Payment Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Editable Price Section */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  💰 Giá dịch vụ (có thể chỉnh sửa)
+                </label>
+                <div className="flex items-center gap-2">
+                  <NumberInput
+                    value={getCurrentPrice()}
+                    onChange={(val) => setCustomPrice(val)}
+                    className="flex-1 px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white font-semibold"
+                  />
+                  {customPrice !== null &&
+                    customPrice !== selectedService.price && (
+                      <button
+                        onClick={() => setCustomPrice(null)}
+                        className="px-3 py-2.5 text-xs bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500"
+                        title="Khôi phục giá gốc"
+                      >
+                        Giá gốc: {formatCurrency(selectedService.price)}
+                      </button>
+                    )}
+                </div>
+                {customPrice !== null &&
+                  customPrice !== selectedService.price && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      ⚠️ Đã thay đổi từ giá gốc{" "}
+                      {formatCurrency(selectedService.price)}
+                    </p>
+                  )}
+              </div>
+
               {/* License Plate Search (Optional) */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -773,9 +820,7 @@ const ServiceManagement: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </label>
                 <NumberInput
                   value={formData.price}
-                  onChange={(val) =>
-                    setFormData({ ...formData, price: val })
-                  }
+                  onChange={(val) => setFormData({ ...formData, price: val })}
                   className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                   placeholder="VD: 20.000"
                 />

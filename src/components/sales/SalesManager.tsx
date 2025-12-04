@@ -3211,12 +3211,15 @@ const SalesManager: React.FC = () => {
       const saleId = crypto.randomUUID();
 
       // Create a virtual cart item for the service
+      // Use sellingPrice and partName to match CartItem interface and RPC expectations
       const serviceItem: CartItem = {
         partId: `quick_service_${service.id}`,
-        name: service.name,
-        quantity: quantity,
-        price: service.price,
+        partName: service.name,
+        sku: `QS-${service.id}`,
         category: service.category || "Dịch vụ nhanh",
+        quantity: quantity,
+        sellingPrice: service.price,
+        stockSnapshot: 999, // Virtual stock for services
         discount: 0,
       };
 
