@@ -19,6 +19,11 @@ import {
 import { formatDate, formatCurrency, formatAnyId } from "../../utils/format";
 import { validatePhoneNumber } from "../../utils/validation";
 import { PlusIcon, TrashIcon, XMarkIcon, UsersIcon } from "../Icons";
+import {
+  useSuppliers,
+  useCreateSupplier,
+  useDeleteSupplier,
+} from "../../hooks/useSuppliers";
 import type { Customer, Sale, WorkOrder, Vehicle } from "../../types";
 import { useSalesRepo } from "../../hooks/useSalesRepository";
 import { useWorkOrdersRepo } from "../../hooks/useWorkOrdersRepository";
@@ -369,6 +374,11 @@ const CustomerManager: React.FC = () => {
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
   const deleteCustomer = useDeleteCustomer();
+
+  // Lấy danh sách nhà cung cấp từ Supabase
+  const { data: suppliers = [], isLoading: suppliersLoading } = useSuppliers();
+  const createSupplier = useCreateSupplier();
+  const deleteSupplierMutation = useDeleteSupplier();
 
   // State cho Load More
   const [displayCount, setDisplayCount] = useState(20);
@@ -749,7 +759,7 @@ const CustomerManager: React.FC = () => {
                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
               />
             </svg>
-            <span>Nhà cung cấp (0)</span>
+            <span>Nhà cung cấp ({suppliers?.length || 0})</span>
           </button>
         </div>
       </div>
@@ -1481,79 +1491,13 @@ const CustomerManager: React.FC = () => {
       ) : (
         <div className="flex-1 overflow-auto p-6 custom-scrollbar">
           {/* Suppliers Tab Content */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex-1 relative">
-              <svg
-                className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <input
-                type="text"
-                placeholder="Tìm theo tên hoặc số điện thoại..."
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="text-slate-600 dark:text-slate-400 text-sm font-medium">
-              Tổng: <span className="font-bold">0</span> nhà cung cấp
-            </div>
-            <button
-              onClick={() => setShowImport(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              <span>Upload CSV</span>
-            </button>
-            <button
-              onClick={() => setShowSupplierModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <PlusIcon className="w-5 h-5" />
-              <span>Thêm mới</span>
-            </button>
-          </div>
-
-          {/* Empty State for Suppliers */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-12 text-center">
-            <div className="flex justify-center mb-4">
-              <svg
-                className="w-16 h-16 text-slate-300 dark:text-slate-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                />
-              </svg>
-            </div>
-            <p className="text-slate-500 dark:text-slate-400 text-lg">
-              Chưa có nhà cung cấp.
-            </p>
-          </div>
+          <SuppliersList
+            suppliers={suppliers}
+            isLoading={suppliersLoading}
+            onAdd={() => setShowSupplierModal(true)}
+            onImport={() => setShowImport(true)}
+            onDelete={(id) => deleteSupplierMutation.mutate({ id })}
+          />
         </div>
       )}
 
@@ -1815,42 +1759,244 @@ const CustomerModal: React.FC<{
   );
 };
 
+// --- SUPPLIERS LIST COMPONENT ---
+const SuppliersList: React.FC<{
+  suppliers: any[];
+  isLoading: boolean;
+  onAdd: () => void;
+  onImport: () => void;
+  onDelete: (id: string) => void;
+}> = ({ suppliers, isLoading, onAdd, onImport, onDelete }) => {
+  const [search, setSearch] = useState("");
+
+  const filteredSuppliers = useMemo(() => {
+    if (!search.trim()) return suppliers;
+    const q = search.toLowerCase();
+    return suppliers.filter(
+      (s) =>
+        s.name?.toLowerCase().includes(q) || s.phone?.toLowerCase().includes(q)
+    );
+  }, [suppliers, search]);
+
+  return (
+    <>
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-6">
+        <div className="flex-1 relative w-full">
+          <svg
+            className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            placeholder="Tìm theo tên hoặc số điện thoại..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="text-slate-600 dark:text-slate-400 text-sm font-medium whitespace-nowrap">
+          Tổng: <span className="font-bold">{filteredSuppliers.length}</span>{" "}
+          nhà cung cấp
+        </div>
+        <button
+          onClick={onImport}
+          className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            />
+          </svg>
+          <span>Upload CSV</span>
+        </button>
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+        >
+          <PlusIcon className="w-5 h-5" />
+          <span>Thêm mới</span>
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      ) : filteredSuppliers.length === 0 ? (
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-12 text-center">
+          <div className="flex justify-center mb-4">
+            <svg
+              className="w-16 h-16 text-slate-300 dark:text-slate-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+              />
+            </svg>
+          </div>
+          <p className="text-slate-500 dark:text-slate-400 text-lg">
+            {search ? "Không tìm thấy nhà cung cấp." : "Chưa có nhà cung cấp."}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-slate-50 dark:bg-slate-700/50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                  Tên NCC
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                  Điện thoại
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                  Địa chỉ
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                  Ngày tạo
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+              {filteredSuppliers.map((supplier) => (
+                <tr
+                  key={supplier.id}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5 text-blue-600 dark:text-blue-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                          />
+                        </svg>
+                      </div>
+                      <span className="font-medium text-slate-900 dark:text-slate-100">
+                        {supplier.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                    {supplier.phone || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-xs truncate">
+                    {supplier.address || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-sm">
+                    {supplier.created_at
+                      ? new Date(supplier.created_at).toLocaleDateString(
+                          "vi-VN"
+                        )
+                      : "-"}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => {
+                        if (
+                          confirm(
+                            `Xác nhận xóa nhà cung cấp "${supplier.name}"?`
+                          )
+                        ) {
+                          onDelete(supplier.id);
+                        }
+                      }}
+                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      title="Xóa"
+                    >
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+};
+
 // --- SUPPLIER MODAL (NEW) ---
 const SupplierModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const createSupplier = useCreateSupplier();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      showToast.error("Vui lòng nhập tên nhà cung cấp");
+      return;
+    }
 
-    // TODO: Gọi API tạo Supplier ở đây khi bạn đã có hook useCreateSupplier
-    // const newSupplier = { name, phone, address, note };
-    // await createSupplier.mutateAsync(newSupplier);
-
-    alert(`[Mô phỏng] Đã lưu nhà cung cấp: ${name}`);
-    onClose();
+    setSaving(true);
+    try {
+      await createSupplier.mutateAsync({
+        name: name.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+      });
+      onClose();
+    } catch (err: any) {
+      // Hook đã show toast error
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-700">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-white">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
             Thêm nhà cung cấp
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
           >
             <XMarkIcon className="w-6 h-6" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Tên nhà cung cấp <span className="text-red-500">*</span>
             </label>
             <input
@@ -1859,11 +2005,11 @@ const SupplierModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Số điện thoại
             </label>
             <input
@@ -1871,11 +2017,11 @@ const SupplierModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="VD: 09xxxx"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Địa chỉ
             </label>
             <input
@@ -1883,19 +2029,7 @@ const SupplierModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               placeholder="Địa chỉ liên hệ"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Ghi chú
-            </label>
-            <textarea
-              rows={3}
-              placeholder="Ghi chú thêm..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -1903,15 +2037,16 @@ const SupplierModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 rounded-lg font-medium transition-colors"
+              className="px-6 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-white border border-slate-300 dark:border-slate-600 rounded-lg font-medium transition-colors"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              disabled={saving}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
             >
-              Lưu
+              {saving ? "Đang lưu..." : "Lưu"}
             </button>
           </div>
         </form>
