@@ -6519,7 +6519,9 @@ const WorkOrderModal: React.FC<{
                             inputMode="numeric"
                             value={part.price.toLocaleString("vi-VN")}
                             onChange={(e) => {
-                              const rawValue = e.target.value.replace(/\./g, "").replace(/\D/g, "");
+                              const rawValue = e.target.value
+                                .replace(/\./g, "")
+                                .replace(/\D/g, "");
                               const newPrice = Number(rawValue) || 0;
                               setSelectedParts(
                                 selectedParts.map((p, i) =>
