@@ -6513,8 +6513,22 @@ const WorkOrderModal: React.FC<{
                             className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                           />
                         </td>
-                        <td className="px-4 py-2 text-right text-sm text-slate-900 dark:text-slate-100">
-                          {formatCurrency(part.price)}
+                        <td className="px-4 py-2 text-right">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={part.price.toLocaleString("vi-VN")}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(/\./g, "").replace(/\D/g, "");
+                              const newPrice = Number(rawValue) || 0;
+                              setSelectedParts(
+                                selectedParts.map((p, i) =>
+                                  i === idx ? { ...p, price: newPrice } : p
+                                )
+                              );
+                            }}
+                            className="w-28 px-2 py-1 border border-blue-300 dark:border-blue-600 rounded text-right bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          />
                         </td>
                         <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
                           {formatCurrency(part.price * part.quantity)}

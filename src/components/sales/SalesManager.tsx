@@ -2103,6 +2103,22 @@ const SalesManager: React.FC = () => {
     [cartItems, setCartItems, removeFromCart]
   );
 
+  // Cập nhật giá bán trong giỏ hàng
+  const updateCartPrice = useCallback(
+    (partId: string, newPrice: number) => {
+      if (newPrice < 0) {
+        showToast.error("Giá không được âm!");
+        return;
+      }
+      setCartItems((prev) =>
+        prev.map((item) =>
+          item.partId === partId ? { ...item, sellingPrice: newPrice } : item
+        )
+      );
+    },
+    [setCartItems]
+  );
+
   // Calculate totals
   const subtotal = useMemo(
     () =>
@@ -4017,8 +4033,27 @@ const SalesManager: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-0.5">
-                              {formatCurrency(item.sellingPrice)}
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={item.sellingPrice.toLocaleString(
+                                  "vi-VN"
+                                )}
+                                onChange={(e) => {
+                                  const rawValue = e.target.value
+                                    .replace(/\./g, "")
+                                    .replace(/\D/g, "");
+                                  updateCartPrice(
+                                    item.partId,
+                                    Number(rawValue) || 0
+                                  );
+                                }}
+                                className="w-24 px-1.5 py-0.5 text-sm font-bold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-700 rounded bg-blue-50 dark:bg-blue-900/30 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                              />
+                              <span className="text-[10px] text-slate-400">
+                                đ
+                              </span>
                             </div>
                           </div>
                           {/* Right: Quantity controls */}
@@ -4078,8 +4113,25 @@ const SalesManager: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <div className="text-sm font-black bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-                            {formatCurrency(item.sellingPrice)}
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={item.sellingPrice.toLocaleString("vi-VN")}
+                              onChange={(e) => {
+                                const rawValue = e.target.value
+                                  .replace(/\./g, "")
+                                  .replace(/\D/g, "");
+                                updateCartPrice(
+                                  item.partId,
+                                  Number(rawValue) || 0
+                                );
+                              }}
+                              className="w-28 px-2 py-1 text-sm font-bold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-700 rounded-lg bg-blue-50/50 dark:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                            />
+                            <span className="text-xs text-slate-400 font-medium">
+                              đ
+                            </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
