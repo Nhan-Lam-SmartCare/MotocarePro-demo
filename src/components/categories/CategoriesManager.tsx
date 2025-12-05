@@ -232,63 +232,128 @@ const CategoriesManager: React.FC = () => {
       {/* Categories Grid */}
       <div className="flex-1 overflow-auto p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {categories.map((category) => (
-            <div
-              key={category.name}
-              className="bg-white dark:bg-[#1e293b] rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-5 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="text-3xl">{category.icon}</div>
-                  <div>
-                    {editingCategory === category.name ? (
-                      <input
-                        type="text"
-                        defaultValue={category.name}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            handleRenameCategory(
-                              category.name,
-                              e.currentTarget.value
-                            );
-                          } else if (e.key === "Escape") {
-                            setEditingCategory(null);
+          {categories.map((category) => {
+            // Lấy icon component từ iconMap
+            const IconComponent = iconMap[category.icon] || iconMap["package"];
+            const categoryColor = category.color || "#3b82f6";
+
+            return (
+              <div
+                key={category.name}
+                className="bg-white dark:bg-[#1e293b] rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-lg transition-all duration-200 group"
+              >
+                {/* Header với màu gradient */}
+                <div
+                  className="h-2"
+                  style={{ backgroundColor: categoryColor }}
+                />
+
+                <div className="p-4">
+                  <div className="flex items-start gap-4">
+                    {/* Icon với màu nền */}
+                    <div
+                      className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
+                      style={{
+                        backgroundColor: `${categoryColor}15`,
+                        color: categoryColor,
+                      }}
+                    >
+                      <div className="w-7 h-7">
+                        {React.cloneElement(
+                          IconComponent as React.ReactElement,
+                          {
+                            className: "w-7 h-7",
                           }
-                        }}
-                        onBlur={(e) =>
-                          handleRenameCategory(category.name, e.target.value)
-                        }
-                        autoFocus
-                        className="px-2 py-1 border border-blue-500 rounded text-sm font-semibold text-slate-900 dark:text-slate-100 dark:bg-[#0f172a]"
-                      />
-                    ) : (
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {category.name}
-                      </h3>
-                    )}
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-                      {category.count} sản phẩm
-                    </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Tên và số lượng */}
+                    <div className="flex-1 min-w-0">
+                      {editingCategory === category.name ? (
+                        <input
+                          type="text"
+                          defaultValue={category.name}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleRenameCategory(
+                                category.name,
+                                e.currentTarget.value
+                              );
+                            } else if (e.key === "Escape") {
+                              setEditingCategory(null);
+                            }
+                          }}
+                          onBlur={(e) =>
+                            handleRenameCategory(category.name, e.target.value)
+                          }
+                          autoFocus
+                          className="w-full px-2 py-1 border-2 border-blue-500 rounded-lg text-base font-semibold text-slate-900 dark:text-slate-100 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                      ) : (
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
+                          {category.name}
+                        </h3>
+                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                          style={{
+                            backgroundColor: `${categoryColor}20`,
+                            color: categoryColor,
+                          }}
+                        >
+                          {category.count} sản phẩm
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+                    <button
+                      onClick={() => setEditingCategory(category.name)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      Đổi tên
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(category.name)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                      Xóa
+                    </button>
                   </div>
                 </div>
               </div>
-
-              <div className="flex gap-2 mt-4">
-                <button
-                  onClick={() => setEditingCategory(category.name)}
-                  className="flex-1 px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                >
-                  Đổi tên
-                </button>
-                <button
-                  onClick={() => handleDeleteCategory(category.name)}
-                  className="flex-1 px-3 py-1.5 text-sm border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  Xóa
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Empty State */}
           {categories.length === 0 && (
