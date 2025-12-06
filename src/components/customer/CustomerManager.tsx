@@ -424,8 +424,8 @@ const CustomerManager: React.FC = () => {
     setDisplayCount(20);
   }, [search, activeFilter]);
 
-  // Helper function to calculate actual loyalty points for a customer
-  const calculateLoyaltyPoints = (customer: Customer) => {
+  // Helper function to calculate actual stats for a customer (consistent with CustomerHistoryModal)
+  const calculateCustomerStats = (customer: Customer) => {
     const customerSales = allSales.filter(
       (s) =>
         s.customer?.id === customer.id || s.customer?.phone === customer.phone
@@ -444,8 +444,19 @@ const CustomerManager: React.FC = () => {
     );
     const totalSpent = totalFromSales + totalFromWorkOrders;
 
+    // Calculate visit count from unique dates
+    const allVisitDates = [
+      ...customerSales.map((s) => new Date(s.date).toDateString()),
+      ...customerWorkOrders.map((wo) =>
+        new Date(wo.creationDate || wo.id).toDateString()
+      ),
+    ];
+    const visitCount = new Set(allVisitDates).size;
+
     // 1 điểm = 10,000đ
-    return Math.floor(totalSpent / 10000);
+    const loyaltyPoints = Math.floor(totalSpent / 10000);
+
+    return { totalSpent, visitCount, loyaltyPoints };
   };
 
   // Auto-classify customers on mount only
@@ -497,6 +508,15 @@ const CustomerManager: React.FC = () => {
     () => filtered.slice(0, displayCount),
     [filtered, displayCount]
   );
+
+  // Cache customer stats calculation for performance
+  const customerStatsMap = useMemo(() => {
+    const map = new Map();
+    displayedCustomers.forEach((customer) => {
+      map.set(customer.id, calculateCustomerStats(customer));
+    });
+    return map;
+  }, [displayedCustomers, allSales, allWorkOrders]);
 
   const handleDelete = async (id: string) => {
     if (
@@ -1099,10 +1119,17 @@ const CustomerManager: React.FC = () => {
                     const config =
                       (customer.segment && segmentStyles[customer.segment]) ||
                       segmentStyles.default;
-                    const points = calculateLoyaltyPoints(customer);
+                    // Use cached stats for performance (consistent with CustomerHistoryModal)
+                    const {
+                      totalSpent,
+                      visitCount,
+                      loyaltyPoints: points,
+                    } = customerStatsMap.get(customer.id) || {
+                      totalSpent: 0,
+                      visitCount: 0,
+                      loyaltyPoints: 0,
+                    };
                     const pointsPercent = Math.min((points / 10000) * 100, 100);
-                    const totalSpent = customer.totalSpent || 0;
-                    const visitCount = customer.visitCount || 0;
                     const vehicles =
                       (customer.vehicles as Vehicle[] | undefined) || [];
                     const primaryVehicle =
@@ -1300,8 +1327,9 @@ const CustomerManager: React.FC = () => {
                               </div>
                               <div className="text-xs text-slate-500 dark:text-slate-400">
                                 Điểm:{" "}
-                                {calculateLoyaltyPoints(
-                                  customer
+                                {(
+                                  customerStatsMap.get(customer.id)
+                                    ?.loyaltyPoints || 0
                                 ).toLocaleString()}
                               </div>
                             </td>
@@ -1309,10 +1337,14 @@ const CustomerManager: React.FC = () => {
                               {vehicleLabel}
                             </td>
                             <td className="px-4 py-3 align-top font-semibold text-slate-900 dark:text-slate-100">
-                              {formatCurrency(customer.totalSpent || 0)}
+                              {formatCurrency(
+                                customerStatsMap.get(customer.id)?.totalSpent ||
+                                  0
+                              )}
                             </td>
                             <td className="px-4 py-3 align-top text-slate-900 dark:text-slate-100">
-                              {customer.visitCount || 0}
+                              {customerStatsMap.get(customer.id)?.visitCount ||
+                                0}
                             </td>
                             <td className="px-4 py-3 align-top text-slate-900 dark:text-slate-100">
                               {customer.lastVisit
