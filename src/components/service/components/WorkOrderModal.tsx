@@ -395,6 +395,11 @@ const WorkOrderModal: React.FC<{
     licensePlate: "",
   });
 
+  // 🔹 Check if order is paid (lock sensitive fields)
+  const isOrderPaid = order?.paymentStatus === "paid";
+  const isOrderRefunded = order?.refunded === true;
+  const canEditPriceAndParts = !isOrderPaid && !isOrderRefunded;
+
   // Get customer's vehicles
   const currentCustomer = customers.find(
     (c) => c.phone === formData.customerPhone
@@ -1921,6 +1926,27 @@ const WorkOrderModal: React.FC<{
           </button>
         </div>
 
+        {/* 🔹 Warning Banner for Paid Orders */}
+        {isOrderPaid && (
+          <div className="mx-4 mt-4 md:mx-6 md:mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                  ⚠️ Phiếu đã thanh toán
+                </h4>
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Không thể thay đổi sản phẩm, giá tiền cho phiếu đã thanh toán.
+                  Bạn chỉ có thể sửa thông tin khách hàng, kỹ thuật viên và ghi chú.
+                  Nếu cần sửa sản phẩm/giá, vui lòng hủy phiếu này và tạo phiếu mới.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Scrollable Content */}
         <div className="px-4 py-5 md:px-6 md:py-6 space-y-6 overflow-y-auto flex-1 pb-24 md:pb-6">
           {/* Customer & Vehicle Info */}
@@ -2335,6 +2361,11 @@ const WorkOrderModal: React.FC<{
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Ph� d�9ch v� (C�ng th�)
+                  {!canEditPriceAndParts && (
+                    <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
+                      (Không thể sửa)
+                    </span>
+                  )}
                 </label>
                 <NumberInput
                   placeholder="100.000"
@@ -2345,7 +2376,10 @@ const WorkOrderModal: React.FC<{
                       laborCost: val,
                     })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                  disabled={!canEditPriceAndParts}
+                  className={`w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 ${
+                    !canEditPriceAndParts ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
 
@@ -2370,9 +2404,19 @@ const WorkOrderModal: React.FC<{
               </h3>
               <button
                 onClick={() => setShowPartSearch(!showPartSearch)}
-                className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm flex items-center gap-1"
+                disabled={!canEditPriceAndParts}
+                className={`px-3 py-1.5 text-white rounded text-sm flex items-center gap-1 ${
+                  canEditPriceAndParts
+                    ? "bg-blue-500 hover:bg-blue-600"
+                    : "bg-slate-400 dark:bg-slate-600 cursor-not-allowed opacity-50"
+                }`}
+                title={
+                  canEditPriceAndParts
+                    ? "Thêm phụ tùng"
+                    : "Không thể thêm phụ tùng cho phiếu đã thanh toán"
+                }
               >
-                �~" Th�m ph� t�ng
+                ~" Th�m ph� t�ng
               </button>
             </div>
 
@@ -2483,6 +2527,7 @@ const WorkOrderModal: React.FC<{
                             type="number"
                             min="1"
                             value={part.quantity}
+                            disabled={!canEditPriceAndParts}
                             onChange={(e) => {
                               const newQty = Number(e.target.value);
                               setSelectedParts(
@@ -2491,7 +2536,9 @@ const WorkOrderModal: React.FC<{
                                 )
                               );
                             }}
-                            className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                            className={`w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 ${
+                              !canEditPriceAndParts ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
                           />
                         </td>
                         <td className="px-4 py-2 text-right text-sm text-slate-900 dark:text-slate-100">
@@ -2507,8 +2554,18 @@ const WorkOrderModal: React.FC<{
                                 selectedParts.filter((_, i) => i !== idx)
                               )
                             }
-                            className="text-red-500 hover:text-red-700"
+                            disabled={!canEditPriceAndParts}
+                            className={`${
+                              canEditPriceAndParts
+                                ? "text-red-500 hover:text-red-700"
+                                : "text-slate-400 cursor-not-allowed"
+                            }`}
                             aria-label="X�a ph� t�ng"
+                            title={
+                              canEditPriceAndParts
+                                ? "Xóa phụ tùng"
+                                : "Không thể xóa phụ tùng cho phiếu đã thanh toán"
+                            }
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
