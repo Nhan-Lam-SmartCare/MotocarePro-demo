@@ -1211,7 +1211,10 @@ const AddTransactionModal: React.FC<{
         </form>
 
         {/* Submit Button - Fixed at bottom with safe area */}
-        <div className="flex-shrink-0 p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-10" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+        <div
+          className="flex-shrink-0 p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-10"
+          style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+        >
           <button
             type="submit"
             form="cashTxForm"
