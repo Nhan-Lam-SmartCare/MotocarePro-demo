@@ -582,8 +582,8 @@ const WorkOrderModal: React.FC<{
   });
 
   // Calculate payment summary
-  const totalDeposit = depositAmount || 0;
-  const totalAdditionalPayment = showPartialPayment ? partialPayment : 0;
+  const totalDeposit = depositAmount || order.depositAmount || 0;
+  const totalAdditionalPayment = showPartialPayment ? partialPayment : (order.additionalPayment || 0);
   const totalPaid = totalDeposit + totalAdditionalPayment;
   const remainingAmount = Math.max(0, total - totalPaid);
 
