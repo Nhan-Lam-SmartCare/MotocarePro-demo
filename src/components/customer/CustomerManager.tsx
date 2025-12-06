@@ -453,10 +453,22 @@ const CustomerManager: React.FC = () => {
     ];
     const visitCount = new Set(allVisitDates).size;
 
+    // Calculate last visit date (most recent transaction)
+    const allTransactionDates = [
+      ...customerSales.map((s) => new Date(s.date)),
+      ...customerWorkOrders.map((wo) => new Date(wo.creationDate || wo.id)),
+    ];
+    const lastVisit =
+      allTransactionDates.length > 0
+        ? new Date(
+            Math.max(...allTransactionDates.map((d) => d.getTime()))
+          ).toISOString()
+        : null;
+
     // 1 điểm = 10,000đ
     const loyaltyPoints = Math.floor(totalSpent / 10000);
 
-    return { totalSpent, visitCount, loyaltyPoints };
+    return { totalSpent, visitCount, loyaltyPoints, lastVisit };
   };
 
   // Auto-classify customers on mount only
@@ -516,6 +528,7 @@ const CustomerManager: React.FC = () => {
       map.set(customer.id, calculateCustomerStats(customer));
     });
     return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayedCustomers, allSales, allWorkOrders]);
 
   const handleDelete = async (id: string) => {
@@ -1124,10 +1137,12 @@ const CustomerManager: React.FC = () => {
                       totalSpent,
                       visitCount,
                       loyaltyPoints: points,
+                      lastVisit,
                     } = customerStatsMap.get(customer.id) || {
                       totalSpent: 0,
                       visitCount: 0,
                       loyaltyPoints: 0,
+                      lastVisit: null,
                     };
                     const pointsPercent = Math.min((points / 10000) * 100, 100);
                     const vehicles =
@@ -1154,9 +1169,9 @@ const CustomerManager: React.FC = () => {
                               </p>
                               <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                                 <span>{customer.phone || "Chưa có số"}</span>
-                                {customer.lastVisit && (
+                                {lastVisit && (
                                   <span className="text-slate-400">
-                                    • Lần cuối {formatDate(customer.lastVisit)}
+                                    • Lần cuối {formatDate(lastVisit)}
                                   </span>
                                 )}
                               </p>
@@ -1225,9 +1240,7 @@ const CustomerManager: React.FC = () => {
                               Cuối cùng
                             </p>
                             <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                              {customer.lastVisit
-                                ? formatDate(customer.lastVisit)
-                                : "—"}
+                              {lastVisit ? formatDate(lastVisit) : "—"}
                             </p>
                           </div>
                         </div>
@@ -1347,8 +1360,10 @@ const CustomerManager: React.FC = () => {
                                 0}
                             </td>
                             <td className="px-4 py-3 align-top text-slate-900 dark:text-slate-100">
-                              {customer.lastVisit
-                                ? formatDate(customer.lastVisit)
+                              {customerStatsMap.get(customer.id)?.lastVisit
+                                ? formatDate(
+                                    customerStatsMap.get(customer.id)?.lastVisit
+                                  )
                                 : "—"}
                             </td>
                             <td className="px-4 py-3 align-top">

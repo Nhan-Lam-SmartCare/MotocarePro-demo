@@ -445,3 +445,12 @@ body {
 body.hide-bottom-nav nav[aria-label="Bottom Navigation"] {
   display: none !important;
 }
+
+/* ==================== SAFE AREA FOR MOBILE ==================== */
+.safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom)) !important;
+}

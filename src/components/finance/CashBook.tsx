@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useAppContext } from "../../contexts/AppContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { showToast } from "../../utils/toast";
@@ -219,24 +219,25 @@ const CashBook: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              Sổ quỹ
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Theo dõi thu chi tiền mặt và chuyển khoản
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-4">
+        <div className="flex flex-col gap-3">
+          {/* Title Section */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">
+                Sổ quỹ
+              </h1>
+              <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+                Theo dõi thu chi tiền mặt và chuyển khoản
+              </p>
+            </div>
             <button
               onClick={() => {
                 setInitialCashBalance(savedInitialCash.toString());
                 setInitialBankBalance(savedInitialBank.toString());
                 setShowInitialBalanceModal(true);
               }}
-              className="flex items-center gap-2 px-3 py-2.5 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-lg font-medium transition-colors"
+              className="p-2.5 bg-white dark:bg-slate-700 hover:bg-amber-50 dark:hover:bg-slate-600 text-amber-600 dark:text-amber-400 rounded-xl shadow-sm border border-amber-200 dark:border-slate-600 transition-all"
               title="Cài đặt số dư ban đầu"
             >
               <svg
@@ -258,28 +259,29 @@ const CashBook: React.FC = () => {
                   d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-              <span className="hidden md:inline">Số dư ban đầu</span>
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              <span>Thêm giao dịch</span>
             </button>
           </div>
+
+          {/* Action Button */}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98]"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span>Thêm giao dịch</span>
+          </button>
         </div>
       </div>
 
@@ -960,6 +962,14 @@ const AddTransactionModal: React.FC<{
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
+  // Hide bottom navigation when modal is open
+  useEffect(() => {
+    document.body.classList.add("hide-bottom-nav");
+    return () => {
+      document.body.classList.remove("hide-bottom-nav");
+    };
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = parseFloat(amount.replace(/\./g, "")) || 0;
@@ -1001,8 +1011,8 @@ const AddTransactionModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center pt-0 sm:p-4 z-50 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-800 sm:rounded-2xl shadow-2xl w-full sm:max-w-md min-h-screen sm:min-h-0 sm:max-h-[85vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-50">
+      <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[90vh] sm:max-h-[85vh] flex flex-col mb-16 sm:mb-0">
         {/* Header with gradient */}
         <div
           className={`px-4 py-3 flex-shrink-0 ${
@@ -1037,8 +1047,9 @@ const AddTransactionModal: React.FC<{
         </div>
 
         <form
+          id="cashTxForm"
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto p-3 space-y-2.5 pb-20 sm:pb-4"
+          className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-0"
         >
           {/* Type Toggle */}
           <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
@@ -1199,13 +1210,12 @@ const AddTransactionModal: React.FC<{
           </div>
         </form>
 
-        {/* Submit Button - Fixed at bottom */}
-        <div className="flex-shrink-0 p-3 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+        {/* Submit Button - Fixed at bottom with safe area */}
+        <div className="flex-shrink-0 p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-10" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
           <button
             type="submit"
             form="cashTxForm"
-            onClick={handleSubmit}
-            className={`w-full py-2.5 rounded-lg font-semibold text-white text-sm shadow-lg active:scale-[0.98] ${
+            className={`w-full py-3.5 rounded-xl font-bold text-white text-base shadow-xl active:scale-95 transition-all ${
               type === "income"
                 ? "bg-gradient-to-r from-emerald-500 to-green-600"
                 : "bg-gradient-to-r from-rose-500 to-red-600"
@@ -1246,6 +1256,14 @@ const EditTransactionModal: React.FC<{
       ? new Date(transaction.date).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0]
   );
+
+  // Hide bottom navigation when modal is open
+  useEffect(() => {
+    document.body.classList.add("hide-bottom-nav");
+    return () => {
+      document.body.classList.remove("hide-bottom-nav");
+    };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
