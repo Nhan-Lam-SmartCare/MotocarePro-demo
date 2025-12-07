@@ -1308,8 +1308,8 @@ export default function ServiceManager() {
     }
   };
 
-  // Mobile view
-  const isMobile = window.innerWidth < 768;
+  // Mobile view - DISABLED (always use Desktop modal)
+  const isMobile = false; // window.innerWidth < 768;
   if (isMobile) {
     return (
       <>
@@ -2027,7 +2027,7 @@ export default function ServiceManager() {
             };
             setEditingOrder(newOrder);
             setShowTemplateModal(false);
-            setShowMobileModal(true);
+            setShowModal(true); // Use Desktop modal
           }}
           parts={fetchedParts || []}
           currentBranchId={currentBranchId}
@@ -2230,11 +2230,8 @@ export default function ServiceManager() {
           </Link>
           <button
             onClick={() => {
-              if (window.innerWidth < 768) {
-                setShowMobileModal(true);
-              } else {
-                handleOpenModal();
-              }
+              // Always use Desktop modal
+              handleOpenModal();
             }}
             className="px-2.5 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-medium flex items-center gap-1"
             aria-label="Tạo phiếu sửa chữa mới"
@@ -2487,39 +2484,45 @@ export default function ServiceManager() {
                           )}
 
                           {/* Payment details - Show deposit/partial info when applicable */}
-                          {((order.depositAmount && order.depositAmount > 0) || 
+                          {((order.depositAmount && order.depositAmount > 0) ||
                             order.paymentStatus === "partial") && (
                             <div className="space-y-1 pt-1 border-t border-slate-200 dark:border-slate-700">
-                              {order.depositAmount && order.depositAmount > 0 && (
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded font-medium">
-                                    💰 Đã cọc
-                                  </span>
-                                  <span className="text-purple-600 dark:text-purple-400 font-medium">
-                                    {formatCurrency(order.depositAmount)}
-                                  </span>
-                                </div>
-                              )}
-                              {totalAmount > 0 && (order.remainingAmount ?? 0) > 0 && (
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded font-medium">
-                                    ⏳ Còn nợ
-                                  </span>
-                                  <span className="text-amber-600 dark:text-amber-400 font-medium">
-                                    {formatCurrency(order.remainingAmount ?? 0)}
-                                  </span>
-                                </div>
-                              )}
-                              {order.paymentStatus === "paid" && totalAmount > 0 && (order.remainingAmount ?? 0) === 0 && (
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-500/20 text-green-600 dark:text-green-400 rounded font-medium">
-                                    ✓ Đã thanh toán đủ
-                                  </span>
-                                  <span className="text-green-600 dark:text-green-400 font-medium">
-                                    {formatCurrency(order.totalPaid || 0)}
-                                  </span>
-                                </div>
-                              )}
+                              {order.depositAmount &&
+                                order.depositAmount > 0 && (
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded font-medium">
+                                      💰 Đã cọc
+                                    </span>
+                                    <span className="text-purple-600 dark:text-purple-400 font-medium">
+                                      {formatCurrency(order.depositAmount)}
+                                    </span>
+                                  </div>
+                                )}
+                              {totalAmount > 0 &&
+                                (order.remainingAmount ?? 0) > 0 && (
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded font-medium">
+                                      ⏳ Còn nợ
+                                    </span>
+                                    <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                      {formatCurrency(
+                                        order.remainingAmount ?? 0
+                                      )}
+                                    </span>
+                                  </div>
+                                )}
+                              {order.paymentStatus === "paid" &&
+                                totalAmount > 0 &&
+                                (order.remainingAmount ?? 0) === 0 && (
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-500/20 text-green-600 dark:text-green-400 rounded font-medium">
+                                      ✓ Đã thanh toán đủ
+                                    </span>
+                                    <span className="text-green-600 dark:text-green-400 font-medium">
+                                      {formatCurrency(order.totalPaid || 0)}
+                                    </span>
+                                  </div>
+                                )}
                             </div>
                           )}
 
@@ -2686,7 +2689,8 @@ export default function ServiceManager() {
         />
       )}
 
-      {/* Mobile Work Order Modal */}
+      {/* Mobile Work Order Modal - DISABLED */}
+      {/*
       <WorkOrderMobileModal
         isOpen={showMobileModal}
         onClose={() => {
@@ -2700,6 +2704,7 @@ export default function ServiceManager() {
         employees={displayEmployees || []}
         currentBranchId={currentBranchId}
       />
+      */}
 
       {/* Print Preview Modal */}
       {showPrintPreview && printOrder && (
@@ -4491,6 +4496,7 @@ const WorkOrderModal: React.FC<{
       vehicleModel: order?.vehicleModel || "",
       licensePlate: order?.licensePlate || "",
       vehicleId: order?.vehicleId || "",
+      currentKm: order?.currentKm || undefined,
       issueDescription: order?.issueDescription || "",
       technicianName: order?.technicianName || "",
       status: order?.status || "Tiếp nhận",
@@ -5075,6 +5081,7 @@ const WorkOrderModal: React.FC<{
         vehicleid: formData.vehicleId,
         vehiclemodel: formData.vehicleModel || "",
         licenseplate: formData.licensePlate || "",
+        currentkm: formData.currentKm || null,
         issuedescription: formData.issueDescription || "",
         technicianname: formData.technicianName || "",
         status: formData.status || "Tiếp nhận",
@@ -5107,6 +5114,47 @@ const WorkOrderModal: React.FC<{
           throw error;
         }
         console.log("[UPDATE SUCCESS]", data);
+
+        // 🔹 Update vehicle currentKm if provided
+        if (
+          formData.currentKm &&
+          formData.vehicleId &&
+          formData.customerPhone
+        ) {
+          console.log(
+            `[WorkOrderModal UPDATE] Updating km ${formData.currentKm} for vehicle ${formData.vehicleId}`
+          );
+          const customer = customers.find(
+            (c) => c.phone === formData.customerPhone
+          );
+          if (customer) {
+            const existingVehicles = customer.vehicles || [];
+            const updatedVehicles = existingVehicles.map((v: any) =>
+              v.id === formData.vehicleId
+                ? { ...v, currentKm: formData.currentKm }
+                : v
+            );
+
+            const { error: kmError } = await supabase
+              .from("customers")
+              .update({ vehicles: updatedVehicles })
+              .eq("id", customer.id);
+
+            if (kmError) {
+              console.error(
+                "[WorkOrderModal UPDATE] Failed to save km:",
+                kmError
+              );
+            } else {
+              console.log(
+                `[WorkOrderModal UPDATE] ✅ Saved km ${formData.currentKm} to DB`
+              );
+              upsertCustomer({ ...customer, vehicles: updatedVehicles });
+            }
+          } else {
+            console.warn("[WorkOrderModal UPDATE] ⚠️ Customer not found");
+          }
+        }
       } else {
         // Insert new
         console.log("[INSERT] Attempting to insert:", workOrderData);
@@ -5124,6 +5172,64 @@ const WorkOrderModal: React.FC<{
           throw error;
         }
         console.log("[INSERT SUCCESS]", data);
+
+        // 🔹 Update vehicle currentKm if provided
+        if (
+          formData.currentKm &&
+          formData.vehicleId &&
+          formData.customerPhone
+        ) {
+          console.log(
+            `[WorkOrderModal CREATE] Updating km ${formData.currentKm} for vehicle ${formData.vehicleId}`
+          );
+          const customer = customers.find(
+            (c) => c.phone === formData.customerPhone
+          );
+          if (customer) {
+            const existingVehicles = customer.vehicles || [];
+            const vehicleExists = existingVehicles.some(
+              (v: any) => v.id === formData.vehicleId
+            );
+
+            let updatedVehicles;
+            if (vehicleExists) {
+              updatedVehicles = existingVehicles.map((v: any) =>
+                v.id === formData.vehicleId
+                  ? { ...v, currentKm: formData.currentKm }
+                  : v
+              );
+            } else {
+              updatedVehicles = [
+                ...existingVehicles,
+                {
+                  id: formData.vehicleId,
+                  licensePlate: formData.licensePlate,
+                  model: formData.vehicleModel,
+                  currentKm: formData.currentKm,
+                },
+              ];
+            }
+
+            const { error: kmError } = await supabase
+              .from("customers")
+              .update({ vehicles: updatedVehicles })
+              .eq("id", customer.id);
+
+            if (kmError) {
+              console.error(
+                "[WorkOrderModal CREATE] Failed to save km:",
+                kmError
+              );
+            } else {
+              console.log(
+                `[WorkOrderModal CREATE] ✅ Saved km ${formData.currentKm} to DB`
+              );
+              upsertCustomer({ ...customer, vehicles: updatedVehicles });
+            }
+          } else {
+            console.warn("[WorkOrderModal CREATE] ⚠️ Customer not found");
+          }
+        }
       }
 
       // Invalidate queries to refresh the list
@@ -6271,6 +6377,15 @@ const WorkOrderModal: React.FC<{
                 <input
                   type="number"
                   placeholder="15000"
+                  value={formData.currentKm || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      currentKm: e.target.value
+                        ? parseInt(e.target.value)
+                        : undefined,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                 />
               </div>
@@ -6633,7 +6748,7 @@ const WorkOrderModal: React.FC<{
                     <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
                       <button
                         onClick={() => {
-                          if (newService.description && newService.price > 0) {
+                          if (newService.description) {
                             setAdditionalServices([
                               ...additionalServices,
                               { ...newService, id: `SRV-${Date.now()}` },

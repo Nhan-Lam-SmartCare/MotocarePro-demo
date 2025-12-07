@@ -302,7 +302,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
             showToast.error("Lỗi cập nhật khách hàng");
           }
         } else {
-          // Insert new customer to Supabase
+          // Kiểm tra số điện thoại trùng lặp trước khi thêm mới
+          // CHỈ kiểm tra nếu có SĐT VÀ không phải update khách hàng hiện tại
+          if (customer.phone) {
+            const { data: duplicates } = await supabase
+              .from("customers")
+              .select("id")
+              .eq("phone", customer.phone)
+              .limit(1);
+
+            // Nếu tìm thấy khách hàng với cùng SĐT
+            if (duplicates && duplicates.length > 0) {
+              const existingId = duplicates[0].id;
+
+              // Nếu đó là cùng 1 khách hàng (có cùng customerId), thực hiện UPDATE
+              if (existingId === customerId) {
+                console.log(
+                  "Khách hàng đã tồn tại, chuyển sang UPDATE:",
+                  customer.phone
+                );
+                const { error: updateError } = await supabase
+                  .from("customers")
+                  .update({
+                    name: customer.name || "Khách hàng",
+                    vehiclemodel: customer.vehicleModel || null,
+                    licenseplate: customer.licensePlate || null,
+                    vehicles: customer.vehicles || [],
+                    status: customer.status || "active",
+                    segment: customer.segment || "New",
+                    loyaltypoints: customer.loyaltyPoints ?? 0,
+                    totalspent: customer.totalSpent ?? 0,
+                    visitcount: customer.visitCount ?? 0,
+                    lastvisit: customer.lastVisit || null,
+                  })
+                  .eq("id", existingId);
+
+                if (updateError) {
+                  console.error("Lỗi cập nhật khách hàng:", updateError);
+                  showToast.error("Lỗi cập nhật khách hàng");
+                }
+                return;
+              } else {
+                // Đây là khách hàng khác với cùng SĐT - báo lỗi
+                console.error("Số điện thoại đã tồn tại:", customer.phone);
+                showToast.error("Số điện thoại này đã tồn tại trong hệ thống");
+                return;
+              }
+            }
+          }
+
+          // Thêm khách hàng mới vào Supabase
           const { error } = await supabase.from("customers").insert([
             {
               id: customerId,
@@ -321,7 +370,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           ]);
 
           if (error) {
-            console.error("Error inserting customer to Supabase:", error);
+            console.error("Lỗi thêm khách hàng vào Supabase:", error);
             showToast.error("Lỗi lưu khách hàng mới");
           } else {
             showToast.success("Đã lưu khách hàng mới");

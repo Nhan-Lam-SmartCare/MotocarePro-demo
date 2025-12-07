@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+﻿import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Check,
@@ -81,7 +81,7 @@ const WorkOrderModal: React.FC<{
   // Popular motorcycle models in Vietnam
   const POPULAR_MOTORCYCLES = [
     // === HONDA ===
-    // Xe số
+    // Xe sá»‘
     "Honda Wave Alpha",
     "Honda Wave RSX",
     "Honda Wave RSX FI",
@@ -92,7 +92,7 @@ const WorkOrderModal: React.FC<{
     "Honda Blade 110",
     "Honda Future 125",
     "Honda Future Neo",
-    // Xe côn tay
+    // Xe cÃ´n tay
     "Honda Winner X",
     "Honda Winner 150",
     "Honda CB150R",
@@ -134,7 +134,7 @@ const WorkOrderModal: React.FC<{
     "Honda Forza 350",
     "Honda Giorno",
     "Honda Stylo 160",
-    // Xe cũ/ngưng sản xuất
+    // Xe cÅ©/ngÆ°ng sáº£n xuáº¥t
     "Honda @",
     "Honda Click",
     "Honda Dylan",
@@ -150,10 +150,10 @@ const WorkOrderModal: React.FC<{
     "Honda Cub 86",
     "Honda Super Cub",
     "Honda Dream II",
-    "Honda Dream Thái",
+    "Honda Dream ThÃ¡i",
 
     // === YAMAHA ===
-    // Xe số
+    // Xe sá»‘
     "Yamaha Sirius",
     "Yamaha Sirius FI",
     "Yamaha Sirius RC",
@@ -161,7 +161,7 @@ const WorkOrderModal: React.FC<{
     "Yamaha Jupiter FI",
     "Yamaha Jupiter Finn",
     "Yamaha Jupiter MX",
-    // Xe côn tay
+    // Xe cÃ´n tay
     "Yamaha Exciter 135",
     "Yamaha Exciter 150",
     "Yamaha Exciter 155",
@@ -198,7 +198,7 @@ const WorkOrderModal: React.FC<{
     "Yamaha TMAX 560",
     "Yamaha Lexi",
     "Yamaha Aerox",
-    // Xe cũ/ngưng sản xuất
+    // Xe cÅ©/ngÆ°ng sáº£n xuáº¥t
     "Yamaha Nouvo",
     "Yamaha Nouvo LX",
     "Yamaha Nouvo SX",
@@ -210,14 +210,14 @@ const WorkOrderModal: React.FC<{
     "Yamaha Force",
 
     // === SUZUKI ===
-    // Xe số
+    // Xe sá»‘
     "Suzuki Axelo",
     "Suzuki Viva",
     "Suzuki Best",
     "Suzuki Smash",
     "Suzuki Sport",
     "Suzuki Revo",
-    // Xe côn tay
+    // Xe cÃ´n tay
     "Suzuki Raider 150",
     "Suzuki Raider R150",
     "Suzuki Satria F150",
@@ -241,7 +241,7 @@ const WorkOrderModal: React.FC<{
     "Suzuki Burgman 200",
     "Suzuki Burgman 400",
     "Suzuki Avenis",
-    // Xe cũ
+    // Xe cÅ©
     "Suzuki GN125",
     "Suzuki GD110",
     "Suzuki EN150",
@@ -306,7 +306,7 @@ const WorkOrderModal: React.FC<{
     "Kymco Downtown",
     "Kymco Visar",
 
-    // === VINFAST (Xe điện) ===
+    // === VINFAST (Xe Ä‘iá»‡n) ===
     "VinFast Klara",
     "VinFast Klara A1",
     "VinFast Klara A2",
@@ -321,25 +321,25 @@ const WorkOrderModal: React.FC<{
     "VinFast Theon",
     "VinFast Theon S",
 
-    // === YADEA (Xe điện) ===
+    // === YADEA (Xe Ä‘iá»‡n) ===
     "Yadea Xmen Neo",
     "Yadea Ulike",
     "Yadea G5",
     "Yadea Sunra X7",
     "Yadea Odora",
 
-    // === PEGA (Xe điện) ===
+    // === PEGA (Xe Ä‘iá»‡n) ===
     "Pega eSH",
     "Pega NewTech",
     "Pega Cap A",
     "Pega X-Men",
     "Pega Aura",
 
-    // === Khác ===
-    "Xe điện khác",
-    "Xe 50cc khác",
-    "Xe nhập khẩu khác",
-    "Khác",
+    // === KhÃ¡c ===
+    "Xe Ä‘iá»‡n khÃ¡c",
+    "Xe 50cc khÃ¡c",
+    "Xe nháº­p kháº©u khÃ¡c",
+    "KhÃ¡c",
   ];
 
   const queryClient = useQueryClient();
@@ -361,7 +361,7 @@ const WorkOrderModal: React.FC<{
       currentKm: order?.currentKm || undefined,
       issueDescription: order?.issueDescription || "",
       technicianName: order?.technicianName || "",
-      status: order?.status || "Tiếp nhận",
+      status: order?.status || "Tiáº¿p nháº­n",
       laborCost: order?.laborCost || 0,
       discount: order?.discount || 0,
       partsUsed: order?.partsUsed || [],
@@ -395,7 +395,7 @@ const WorkOrderModal: React.FC<{
     licensePlate: "",
   });
 
-  // 🔹 Check if order is paid (lock sensitive fields)
+  // ðŸ”¹ Check if order is paid (lock sensitive fields)
   const isOrderPaid = order?.paymentStatus === "paid";
   const isOrderRefunded = order?.refunded === true;
   const canEditPriceAndParts = !isOrderPaid && !isOrderRefunded;
@@ -416,14 +416,14 @@ const WorkOrderModal: React.FC<{
   // Submission guard to prevent duplicate submissions
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Additional services state (B�o gi� - Gia c�ng/�t h�ng)
+  // Additional services state (Bï¿½o giï¿½ - Gia cï¿½ng/ï¿½t hï¿½ng)
   const [additionalServices, setAdditionalServices] = useState<
     Array<{
       id: string;
       description: string;
       quantity: number;
       price: number;
-      costPrice?: number; // Gi� nh�p (chi ph� gia c�ng b�n ngo�i)
+      costPrice?: number; // Giï¿½ nhï¿½p (chi phï¿½ gia cï¿½ng bï¿½n ngoï¿½i)
     }>
   >([]);
   const [newService, setNewService] = useState({
@@ -448,7 +448,7 @@ const WorkOrderModal: React.FC<{
       setCustomerSearch("");
     }
 
-    // Sync additional services (B�o gi�)
+    // Sync additional services (Bï¿½o giï¿½)
     if (order?.additionalServices) {
       setAdditionalServices(order.additionalServices);
     } else {
@@ -526,7 +526,7 @@ const WorkOrderModal: React.FC<{
     if (!currentCustomer) return;
     if (!newVehicle.model.trim() || !newVehicle.licensePlate.trim()) {
       showToast.error(
-        "Vui l�ng nh�p ��y �� lo�i xe v� bi�n s�"
+        "Vui lï¿½ng nhï¿½p ï¿½ï¿½y ï¿½ï¿½ loï¿½i xe vï¿½ biï¿½n sï¿½"
       );
       return;
     }
@@ -561,7 +561,7 @@ const WorkOrderModal: React.FC<{
     // Reset and close modal
     setNewVehicle({ model: "", licensePlate: "" });
     setShowAddVehicleModal(false);
-    showToast.success("� th�m xe m�:i");
+    showToast.success("ï¿½ thï¿½m xe mï¿½:i");
   };
 
   // Calculate totals
@@ -589,8 +589,8 @@ const WorkOrderModal: React.FC<{
 
   // Calculate payment summary
   const totalDeposit = depositAmount || order.depositAmount || 0;
-  // 🔹 FIX: Chỉ tính additionalPayment MỚI khi checkbox được check
-  // Không lấy giá trị cũ để tránh thanh toán 2 lần
+  // ðŸ”¹ FIX: Chá»‰ tÃ­nh additionalPayment Má»šI khi checkbox Ä‘Æ°á»£c check
+  // KhÃ´ng láº¥y giÃ¡ trá»‹ cÅ© Ä‘á»ƒ trÃ¡nh thanh toÃ¡n 2 láº§n
   const totalAdditionalPayment = showPartialPayment ? partialPayment : 0;
   const totalPaid = totalDeposit + totalAdditionalPayment;
   const remainingAmount = Math.max(0, total - totalPaid);
@@ -620,9 +620,9 @@ const WorkOrderModal: React.FC<{
       const safeCustomerName =
         workOrder.customerName?.trim() ||
         workOrder.customerPhone ||
-        "Kh�ch v�ng lai";
+        "Khï¿½ch vï¿½ng lai";
 
-      // T�o n�"i dung chi ti�t t� phi�u s�a ch�a
+      // Tï¿½o nï¿½"i dung chi tiï¿½t tï¿½ phiï¿½u sï¿½a chï¿½a
       const workOrderNumber =
         formatWorkOrderId(workOrder.id, storeSettings?.work_order_prefix)
           .split("-")
@@ -630,16 +630,16 @@ const WorkOrderModal: React.FC<{
 
       let description = `${
         workOrder.vehicleModel || "Xe"
-      } (Phi�u s�a ch�a #${workOrderNumber})`;
+      } (Phiï¿½u sï¿½a chï¿½a #${workOrderNumber})`;
 
-      // M� t� v�n ��
+      // Mï¿½ tï¿½ vï¿½n ï¿½ï¿½
       if (workOrder.issueDescription) {
-        description += `\nV�n ��: ${workOrder.issueDescription}`;
+        description += `\nVï¿½n ï¿½ï¿½: ${workOrder.issueDescription}`;
       }
 
-      // Danh s�ch ph� t�ng �� s� d�ng
+      // Danh sï¿½ch phï¿½ tï¿½ng ï¿½ï¿½ sï¿½ dï¿½ng
       if (workOrder.partsUsed && workOrder.partsUsed.length > 0) {
-        description += "\n\nPh� t�ng �� thay:";
+        description += "\n\nPhï¿½ tï¿½ng ï¿½ï¿½ thay:";
         workOrder.partsUsed.forEach((part) => {
           description += `\n  " ${part.quantity} x ${
             part.partName
@@ -647,12 +647,12 @@ const WorkOrderModal: React.FC<{
         });
       }
 
-      // Danh s�ch d�9ch v� b�" sung (gia c�ng, ��t h�ng)
+      // Danh sï¿½ch dï¿½9ch vï¿½ bï¿½" sung (gia cï¿½ng, ï¿½ï¿½t hï¿½ng)
       if (
         workOrder.additionalServices &&
         workOrder.additionalServices.length > 0
       ) {
-        description += "\n\nD�9ch v�:";
+        description += "\n\nDï¿½9ch vï¿½:";
         workOrder.additionalServices.forEach((service) => {
           description += `\n  " ${service.quantity} x ${
             service.description
@@ -660,25 +660,25 @@ const WorkOrderModal: React.FC<{
         });
       }
 
-      // C�ng lao ��"ng
+      // Cï¿½ng lao ï¿½ï¿½"ng
       if (workOrder.laborCost && workOrder.laborCost > 0) {
-        description += `\n\nC�ng lao ��"ng: ${formatCurrency(
+        description += `\n\nCï¿½ng lao ï¿½ï¿½"ng: ${formatCurrency(
           workOrder.laborCost
         )}`;
       }
 
-      // Gi�m gi� (n�u c�)
+      // Giï¿½m giï¿½ (nï¿½u cï¿½)
       if (workOrder.discount && workOrder.discount > 0) {
-        description += `\nGi�m gi�: -${formatCurrency(workOrder.discount)}`;
+        description += `\nGiï¿½m giï¿½: -${formatCurrency(workOrder.discount)}`;
       }
 
-      // Th�ng tin nh�n vi�n t�o phi�u
+      // Thï¿½ng tin nhï¿½n viï¿½n tï¿½o phiï¿½u
       const createdByDisplay = profile?.name || profile?.full_name || "N/A";
       description += `\n\nNV: ${createdByDisplay}`;
 
-      // Th�ng tin nh�n vi�n k� thu�t
+      // Thï¿½ng tin nhï¿½n viï¿½n kï¿½ thuï¿½t
       if (workOrder.technicianName) {
-        description += `\nNVK� thu�t: ${workOrder.technicianName}`;
+        description += `\nNVKï¿½ thuï¿½t: ${workOrder.technicianName}`;
       }
 
       const payload = {
@@ -692,34 +692,34 @@ const WorkOrderModal: React.FC<{
         remainingAmount: remainingAmount,
         createdDate: new Date().toISOString().split("T")[0],
         branchId: currentBranchId,
-        workOrderId: workOrder.id, // �x� Link debt v�:i work order
+        workOrderId: workOrder.id, // ï¿½xï¿½ Link debt vï¿½:i work order
       };
 
       console.log("[ServiceManager] createCustomerDebt payload:", payload);
       const result = await createCustomerDebt.mutateAsync(payload as any);
       console.log("[ServiceManager] createCustomerDebt result:", result);
       showToast.success(
-        `� t�o/c�p nh�t c�ng n� ${remainingAmount.toLocaleString()}� (M�: ${
+        `ï¿½ tï¿½o/cï¿½p nhï¿½t cï¿½ng nï¿½ ${remainingAmount.toLocaleString()}ï¿½ (Mï¿½: ${
           result?.id || "N/A"
         })`
       );
     } catch (error) {
       console.error("Error creating/updating customer debt:", error);
       showToast.error(
-        "Kh�ng th� t�o/c�p nh�t c�ng n� t� ��"ng"
+        "Khï¿½ng thï¿½ tï¿½o/cï¿½p nhï¿½t cï¿½ng nï¿½ tï¿½ ï¿½ï¿½"ng"
       );
     }
   };
 
-  // �x� Function to handle deposit (��t c�c �� ��t h�ng)
+  // ï¿½xï¿½ Function to handle deposit (ï¿½ï¿½t cï¿½c ï¿½ï¿½ ï¿½ï¿½t hï¿½ng)
   const handleDeposit = async () => {
     // Validation
     if (!formData.customerName?.trim()) {
-      showToast.error("Vui l�ng nh�p t�n kh�ch h�ng");
+      showToast.error("Vui lï¿½ng nhï¿½p tï¿½n khï¿½ch hï¿½ng");
       return;
     }
     if (!formData.customerPhone?.trim()) {
-      showToast.error("Vui l�ng nh�p s� �i�!n tho�i");
+      showToast.error("Vui lï¿½ng nhï¿½p sï¿½ ï¿½iï¿½!n thoï¿½i");
       return;
     }
 
@@ -727,13 +727,13 @@ const WorkOrderModal: React.FC<{
     const phoneValidation = validatePhoneNumber(formData.customerPhone);
     if (!phoneValidation.ok) {
       showToast.error(
-        phoneValidation.error || "S� �i�!n tho�i kh�ng h�p l�!"
+        phoneValidation.error || "Sï¿½ ï¿½iï¿½!n thoï¿½i khï¿½ng hï¿½p lï¿½!"
       );
       return;
     }
 
     if (depositAmount <= 0) {
-      showToast.error("Vui l�ng nh�p s� ti�n ��t c�c");
+      showToast.error("Vui lï¿½ng nhï¿½p sï¿½ tiï¿½n ï¿½ï¿½t cï¿½c");
       return;
     }
 
@@ -741,13 +741,13 @@ const WorkOrderModal: React.FC<{
     const depositValidation = validateDepositAmount(depositAmount, total);
     if (!depositValidation.ok) {
       showToast.error(
-        depositValidation.error || "Ti�n ��t c�c kh�ng h�p l�!"
+        depositValidation.error || "Tiï¿½n ï¿½ï¿½t cï¿½c khï¿½ng hï¿½p lï¿½!"
       );
       return;
     }
 
     if (!formData.paymentMethod) {
-      showToast.error("Vui l�ng ch�n ph��ng th�c thanh to�n");
+      showToast.error("Vui lï¿½ng chï¿½n phï¿½ï¿½ng thï¿½c thanh toï¿½n");
       return;
     }
 
@@ -767,7 +767,7 @@ const WorkOrderModal: React.FC<{
         currentKm: formData.currentKm,
         issueDescription: formData.issueDescription || "",
         technicianName: formData.technicianName || "",
-        status: formData.status || "Ti�p nh�n",
+        status: formData.status || "Tiï¿½p nhï¿½n",
         laborCost: formData.laborCost || 0,
         discount: discount,
         partsUsed: selectedParts,
@@ -839,7 +839,7 @@ const WorkOrderModal: React.FC<{
         });
       }
 
-      // Create deposit cash transaction (Thu ti�n c�c v�o qu�)
+      // Create deposit cash transaction (Thu tiï¿½n cï¿½c vï¿½o quï¿½)
       const depositTxId = `TX-${Date.now()}-DEP`;
       await supabase.from("cash_transactions").insert({
         id: depositTxId,
@@ -847,7 +847,7 @@ const WorkOrderModal: React.FC<{
         category: "service_deposit",
         amount: depositAmount,
         date: new Date().toISOString(),
-        description: `�t c�c s�a ch�a #${orderId.split("-").pop()} - ${
+        description: `ï¿½t cï¿½c sï¿½a chï¿½a #${orderId.split("-").pop()} - ${
           formData.customerName
         }`,
         branchid: currentBranchId,
@@ -855,7 +855,7 @@ const WorkOrderModal: React.FC<{
         reference: orderId,
       });
 
-      // Create expense transaction (Phi�u chi �� ��t h�ng)
+      // Create expense transaction (Phiï¿½u chi ï¿½ï¿½ ï¿½ï¿½t hï¿½ng)
       const expenseTxId = `TX-${Date.now()}-EXP`;
       await supabase.from("cash_transactions").insert({
         id: expenseTxId,
@@ -863,7 +863,7 @@ const WorkOrderModal: React.FC<{
         category: "parts_purchase",
         amount: depositAmount,
         date: new Date().toISOString(),
-        description: `�t h�ng ph� t�ng cho #${orderId
+        description: `ï¿½t hï¿½ng phï¿½ tï¿½ng cho #${orderId
           .split("-")
           .pop()} - ${formData.customerName}`,
         branchid: currentBranchId,
@@ -876,36 +876,36 @@ const WorkOrderModal: React.FC<{
       onSave(workOrderData);
 
       showToast.success(
-        "� ��t c�c th�nh c�ng! Phi�u chi ��t h�ng �� ���c t�o."
+        "ï¿½ ï¿½ï¿½t cï¿½c thï¿½nh cï¿½ng! Phiï¿½u chi ï¿½ï¿½t hï¿½ng ï¿½ï¿½ ï¿½ï¿½ï¿½c tï¿½o."
       );
       onClose();
     } catch (error: any) {
       console.error("Error processing deposit:", error);
-      showToast.error("L�i khi x� l� ��t c�c");
+      showToast.error("Lï¿½i khi xï¿½ lï¿½ ï¿½ï¿½t cï¿½c");
     }
   };
 
-  // �x� Function to save work order without payment processing
+  // ï¿½xï¿½ Function to save work order without payment processing
   const handleSaveOnly = async () => {
     // Validation
     if (!formData.customerName?.trim()) {
-      showToast.error("Vui l�ng nh�p t�n kh�ch h�ng");
+      showToast.error("Vui lï¿½ng nhï¿½p tï¿½n khï¿½ch hï¿½ng");
       return;
     }
     if (!formData.customerPhone?.trim()) {
-      showToast.error("Vui l�ng nh�p s� �i�!n tho�i");
+      showToast.error("Vui lï¿½ng nhï¿½p sï¿½ ï¿½iï¿½!n thoï¿½i");
       return;
     }
 
     const phoneRegex = /^[0-9]{10,11}$/;
     if (!phoneRegex.test(formData.customerPhone.trim())) {
       showToast.error(
-        "S� �i�!n tho�i kh�ng h�p l�! (c�n 10-11 ch� s�)"
+        "Sï¿½ ï¿½iï¿½!n thoï¿½i khï¿½ng hï¿½p lï¿½! (cï¿½n 10-11 chï¿½ sï¿½)"
       );
       return;
     }
 
-    // Note: Kh�ng validate total > 0 v� c� th� ch�0 ti�p nh�n th�ng tin, ch�a b�o gi�
+    // Note: Khï¿½ng validate total > 0 vï¿½ cï¿½ thï¿½ chï¿½0 tiï¿½p nhï¿½n thï¿½ng tin, chï¿½a bï¿½o giï¿½
 
     // Add/update customer
     if (formData.customerName && formData.customerPhone) {
@@ -914,7 +914,7 @@ const WorkOrderModal: React.FC<{
       );
 
       if (!existingCustomer) {
-        // Chỉ tạo khách hàng mới nếu SĐT chưa tồn tại
+        // Chá»‰ táº¡o khÃ¡ch hÃ ng má»›i náº¿u SÄT chÆ°a tá»“n táº¡i
         console.log(`[WorkOrderModal] Creating new customer: ${formData.customerName} (${formData.customerPhone})`);
 
         const vehicleId = `VEH-${Date.now()}`;
@@ -944,7 +944,7 @@ const WorkOrderModal: React.FC<{
           created_at: new Date().toISOString(),
         });
       } else {
-        // Khách hàng đã tồn tại - chỉ cập nhật thông tin xe nếu cần
+        // KhÃ¡ch hÃ ng Ä‘Ã£ tá»“n táº¡i - chá»‰ cáº­p nháº­t thÃ´ng tin xe náº¿u cáº§n
         console.log(`[WorkOrderModal] Customer exists: ${existingCustomer.name} (${existingCustomer.phone})`);
         if (
           formData.vehicleModel &&
@@ -985,7 +985,7 @@ const WorkOrderModal: React.FC<{
         currentkm: formData.currentKm,
         issuedescription: formData.issueDescription || "",
         technicianname: formData.technicianName || "",
-        status: formData.status || "Ti�p nh�n",
+        status: formData.status || "Tiï¿½p nhï¿½n",
         laborcost: formData.laborCost || 0,
         discount: discount,
         partsused: selectedParts,
@@ -1015,6 +1015,63 @@ const WorkOrderModal: React.FC<{
           throw error;
         }
         console.log("[UPDATE SUCCESS]", data);
+
+        // Update vehicle currentKm if km was provided
+        if (formData.currentKm && formData.vehicleId && formData.customerPhone) {
+          console.log(
+            `[WorkOrderModal UPDATE] Attempting to update km ${formData.currentKm} for vehicle ${formData.vehicleId}`
+          );
+          const customer = customers.find((c) => c.phone === formData.customerPhone);
+          if (customer) {
+            const existingVehicles = customer.vehicles || [];
+            const vehicleExists = existingVehicles.some(
+              (v: any) => v.id === formData.vehicleId
+            );
+
+            if (vehicleExists) {
+              // Update km for existing vehicle
+              const updatedVehicles = existingVehicles.map((v: any) =>
+                v.id === formData.vehicleId
+                  ? { ...v, currentKm: formData.currentKm }
+                  : v
+              );
+              
+              // Save to Supabase database
+              const { error: updateError } = await supabase
+                .from("customers")
+                .update({ vehicles: updatedVehicles })
+                .eq("id", customer.id);
+
+              if (updateError) {
+                console.error(
+                  `[WorkOrderModal UPDATE] Failed to update km in DB:`,
+                  updateError
+                );
+              } else {
+                console.log(
+                  `[WorkOrderModal UPDATE] âœ… Updated km ${formData.currentKm} to DB for vehicle ${formData.vehicleId}`
+                );
+                // Update local context
+                upsertCustomer({
+                  ...customer,
+                  vehicles: updatedVehicles,
+                });
+              }
+            } else {
+              console.warn(
+                `[WorkOrderModal UPDATE] âš ï¸ Vehicle ${formData.vehicleId} not found in customer vehicles`
+              );
+            }
+          } else {
+            console.warn(
+              `[WorkOrderModal UPDATE] âš ï¸ Customer not found: ${formData.customerPhone}`
+            );
+          }
+        } else {
+          console.log(
+            `[WorkOrderModal UPDATE] âš ï¸ Skipping km update - currentKm: ${formData.currentKm}, vehicleId: ${formData.vehicleId}, phone: ${formData.customerPhone}`
+          );
+        }
       } else {
         // Insert new
         console.log("[INSERT] Attempting to insert:", workOrderData);
@@ -1032,25 +1089,88 @@ const WorkOrderModal: React.FC<{
           throw error;
         }
         console.log("[INSERT SUCCESS]", data);
+
+        // Update vehicle currentKm if km was provided
+        if (formData.currentKm && formData.vehicleId && formData.customerPhone) {
+          console.log(
+            `[WorkOrderModal CREATE] Attempting to update km ${formData.currentKm} for vehicle ${formData.vehicleId}`
+          );
+          const customer = customers.find((c) => c.phone === formData.customerPhone);
+          if (customer) {
+            const existingVehicles = customer.vehicles || [];
+            const vehicleExists = existingVehicles.some(
+              (v: any) => v.id === formData.vehicleId
+            );
+
+            let updatedVehicles;
+            if (vehicleExists) {
+              // Update km for existing vehicle
+              updatedVehicles = existingVehicles.map((v: any) =>
+                v.id === formData.vehicleId
+                  ? { ...v, currentKm: formData.currentKm }
+                  : v
+              );
+            } else {
+              // Vehicle doesn't exist yet, add it with km
+              const newVehicle = {
+                id: formData.vehicleId,
+                licensePlate: formData.licensePlate,
+                model: formData.vehicleModel,
+                currentKm: formData.currentKm,
+              };
+              updatedVehicles = [...existingVehicles, newVehicle];
+            }
+
+            // Save to Supabase database
+            const { error: updateError } = await supabase
+              .from("customers")
+              .update({ vehicles: updatedVehicles })
+              .eq("id", customer.id);
+
+            if (updateError) {
+              console.error(
+                `[WorkOrderModal CREATE] Failed to update km in DB:`,
+                updateError
+              );
+            } else {
+              console.log(
+                `[WorkOrderModal CREATE] âœ… ${vehicleExists ? 'Updated' : 'Added'} km ${formData.currentKm} to DB for vehicle ${formData.vehicleId}`
+              );
+              // Update local context
+              upsertCustomer({
+                ...customer,
+                vehicles: updatedVehicles,
+              });
+            }
+          } else {
+            console.warn(
+              `[WorkOrderModal CREATE] âš ï¸ Customer not found: ${formData.customerPhone}`
+            );
+          }
+        } else {
+          console.log(
+            `[WorkOrderModal CREATE] âš ï¸ Skipping km update - currentKm: ${formData.currentKm}, vehicleId: ${formData.vehicleId}, phone: ${formData.customerPhone}`
+          );
+        }
       }
 
       onSave(workOrderData as unknown as WorkOrder);
       showToast.success(
-        order?.id ? "� c�p nh�t phi�u" : "� l�u phi�u th�nh c�ng"
+        order?.id ? "ï¿½ cï¿½p nhï¿½t phiï¿½u" : "ï¿½ lï¿½u phiï¿½u thï¿½nh cï¿½ng"
       );
       onClose();
     } catch (error: any) {
       console.error("Error saving work order:", error);
       showToast.error(
-        "L�i khi l�u phi�u: " +
-          (error.message || error.hint || "Kh�ng x�c ��9nh")
+        "Lï¿½i khi lï¿½u phiï¿½u: " +
+          (error.message || error.hint || "Khï¿½ng xï¿½c ï¿½ï¿½9nh")
       );
     }
   };
 
-  // �x� Function to handle payment processing
+  // ï¿½xï¿½ Function to handle payment processing
   const handleSave = async () => {
-    // �x� PREVENT DUPLICATE SUBMISSIONS
+    // ï¿½xï¿½ PREVENT DUPLICATE SUBMISSIONS
     if (isSubmitting) {
       console.log("[handleSave] Already submitting, skipping...");
       return;
@@ -1059,14 +1179,14 @@ const WorkOrderModal: React.FC<{
     setIsSubmitting(true);
 
     try {
-      // �x� VALIDATION FRONTEND
+      // ï¿½xï¿½ VALIDATION FRONTEND
       // 1. Validate customer name & phone required
       if (!formData.customerName?.trim()) {
-        showToast.error("Vui l�ng nh�p t�n kh�ch h�ng");
+        showToast.error("Vui lï¿½ng nhï¿½p tï¿½n khï¿½ch hï¿½ng");
         return;
       }
       if (!formData.customerPhone?.trim()) {
-        showToast.error("Vui l�ng nh�p s� �i�!n tho�i");
+        showToast.error("Vui lï¿½ng nhï¿½p sï¿½ ï¿½iï¿½!n thoï¿½i");
         return;
       }
 
@@ -1074,14 +1194,14 @@ const WorkOrderModal: React.FC<{
       const phoneRegex = /^[0-9]{10,11}$/;
       if (!phoneRegex.test(formData.customerPhone.trim())) {
         showToast.error(
-          "S� �i�!n tho�i kh�ng h�p l�! (c�n 10-11 ch� s�)"
+          "Sï¿½ ï¿½iï¿½!n thoï¿½i khï¿½ng hï¿½p lï¿½! (cï¿½n 10-11 chï¿½ sï¿½)"
         );
         return;
       }
 
       // 3. Validate total > 0
       if (total <= 0) {
-        showToast.error("T�"ng ti�n ph�i l�:n h�n 0");
+        showToast.error("Tï¿½"ng tiï¿½n phï¿½i lï¿½:n hï¿½n 0");
         return;
       }
 
@@ -1091,9 +1211,9 @@ const WorkOrderModal: React.FC<{
           (c) => c.phone === formData.customerPhone
         );
 
-        // �x� VALIDATE DUPLICATE PHONE
+        // ï¿½xï¿½ VALIDATE DUPLICATE PHONE
         if (!existingCustomer) {
-        // Chỉ tạo khách hàng mới nếu SĐT chưa tồn tại
+        // Chá»‰ táº¡o khÃ¡ch hÃ ng má»›i náº¿u SÄT chÆ°a tá»“n táº¡i
         console.log(`[WorkOrderModal] Creating new customer: ${formData.customerName} (${formData.customerPhone})`);
 
           const vehicleId = `VEH-${Date.now()}`;
@@ -1123,7 +1243,7 @@ const WorkOrderModal: React.FC<{
           created_at: new Date().toISOString(),
         });
       } else {
-        // Khách hàng đã tồn tại - chỉ cập nhật thông tin xe nếu cần
+        // KhÃ¡ch hÃ ng Ä‘Ã£ tá»“n táº¡i - chá»‰ cáº­p nháº­t thÃ´ng tin xe náº¿u cáº§n
         console.log(`[WorkOrderModal] Customer exists: ${existingCustomer.name} (${existingCustomer.phone})`);
         if (
           formData.vehicleModel &&
@@ -1168,7 +1288,7 @@ const WorkOrderModal: React.FC<{
             currentKm: formData.currentKm,
             issueDescription: formData.issueDescription || "",
             technicianName: formData.technicianName || "",
-            status: formData.status || "Ti�p nh�n",
+            status: formData.status || "Tiï¿½p nhï¿½n",
             laborCost: formData.laborCost || 0,
             discount: discount,
             partsUsed: selectedParts,
@@ -1200,7 +1320,7 @@ const WorkOrderModal: React.FC<{
             currentKm: formData.currentKm,
             issueDescription: formData.issueDescription || "",
             technicianName: formData.technicianName || "",
-            status: formData.status || "Ti�p nh�n",
+            status: formData.status || "Tiï¿½p nhï¿½n",
             laborCost: formData.laborCost || 0,
             discount: discount,
             partsUsed: selectedParts,
@@ -1224,7 +1344,7 @@ const WorkOrderModal: React.FC<{
           };
 
           // Update cash transactions in context (for UI consistency)
-          // 🔹 Also INSERT to database for persistence
+          // ðŸ”¹ Also INSERT to database for persistence
           if (depositTxId && depositAmount > 0) {
             // INSERT deposit transaction to database
             try {
@@ -1258,7 +1378,7 @@ const WorkOrderModal: React.FC<{
                 category: "service_deposit",
                 amount: depositAmount,
                 date: new Date().toISOString(),
-                description: `�t c�c s�a ch�a #${(
+                description: `ï¿½t cï¿½c sï¿½a chï¿½a #${(
                   formatWorkOrderId(
                     orderId,
                     storeSettings?.work_order_prefix
@@ -1322,7 +1442,7 @@ const WorkOrderModal: React.FC<{
                 category: "service_income",
                 amount: totalAdditionalPayment,
                 date: new Date().toISOString(),
-                description: `Thu ti�n s�a ch�a #${(
+                description: `Thu tiï¿½n sï¿½a chï¿½a #${(
                   formatWorkOrderId(
                     orderId,
                     storeSettings?.work_order_prefix
@@ -1354,7 +1474,7 @@ const WorkOrderModal: React.FC<{
             );
           }
 
-          // �x� Create cash transactions for outsourcing costs (Gi� nh�p t� gia c�ng b�n ngo�i)
+          // ï¿½xï¿½ Create cash transactions for outsourcing costs (Giï¿½ nhï¿½p tï¿½ gia cï¿½ng bï¿½n ngoï¿½i)
           if (additionalServices.length > 0) {
             const totalOutsourcingCost = additionalServices.reduce(
               (sum, service) =>
@@ -1381,7 +1501,7 @@ const WorkOrderModal: React.FC<{
                     category: "outsourcing",
                     amount: -totalOutsourcingCost, // Negative for expense
                     date: new Date().toISOString(),
-                    description: `Chi phí gia công bên ngoài - Phiếu #${orderId
+                    description: `Chi phÃ­ gia cÃ´ng bÃªn ngoÃ i - Phiáº¿u #${orderId
                       .split("-")
                       .pop()} - ${additionalServices
                       .map((s) => s.description)
@@ -1393,7 +1513,7 @@ const WorkOrderModal: React.FC<{
 
                 if (expenseError) {
                   console.error("[Outsourcing] Insert FAILED:", expenseError);
-                  showToast.error(`Lỗi tạo phiếu chi gia công: ${expenseError.message}`);
+                  showToast.error(`Lá»—i táº¡o phiáº¿u chi gia cÃ´ng: ${expenseError.message}`);
                 } else {
                   console.log("[Outsourcing] Insert SUCCESS");
                   // Update context
@@ -1405,7 +1525,7 @@ const WorkOrderModal: React.FC<{
                       category: "outsourcing",
                       amount: -totalOutsourcingCost,
                       date: new Date().toISOString(),
-                      description: `Chi ph� gia c�ng b�n ngo�i - Phi�u #${orderId
+                      description: `Chi phï¿½ gia cï¿½ng bï¿½n ngoï¿½i - Phiï¿½u #${orderId
                         .split("-")
                         .pop()}`,
                       branchId: currentBranchId,
@@ -1433,9 +1553,9 @@ const WorkOrderModal: React.FC<{
                   );
 
                   showToast.info(
-                    `� t�o phi�u chi ${formatCurrency(
+                    `ï¿½ tï¿½o phiï¿½u chi ${formatCurrency(
                       totalOutsourcingCost
-                    )} cho gia c�ng b�n ngo�i`
+                    )} cho gia cï¿½ng bï¿½n ngoï¿½i`
                   );
                 }
               } catch (err) {
@@ -1447,26 +1567,26 @@ const WorkOrderModal: React.FC<{
           // Call onSave to update the workOrders state
           onSave(finalOrder);
 
-          // 🔹 FIX: Nếu tạo phiếu mới với paymentStatus = 'paid', gọi complete_payment để trừ kho
+          // ðŸ”¹ FIX: Náº¿u táº¡o phiáº¿u má»›i vá»›i paymentStatus = 'paid', gá»i complete_payment Ä‘á»ƒ trá»« kho
           if (paymentStatus === "paid" && selectedParts.length > 0) {
             try {
               console.log("[handleSave] New order is fully paid, calling completeWorkOrderPayment to deduct inventory");
               const result = await completeWorkOrderPayment(
                 orderId,
                 formData.paymentMethod || "cash",
-                0 // Số tiền = 0 vì đã thanh toán hết rồi, chỉ cần trừ kho
+                0 // Sá»‘ tiá»n = 0 vÃ¬ Ä‘Ã£ thanh toÃ¡n háº¿t rá»“i, chá»‰ cáº§n trá»« kho
               );
               if (!result.success) {
-                showToast.warning("Đã lưu phiếu nhưng có lỗi khi trừ kho: " + (result.error?.message || "Unknown error"));
+                showToast.warning("ÄÃ£ lÆ°u phiáº¿u nhÆ°ng cÃ³ lá»—i khi trá»« kho: " + (result.error?.message || "Unknown error"));
               }
             } catch (error: any) {
               console.error("[handleSave] Error deducting inventory:", error);
-              showToast.warning("Đã lưu phiếu nhưng có lỗi khi trừ kho: " + error.message);
+              showToast.warning("ÄÃ£ lÆ°u phiáº¿u nhÆ°ng cÃ³ lá»—i khi trá»« kho: " + error.message);
             }
           }
 
-          // �x� Auto-create customer debt ONLY when status is "Tr� m�y" and there's remaining amount
-          if (formData.status === "Tr� m�y" && remainingAmount > 0) {
+          // ï¿½xï¿½ Auto-create customer debt ONLY when status is "Trï¿½ mï¿½y" and there's remaining amount
+          if (formData.status === "Trï¿½ mï¿½y" && remainingAmount > 0) {
             console.log("[handleSave] Creating debt with finalOrder:", {
               id: finalOrder.id,
               customerName: finalOrder.customerName,
@@ -1491,7 +1611,7 @@ const WorkOrderModal: React.FC<{
         return;
       }
 
-      // �x� If this is an UPDATE (with or without parts), use atomic RPC
+      // ï¿½xï¿½ If this is an UPDATE (with or without parts), use atomic RPC
       if (order?.id) {
         console.log(
           "[handleSave] UPDATE block - Order ID:",
@@ -1509,7 +1629,7 @@ const WorkOrderModal: React.FC<{
             licensePlate: formData.licensePlate || "",
             issueDescription: formData.issueDescription || "",
             technicianName: formData.technicianName || "",
-            status: formData.status || "Ti�p nh�n",
+            status: formData.status || "Tiï¿½p nhï¿½n",
             laborCost: formData.laborCost || 0,
             discount: discount,
             partsUsed: selectedParts,
@@ -1530,7 +1650,7 @@ const WorkOrderModal: React.FC<{
           const depositTxId = responseData?.depositTransactionId;
           const paymentTxId = responseData?.paymentTransactionId;
 
-          // �x� Transform snake_case response to camelCase for WorkOrder interface
+          // ï¿½xï¿½ Transform snake_case response to camelCase for WorkOrder interface
           // If workOrderRow is undefined, build from formData + order
           const finalOrder: WorkOrder = workOrderRow
             ? {
@@ -1688,7 +1808,7 @@ const WorkOrderModal: React.FC<{
                 category: "service_deposit",
                 amount: depositAmount - (order.depositAmount || 0),
                 date: new Date().toISOString(),
-                description: `�t c�c b�" sung #${(
+                description: `ï¿½t cï¿½c bï¿½" sung #${(
                   formatWorkOrderId(
                     order.id,
                     storeSettings?.work_order_prefix
@@ -1757,7 +1877,7 @@ const WorkOrderModal: React.FC<{
                 category: "service_income",
                 amount: totalAdditionalPayment - (order.additionalPayment || 0),
                 date: new Date().toISOString(),
-                description: `Thu ti�n b�" sung #${(
+                description: `Thu tiï¿½n bï¿½" sung #${(
                   formatWorkOrderId(
                     order.id,
                     storeSettings?.work_order_prefix
@@ -1797,7 +1917,7 @@ const WorkOrderModal: React.FC<{
 
           onSave(finalOrder);
 
-          // 🔹 FIX: Nếu cập nhật phiếu thành paymentStatus = 'paid', gọi complete_payment để trừ kho
+          // ðŸ”¹ FIX: Náº¿u cáº­p nháº­t phiáº¿u thÃ nh paymentStatus = 'paid', gá»i complete_payment Ä‘á»ƒ trá»« kho
           const wasUnpaidOrPartial = order.paymentStatus !== "paid";
           if (paymentStatus === "paid" && wasUnpaidOrPartial && selectedParts.length > 0) {
             try {
@@ -1805,19 +1925,19 @@ const WorkOrderModal: React.FC<{
               const result = await completeWorkOrderPayment(
                 order.id,
                 formData.paymentMethod || "cash",
-                0 // Số tiền = 0 vì đã thanh toán hết rồi, chỉ cần trừ kho
+                0 // Sá»‘ tiá»n = 0 vÃ¬ Ä‘Ã£ thanh toÃ¡n háº¿t rá»“i, chá»‰ cáº§n trá»« kho
               );
               if (!result.success) {
-                showToast.warning("Đã cập nhật phiếu nhưng có lỗi khi trừ kho: " + (result.error?.message || "Unknown error"));
+                showToast.warning("ÄÃ£ cáº­p nháº­t phiáº¿u nhÆ°ng cÃ³ lá»—i khi trá»« kho: " + (result.error?.message || "Unknown error"));
               }
             } catch (error: any) {
               console.error("[handleSave] Error deducting inventory:", error);
-              showToast.warning("Đã cập nhật phiếu nhưng có lỗi khi trừ kho: " + error.message);
+              showToast.warning("ÄÃ£ cáº­p nháº­t phiáº¿u nhÆ°ng cÃ³ lá»—i khi trá»« kho: " + error.message);
             }
           }
 
-          // �x� Auto-create customer debt ONLY when status is "Tr� m�y" and there's remaining amount
-          if (formData.status === "Tr� m�y" && remainingAmount > 0) {
+          // ï¿½xï¿½ Auto-create customer debt ONLY when status is "Trï¿½ mï¿½y" and there's remaining amount
+          if (formData.status === "Trï¿½ mï¿½y" && remainingAmount > 0) {
             await createCustomerDebtIfNeeded(
               finalOrder,
               remainingAmount,
@@ -1898,16 +2018,16 @@ const WorkOrderModal: React.FC<{
         <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 md:px-6 md:py-4 flex items-center justify-between rounded-t-3xl md:rounded-t-xl flex-shrink-0">
           <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
             {formData.id
-              ? `Chi ti�t phi�u s�a ch�a - ${formatWorkOrderId(
+              ? `Chi tiï¿½t phiï¿½u sï¿½a chï¿½a - ${formatWorkOrderId(
                   formData.id,
                   storeSettings?.work_order_prefix
                 )}`
-              : "T�o phi�u s�a ch�a m�:i"}
+              : "Tï¿½o phiï¿½u sï¿½a chï¿½a mï¿½:i"}
           </h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            aria-label="�ng"
+            aria-label="ï¿½ng"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1926,7 +2046,7 @@ const WorkOrderModal: React.FC<{
           </button>
         </div>
 
-        {/* 🔹 Warning Banner for Paid Orders */}
+        {/* ðŸ”¹ Warning Banner for Paid Orders */}
         {isOrderPaid && (
           <div className="mx-4 mt-4 md:mx-6 md:mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
             <div className="flex items-start gap-3">
@@ -1935,12 +2055,12 @@ const WorkOrderModal: React.FC<{
               </svg>
               <div className="flex-1">
                 <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">
-                  ⚠️ Phiếu đã thanh toán
+                  âš ï¸ Phiáº¿u Ä‘Ã£ thanh toÃ¡n
                 </h4>
                 <p className="text-xs text-amber-700 dark:text-amber-400">
-                  Không thể thay đổi sản phẩm, giá tiền cho phiếu đã thanh toán.
-                  Bạn chỉ có thể sửa thông tin khách hàng, kỹ thuật viên và ghi chú.
-                  Nếu cần sửa sản phẩm/giá, vui lòng hủy phiếu này và tạo phiếu mới.
+                  KhÃ´ng thá»ƒ thay Ä‘á»•i sáº£n pháº©m, giÃ¡ tiá»n cho phiáº¿u Ä‘Ã£ thanh toÃ¡n.
+                  Báº¡n chá»‰ cÃ³ thá»ƒ sá»­a thÃ´ng tin khÃ¡ch hÃ ng, ká»¹ thuáº­t viÃªn vÃ  ghi chÃº.
+                  Náº¿u cáº§n sá»­a sáº£n pháº©m/giÃ¡, vui lÃ²ng há»§y phiáº¿u nÃ y vÃ  táº¡o phiáº¿u má»›i.
                 </p>
               </div>
             </div>
@@ -1953,18 +2073,18 @@ const WorkOrderModal: React.FC<{
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Th�ng tin Kh�ch h�ng & S� c�
+                Thï¿½ng tin Khï¿½ch hï¿½ng & Sï¿½ cï¿½
               </h3>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Kh�ch h�ng <span className="text-red-500">*</span>
+                  Khï¿½ch hï¿½ng <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <div className="flex-1 relative customer-search-container">
                     <input
                       type="text"
-                      placeholder="T�m kh�ch h�ng..."
+                      placeholder="Tï¿½m khï¿½ch hï¿½ng..."
                       value={customerSearch}
                       onChange={(e) => {
                         setCustomerSearch(e.target.value);
@@ -2018,7 +2138,7 @@ const WorkOrderModal: React.FC<{
                                     {customer.name}
                                   </div>
                                   <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                                    �x� {customer.phone}
+                                    ï¿½xï¿½ {customer.phone}
                                   </div>
                                   {(customer.vehicleModel ||
                                     customer.licensePlate) && (
@@ -2051,8 +2171,8 @@ const WorkOrderModal: React.FC<{
                         ) : (
                           <div className="px-3 py-4 text-center text-sm text-slate-500 dark:text-slate-400">
                             {customers.length === 0
-                              ? "Ch�a c� kh�ch h�ng n�o. Nh�n '+' �� th�m kh�ch h�ng m�:i."
-                              : "Kh�ng t�m th�y kh�ch h�ng ph� h�p"}
+                              ? "Chï¿½a cï¿½ khï¿½ch hï¿½ng nï¿½o. Nhï¿½n '+' ï¿½ï¿½ thï¿½m khï¿½ch hï¿½ng mï¿½:i."
+                              : "Khï¿½ng tï¿½m thï¿½y khï¿½ch hï¿½ng phï¿½ hï¿½p"}
                           </div>
                         )}
                       </div>
@@ -2062,7 +2182,7 @@ const WorkOrderModal: React.FC<{
                     type="button"
                     onClick={() => setShowAddCustomerModal(true)}
                     className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-xl"
-                    title="Th�m kh�ch h�ng m�:i"
+                    title="Thï¿½m khï¿½ch hï¿½ng mï¿½:i"
                   >
                     +
                   </button>
@@ -2131,7 +2251,7 @@ const WorkOrderModal: React.FC<{
                           });
                         }}
                         className="text-slate-400 hover:text-red-500 text-sm flex items-center"
-                        title="X�a kh�ch h�ng"
+                        title="Xï¿½a khï¿½ch hï¿½ng"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -2159,8 +2279,8 @@ const WorkOrderModal: React.FC<{
                     <div className="flex items-center justify-between">
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                         {customerVehicles.length > 0
-                          ? "Ch�n xe"
-                          : "Xe c�a kh�ch h�ng"}
+                          ? "Chï¿½n xe"
+                          : "Xe cï¿½a khï¿½ch hï¿½ng"}
                         {customerVehicles.length > 0 && (
                           <span className="text-xs text-slate-500 ml-1">
                             ({customerVehicles.length} xe)
@@ -2171,9 +2291,9 @@ const WorkOrderModal: React.FC<{
                         type="button"
                         onClick={() => setShowAddVehicleModal(true)}
                         className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium"
-                        title="Th�m xe m�:i"
+                        title="Thï¿½m xe mï¿½:i"
                       >
-                        + Th�m xe
+                        + Thï¿½m xe
                       </button>
                     </div>
 
@@ -2198,7 +2318,7 @@ const WorkOrderModal: React.FC<{
                                 {isPrimary && (
                                   <span
                                     className="text-yellow-500"
-                                    title="Xe ch�nh"
+                                    title="Xe chï¿½nh"
                                   >
                                     P
                                   </span>
@@ -2232,7 +2352,7 @@ const WorkOrderModal: React.FC<{
                     ) : (
                       <div className="text-center py-4 px-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-dashed border-slate-300 dark:border-slate-600">
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Ch�a c� xe n�o. Click "+ Th�m xe" �� th�m.
+                          Chï¿½a cï¿½ xe nï¿½o. Click "+ Thï¿½m xe" ï¿½ï¿½ thï¿½m.
                         </p>
                       </div>
                     )}
@@ -2242,7 +2362,7 @@ const WorkOrderModal: React.FC<{
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  S� KM hi�!n t�i
+                  Sï¿½ KM hiï¿½!n tï¿½i
                 </label>
                 <input
                   type="number"
@@ -2252,11 +2372,11 @@ const WorkOrderModal: React.FC<{
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  M� t� s� c�
+                  Mï¿½ tï¿½ sï¿½ cï¿½
                 </label>
                 <textarea
                   rows={4}
-                  placeholder="B�o d��ng ��9nh k�, thay nh�:t..."
+                  placeholder="Bï¿½o dï¿½ï¿½ng ï¿½ï¿½9nh kï¿½, thay nhï¿½:t..."
                   value={formData.issueDescription || ""}
                   onChange={(e) =>
                     setFormData({
@@ -2271,16 +2391,16 @@ const WorkOrderModal: React.FC<{
 
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Chi ti�t D�9ch v�
+                Chi tiï¿½t Dï¿½9ch vï¿½
               </h3>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Tr�ng th�i
+                    Trï¿½ng thï¿½i
                   </label>
                   <select
-                    value={formData.status || "Ti�p nh�n"}
+                    value={formData.status || "Tiï¿½p nhï¿½n"}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
@@ -2288,44 +2408,44 @@ const WorkOrderModal: React.FC<{
                       })
                     }
                     className={`w-full px-3 py-2 border rounded-lg font-medium ${
-                      formData.status === "Ti�p nh�n"
+                      formData.status === "Tiï¿½p nhï¿½n"
                         ? "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300"
-                        : formData.status === "ang s�a"
+                        : formData.status === "ang sï¿½a"
                         ? "bg-orange-100 dark:bg-orange-900/30 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300"
-                        : formData.status === "� s�a xong"
+                        : formData.status === "ï¿½ sï¿½a xong"
                         ? "bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300"
                         : "bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300"
                     }`}
                   >
                     <option
-                      value="Ti�p nh�n"
+                      value="Tiï¿½p nhï¿½n"
                       className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                     >
-                      Ti�p nh�n
+                      Tiï¿½p nhï¿½n
                     </option>
                     <option
-                      value="ang s�a"
+                      value="ang sï¿½a"
                       className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                     >
-                      ang s�a
+                      ang sï¿½a
                     </option>
                     <option
-                      value="� s�a xong"
+                      value="ï¿½ sï¿½a xong"
                       className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                     >
-                      � s�a xong
+                      ï¿½ sï¿½a xong
                     </option>
                     <option
-                      value="Tr� m�y"
+                      value="Trï¿½ mï¿½y"
                       className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
                     >
-                      Tr� m�y
+                      Trï¿½ mï¿½y
                     </option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    K� thu�t vi�n
+                    Kï¿½ thuï¿½t viï¿½n
                   </label>
                   <select
                     value={formData.technicianName || ""}
@@ -2337,17 +2457,17 @@ const WorkOrderModal: React.FC<{
                     }
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                   >
-                    <option value="">-- Ch�n k� thu�t vi�n --</option>
+                    <option value="">-- Chï¿½n kï¿½ thuï¿½t viï¿½n --</option>
                     {employees
                       .filter(
                         (emp) =>
                           emp.status === "active" &&
                           (emp.department
                             ?.toLowerCase()
-                            .includes("k� thu�t") ||
+                            .includes("kï¿½ thuï¿½t") ||
                             emp.position
                               ?.toLowerCase()
-                              .includes("k� thu�t"))
+                              .includes("kï¿½ thuï¿½t"))
                       )
                       .map((emp) => (
                         <option key={emp.id} value={emp.name}>
@@ -2360,10 +2480,10 @@ const WorkOrderModal: React.FC<{
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Ph� d�9ch v� (C�ng th�)
+                  Phï¿½ dï¿½9ch vï¿½ (Cï¿½ng thï¿½)
                   {!canEditPriceAndParts && (
                     <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
-                      (Không thể sửa)
+                      (KhÃ´ng thá»ƒ sá»­a)
                     </span>
                   )}
                 </label>
@@ -2385,11 +2505,11 @@ const WorkOrderModal: React.FC<{
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Ghi ch� n�"i b�"
+                  Ghi chï¿½ nï¿½"i bï¿½"
                 </label>
                 <textarea
                   rows={4}
-                  placeholder="VD: Kh�ch y�u c�u ki�m tra th�m h�! th�ng �i�!n"
+                  placeholder="VD: Khï¿½ch yï¿½u cï¿½u kiï¿½m tra thï¿½m hï¿½! thï¿½ng ï¿½iï¿½!n"
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 resize-none"
                 />
               </div>
@@ -2400,7 +2520,7 @@ const WorkOrderModal: React.FC<{
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Ph� t�ng s� d�ng
+                Phï¿½ tï¿½ng sï¿½ dï¿½ng
               </h3>
               <button
                 onClick={() => setShowPartSearch(!showPartSearch)}
@@ -2412,11 +2532,11 @@ const WorkOrderModal: React.FC<{
                 }`}
                 title={
                   canEditPriceAndParts
-                    ? "Thêm phụ tùng"
-                    : "Không thể thêm phụ tùng cho phiếu đã thanh toán"
+                    ? "ThÃªm phá»¥ tÃ¹ng"
+                    : "KhÃ´ng thá»ƒ thÃªm phá»¥ tÃ¹ng cho phiáº¿u Ä‘Ã£ thanh toÃ¡n"
                 }
               >
-                ~" Th�m ph� t�ng
+                ~" Thï¿½m phï¿½ tï¿½ng
               </button>
             </div>
 
@@ -2424,7 +2544,7 @@ const WorkOrderModal: React.FC<{
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="T�m ki�m ph� t�ng theo t�n ho�c SKU..."
+                  placeholder="Tï¿½m kiï¿½m phï¿½ tï¿½ng theo tï¿½n hoï¿½c SKU..."
                   value={searchPart}
                   onChange={(e) => setSearchPart(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
@@ -2433,11 +2553,11 @@ const WorkOrderModal: React.FC<{
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
                   {partsLoading ? (
                     <div className="px-4 py-3 text-sm text-slate-500">
-                      ang t�i ph� t�ng...
+                      ang tï¿½i phï¿½ tï¿½ng...
                     </div>
                   ) : filteredParts.length === 0 ? (
                     <div className="px-4 py-3 text-sm text-slate-500">
-                      Kh�ng t�m th�y ph� t�ng
+                      Khï¿½ng tï¿½m thï¿½y phï¿½ tï¿½ng
                     </div>
                   ) : (
                     filteredParts.slice(0, 10).map((part) => (
@@ -2478,16 +2598,16 @@ const WorkOrderModal: React.FC<{
                 <thead className="bg-slate-50 dark:bg-slate-700">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-slate-600 dark:text-slate-300">
-                      T�n
+                      Tï¿½n
                     </th>
                     <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
                       SL
                     </th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-                      .Gi�
+                      .Giï¿½
                     </th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-                      T.Ti�n
+                      T.Tiï¿½n
                     </th>
                     <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300"></th>
                   </tr>
@@ -2499,7 +2619,7 @@ const WorkOrderModal: React.FC<{
                         colSpan={5}
                         className="px-4 py-6 text-center text-sm text-slate-400"
                       >
-                        Ch�a c� ph� t�ng n�o
+                        Chï¿½a cï¿½ phï¿½ tï¿½ng nï¿½o
                       </td>
                     </tr>
                   ) : (
@@ -2560,11 +2680,11 @@ const WorkOrderModal: React.FC<{
                                 ? "text-red-500 hover:text-red-700"
                                 : "text-slate-400 cursor-not-allowed"
                             }`}
-                            aria-label="X�a ph� t�ng"
+                            aria-label="Xï¿½a phï¿½ tï¿½ng"
                             title={
                               canEditPriceAndParts
-                                ? "Xóa phụ tùng"
-                                : "Không thể xóa phụ tùng cho phiếu đã thanh toán"
+                                ? "XÃ³a phá»¥ tÃ¹ng"
+                                : "KhÃ´ng thá»ƒ xÃ³a phá»¥ tÃ¹ng cho phiáº¿u Ä‘Ã£ thanh toÃ¡n"
                             }
                           >
                             <svg
@@ -2594,7 +2714,7 @@ const WorkOrderModal: React.FC<{
           {/* Quote/Estimate Section */}
           <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
-              B�o gi� (Gia c�ng, �t h�ng)
+              Bï¿½o giï¿½ (Gia cï¿½ng, ï¿½t hï¿½ng)
             </h3>
 
             <div className="border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
@@ -2602,19 +2722,19 @@ const WorkOrderModal: React.FC<{
                 <thead className="bg-slate-50 dark:bg-slate-700">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-slate-600 dark:text-slate-300">
-                      M� t�
+                      Mï¿½ tï¿½
                     </th>
                     <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
                       SL
                     </th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-                      Gi� nh�p
+                      Giï¿½ nhï¿½p
                     </th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-                      �n gi�
+                      ï¿½n giï¿½
                     </th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-                      Th�nh ti�n
+                      Thï¿½nh tiï¿½n
                     </th>
                     <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
                       <button
@@ -2634,7 +2754,7 @@ const WorkOrderModal: React.FC<{
                         }}
                         className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs"
                       >
-                        Th�m
+                        Thï¿½m
                       </button>
                     </th>
                   </tr>
@@ -2673,7 +2793,7 @@ const WorkOrderModal: React.FC<{
                             )
                           }
                           className="text-red-500 hover:text-red-700 text-sm"
-                          aria-label="X�a d�9ch v�"
+                          aria-label="Xï¿½a dï¿½9ch vï¿½"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -2699,7 +2819,7 @@ const WorkOrderModal: React.FC<{
                     <td className="px-4 py-2">
                       <input
                         type="text"
-                        placeholder="M� t�..."
+                        placeholder="Mï¿½ tï¿½..."
                         value={newService.description}
                         onChange={(e) =>
                           setNewService({
@@ -2725,7 +2845,7 @@ const WorkOrderModal: React.FC<{
                     </td>
                     <td className="px-4 py-2">
                       <NumberInput
-                        placeholder="Giá nhập"
+                        placeholder="GiÃ¡ nháº­p"
                         value={newService.costPrice || ""}
                         onChange={(val) =>
                           setNewService({
@@ -2738,7 +2858,7 @@ const WorkOrderModal: React.FC<{
                     </td>
                     <td className="px-4 py-2">
                       <NumberInput
-                        placeholder="Đơn giá"
+                        placeholder="ÄÆ¡n giÃ¡"
                         value={newService.price || ""}
                         onChange={(val) =>
                           setNewService({
@@ -2752,7 +2872,7 @@ const WorkOrderModal: React.FC<{
                     <td className="px-4 py-2 text-right text-sm text-slate-400">
                       {newService.price > 0
                         ? formatCurrency(newService.price * newService.quantity)
-                        : "Th�nh ti�n"}
+                        : "Thï¿½nh tiï¿½n"}
                     </td>
                     <td className="px-4 py-2 text-center">
                       {/* Empty for add row */}
@@ -2769,7 +2889,7 @@ const WorkOrderModal: React.FC<{
               {/* Left: Payment Options */}
               <div className="space-y-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Thanh to�n
+                  Thanh toï¿½n
                 </h3>
 
                 <div className="space-y-3">
@@ -2786,9 +2906,9 @@ const WorkOrderModal: React.FC<{
                       className="w-4 h-4"
                     />
                     <span className="text-sm text-slate-700 dark:text-slate-300">
-                      �t c�c{" "}
+                      ï¿½t cï¿½c{" "}
                       {order?.depositAmount
-                        ? `(� c�c: ${formatCurrency(order.depositAmount)})`
+                        ? `(ï¿½ cï¿½c: ${formatCurrency(order.depositAmount)})`
                         : ""}
                     </span>
                   </label>
@@ -2797,7 +2917,7 @@ const WorkOrderModal: React.FC<{
                   {showDepositInput && !order?.depositAmount && (
                     <div className="pl-6">
                       <NumberInput
-                        placeholder="Số tiền đặt cọc"
+                        placeholder="Sá»‘ tiá»n Ä‘áº·t cá»c"
                         value={depositAmount || ""}
                         onChange={(val) =>
                           setDepositAmount(val)
@@ -2812,7 +2932,7 @@ const WorkOrderModal: React.FC<{
                   {/* Payment method selection */}
                   <div>
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
-                      Ph��ng th�c thanh to�n:
+                      Phï¿½ï¿½ng thï¿½c thanh toï¿½n:
                     </label>
                     <div className="flex items-center gap-4 pl-2">
                       <label className="flex items-center gap-2">
@@ -2845,7 +2965,7 @@ const WorkOrderModal: React.FC<{
                             />
                             <circle cx="12" cy="12" r="3" />
                           </svg>
-                          Ti�n m�t
+                          Tiï¿½n mï¿½t
                         </span>
                       </label>
                       <label className="flex items-center gap-2">
@@ -2874,7 +2994,7 @@ const WorkOrderModal: React.FC<{
                               d="M3 21h18M3 10h18M7 6h10l2 4H5l2-4Zm2 4v11m6-11v11"
                             />
                           </svg>
-                          Chuy�n kho�n
+                          Chuyï¿½n khoï¿½n
                         </span>
                       </label>
                     </div>
@@ -2882,8 +3002,8 @@ const WorkOrderModal: React.FC<{
 
                   <div className="border-t border-slate-200 dark:border-slate-700 pt-3"></div>
 
-                  {/* Partial payment checkbox - only show if status is "Tr� m�y" */}
-                  {formData.status === "Tr� m�y" && (
+                  {/* Partial payment checkbox - only show if status is "Trï¿½ mï¿½y" */}
+                  {formData.status === "Trï¿½ mï¿½y" && (
                     <>
                       <label className="flex items-center gap-2">
                         <input
@@ -2896,7 +3016,7 @@ const WorkOrderModal: React.FC<{
                           className="w-4 h-4"
                         />
                         <span className="text-sm text-slate-700 dark:text-slate-300">
-                          Thanh to�n khi tr� xe
+                          Thanh toï¿½n khi trï¿½ xe
                         </span>
                       </label>
 
@@ -2904,7 +3024,7 @@ const WorkOrderModal: React.FC<{
                       {showPartialPayment && (
                         <div className="pl-6 space-y-2">
                           <label className="text-xs text-slate-600 dark:text-slate-400">
-                            S� ti�n thanh to�n th�m:
+                            Sï¿½ tiï¿½n thanh toï¿½n thï¿½m:
                           </label>
                           <div className="flex items-center gap-2">
                             <NumberInput
@@ -2944,10 +3064,10 @@ const WorkOrderModal: React.FC<{
                   )}
                 </div>
 
-                {formData.status !== "Tr� m�y" && (
+                {formData.status !== "Trï¿½ mï¿½y" && (
                   <p className="text-xs text-slate-500 dark:text-slate-400 italic">
-                    * Thanh to�n khi tr� xe ch�0 kh� d�ng khi tr�ng
-                    th�i l� "Tr� m�y"
+                    * Thanh toï¿½n khi trï¿½ xe chï¿½0 khï¿½ dï¿½ng khi trï¿½ng
+                    thï¿½i lï¿½ "Trï¿½ mï¿½y"
                   </p>
                 )}
               </div>
@@ -2955,12 +3075,12 @@ const WorkOrderModal: React.FC<{
               {/* Right: Summary */}
               <div className="space-y-3 bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  T�"ng k�t
+                  Tï¿½"ng kï¿½t
                 </h3>
 
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600 dark:text-slate-400">
-                    Ph� d�9ch v�:
+                    Phï¿½ dï¿½9ch vï¿½:
                   </span>
                   <span className="font-medium text-slate-900 dark:text-slate-100">
                     {formatCurrency(formData.laborCost || 0)}
@@ -2968,7 +3088,7 @@ const WorkOrderModal: React.FC<{
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600 dark:text-slate-400">
-                    Ti�n ph� t�ng:
+                    Tiï¿½n phï¿½ tï¿½ng:
                   </span>
                   <span className="font-medium text-slate-900 dark:text-slate-100">
                     {formatCurrency(partsTotal)}
@@ -2976,7 +3096,7 @@ const WorkOrderModal: React.FC<{
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600 dark:text-slate-400">
-                    Gia c�ng/�t h�ng:
+                    Gia cï¿½ng/ï¿½t hï¿½ng:
                   </span>
                   <span className="font-medium text-slate-900 dark:text-slate-100">
                     {formatCurrency(servicesTotal)}
@@ -2986,7 +3106,7 @@ const WorkOrderModal: React.FC<{
                 <div className="pt-2 border-t border-slate-300 dark:border-slate-600">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-red-600 font-medium">
-                      Gi�m gi�:
+                      Giï¿½m giï¿½:
                     </span>
                     <div className="flex items-center gap-2">
                       <input
@@ -3033,7 +3153,7 @@ const WorkOrderModal: React.FC<{
                         }}
                         className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
                       >
-                        <option value="amount">��</option>
+                        <option value="amount">ï¿½ï¿½</option>
                         <option value="percent">%</option>
                       </select>
                     </div>
@@ -3071,7 +3191,7 @@ const WorkOrderModal: React.FC<{
                 <div className="pt-2 border-t-2 border-slate-400 dark:border-slate-500">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                      T�"ng c�"ng:
+                      Tï¿½"ng cï¿½"ng:
                     </span>
                     <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
                       {formatCurrency(total)}
@@ -3084,7 +3204,7 @@ const WorkOrderModal: React.FC<{
                       {totalDeposit > 0 && (
                         <div className="flex justify-between text-sm">
                           <span className="text-green-600 dark:text-green-400">
-                            � ��t c�c:
+                            ï¿½ ï¿½ï¿½t cï¿½c:
                           </span>
                           <span className="font-medium text-green-600 dark:text-green-400">
                             -{formatCurrency(totalDeposit)}
@@ -3094,7 +3214,7 @@ const WorkOrderModal: React.FC<{
                       {totalAdditionalPayment > 0 && (
                         <div className="flex justify-between text-sm">
                           <span className="text-green-600 dark:text-green-400">
-                            Thanh to�n th�m:
+                            Thanh toï¿½n thï¿½m:
                           </span>
                           <span className="font-medium text-green-600 dark:text-green-400">
                             -{formatCurrency(totalAdditionalPayment)}
@@ -3104,8 +3224,8 @@ const WorkOrderModal: React.FC<{
                       <div className="flex justify-between items-center pt-2 border-t border-slate-300 dark:border-slate-600">
                         <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                           {remainingAmount > 0
-                            ? "C�n ph�i thu:"
-                            : "� thanh to�n ��"}
+                            ? "Cï¿½n phï¿½i thu:"
+                            : "ï¿½ thanh toï¿½n ï¿½ï¿½"}
                         </span>
                         <span
                           className={`text-lg font-bold ${
@@ -3131,19 +3251,19 @@ const WorkOrderModal: React.FC<{
             onClick={onClose}
             className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg"
           >
-            H�y
+            Hï¿½y
           </button>
 
-          {/* Always show "L�u Phi�u" */}
+          {/* Always show "Lï¿½u Phiï¿½u" */}
           <button
             onClick={handleSaveOnly}
             className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg font-medium"
           >
-            L�u Phi�u
+            Lï¿½u Phiï¿½u
           </button>
 
-          {/* Show "�t c�c" button only when status is NOT "Tr� m�y" and deposit input is shown */}
-          {formData.status !== "Tr� m�y" && showDepositInput && (
+          {/* Show "ï¿½t cï¿½c" button only when status is NOT "Trï¿½ mï¿½y" and deposit input is shown */}
+          {formData.status !== "Trï¿½ mï¿½y" && showDepositInput && (
             <button
               onClick={handleSave}
               className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium flex items-center gap-2"
@@ -3161,12 +3281,12 @@ const WorkOrderModal: React.FC<{
                   d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              �t c�c
+              ï¿½t cï¿½c
             </button>
           )}
 
-          {/* Show "Thanh to�n" button only when status is "Tr� m�y" */}
-          {formData.status === "Tr� m�y" && (
+          {/* Show "Thanh toï¿½n" button only when status is "Trï¿½ mï¿½y" */}
+          {formData.status === "Trï¿½ mï¿½y" && (
             <button
               onClick={handleSave}
               className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium flex items-center gap-2"
@@ -3184,7 +3304,7 @@ const WorkOrderModal: React.FC<{
                   d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
                 />
               </svg>
-              Thanh to�n
+              Thanh toï¿½n
             </button>
           )}
         </div>
@@ -3196,7 +3316,7 @@ const WorkOrderModal: React.FC<{
           <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-md p-6 m-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                Th�m kh�ch h�ng
+                Thï¿½m khï¿½ch hï¿½ng
               </h3>
               <button
                 onClick={() => {
@@ -3209,7 +3329,7 @@ const WorkOrderModal: React.FC<{
                   });
                 }}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                aria-label="�ng"
+                aria-label="ï¿½ng"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -3231,11 +3351,11 @@ const WorkOrderModal: React.FC<{
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  T�n kh�ch
+                  Tï¿½n khï¿½ch
                 </label>
                 <input
                   type="text"
-                  placeholder="Nh�p t�n kh�ch"
+                  placeholder="Nhï¿½p tï¿½n khï¿½ch"
                   value={newCustomer.name}
                   onChange={(e) =>
                     setNewCustomer({ ...newCustomer, name: e.target.value })
@@ -3246,7 +3366,7 @@ const WorkOrderModal: React.FC<{
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  S� �i�!n tho�i
+                  Sï¿½ ï¿½iï¿½!n thoï¿½i
                 </label>
                 <input
                   type="tel"
@@ -3262,11 +3382,11 @@ const WorkOrderModal: React.FC<{
               <div className="grid grid-cols-2 gap-3">
                 <div className="relative vehicle-search-container">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    D�ng xe
+                    Dï¿½ng xe
                   </label>
                   <input
                     type="text"
-                    placeholder="Ch�n ho�c nh�p d�ng xe"
+                    placeholder="Chï¿½n hoï¿½c nhï¿½p dï¿½ng xe"
                     value={newCustomer.vehicleModel}
                     onChange={(e) => {
                       setNewCustomer({
@@ -3307,7 +3427,7 @@ const WorkOrderModal: React.FC<{
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Bi�n s�
+                    Biï¿½n sï¿½
                   </label>
                   <input
                     type="text"
@@ -3338,7 +3458,7 @@ const WorkOrderModal: React.FC<{
                 }}
                 className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
               >
-                H�y
+                Hï¿½y
               </button>
               <button
                 onClick={() => {
@@ -3462,7 +3582,7 @@ const WorkOrderModal: React.FC<{
                 className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium"
                 disabled={!newCustomer.name || !newCustomer.phone}
               >
-                L�u
+                Lï¿½u
               </button>
             </div>
           </div>
@@ -3474,13 +3594,13 @@ const WorkOrderModal: React.FC<{
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-slate-800 rounded-xl max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
-              Th�m xe cho {currentCustomer.name}
+              Thï¿½m xe cho {currentCustomer.name}
             </h3>
 
             <div className="space-y-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Lo�i xe <span className="text-red-500">*</span>
+                  Loï¿½i xe <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -3496,7 +3616,7 @@ const WorkOrderModal: React.FC<{
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Bi�n s� <span className="text-red-500">*</span>
+                  Biï¿½n sï¿½ <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -3513,7 +3633,7 @@ const WorkOrderModal: React.FC<{
               </div>
 
               <div className="text-xs text-slate-500 dark:text-slate-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
-                �x� Xe m�:i s� t� ��"ng ���c ch�n sau khi th�m
+                ï¿½xï¿½ Xe mï¿½:i sï¿½ tï¿½ ï¿½ï¿½"ng ï¿½ï¿½ï¿½c chï¿½n sau khi thï¿½m
               </div>
             </div>
 
@@ -3525,7 +3645,7 @@ const WorkOrderModal: React.FC<{
                 }}
                 className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
               >
-                H�y
+                Hï¿½y
               </button>
               <button
                 onClick={handleAddVehicle}
@@ -3534,7 +3654,7 @@ const WorkOrderModal: React.FC<{
                   !newVehicle.model.trim() || !newVehicle.licensePlate.trim()
                 }
               >
-                Th�m xe
+                Thï¿½m xe
               </button>
             </div>
           </div>

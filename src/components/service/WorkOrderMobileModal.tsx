@@ -626,7 +626,8 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
       technicianId: selectedTechnicianId,
       customer: selectedCustomer,
       vehicle: selectedVehicle,
-      currentKm: parseInt(currentKm) || 0,
+      currentKm:
+        currentKm && parseInt(currentKm) > 0 ? parseInt(currentKm) : undefined,
       issueDescription,
       parts: transformedParts,
       additionalServices: transformedServices,
@@ -640,6 +641,14 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
         status === WORK_ORDER_STATUS.DELIVERED ? remainingAmount : undefined,
     };
 
+    console.log(
+      "[WorkOrderMobileModal] currentKm state:",
+      currentKm,
+      "parsed:",
+      parseInt(currentKm),
+      "final:",
+      workOrderData.currentKm
+    );
     onSave(workOrderData);
   };
 
@@ -1901,9 +1910,12 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                               }`}
                             >
                               {formatCurrency(
-                                Math.max(0, total -
-                                  (isDeposit ? depositAmount : 0) -
-                                  (showPaymentInput ? partialAmount : 0))
+                                Math.max(
+                                  0,
+                                  total -
+                                    (isDeposit ? depositAmount : 0) -
+                                    (showPaymentInput ? partialAmount : 0)
+                                )
                               )}
                             </span>
                           </div>
