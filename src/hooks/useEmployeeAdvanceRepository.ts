@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../supabaseClient";
 import type { EmployeeAdvance, EmployeeAdvancePayment } from "../types";
 import { showToast } from "../utils/toast";
 
