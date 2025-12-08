@@ -1031,7 +1031,7 @@ const CustomerManager: React.FC = () => {
                       className="snap-start min-w-[280px] md:min-w-0 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 shadow-sm"
                     >
                       <div className="flex items-start justify-between gap-2 mb-3">
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                             {item.customer.name || "Khách hàng"}
                           </p>
@@ -1039,11 +1039,42 @@ const CustomerManager: React.FC = () => {
                             {item.customer.phone}
                           </p>
                         </div>
-                        <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
-                          <Bike className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
-                          <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                            {item.vehicle.licensePlate}
-                          </span>
+                        <div className="flex flex-col items-end gap-1.5">
+                          <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                            <Bike className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                              {item.vehicle.licensePlate}
+                            </span>
+                          </div>
+                          {/* Vehicle Type Badge */}
+                          {(() => {
+                            const model = (
+                              item.vehicle.model || ""
+                            ).toLowerCase();
+                            const isAutomatic =
+                              model.includes("sh") ||
+                              model.includes("vision") ||
+                              model.includes("air blade") ||
+                              model.includes("lead") ||
+                              model.includes("vario") ||
+                              model.includes("pcx") ||
+                              model.includes("freego") ||
+                              model.includes("janus") ||
+                              model.includes("grande") ||
+                              model.includes("medley") ||
+                              model.includes("liberty");
+                            return (
+                              <span
+                                className={`text-[10px] font-medium px-2 py-0.5 rounded ${
+                                  isAutomatic
+                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                                    : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                }`}
+                              >
+                                {isAutomatic ? "🛵 Tay ga" : "🏍️ Xe số"}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
 
@@ -1250,7 +1281,9 @@ const CustomerManager: React.FC = () => {
                               Km hiện tại
                             </p>
                             <p className="text-base font-semibold text-blue-600 dark:text-blue-400">
-                              {latestKm ? `${latestKm.toLocaleString()} km` : "—"}
+                              {latestKm
+                                ? `${latestKm.toLocaleString()} km`
+                                : "—"}
                             </p>
                           </div>
                           <div>
