@@ -217,6 +217,18 @@ export default function ServiceManager() {
     top: 0,
     right: 0,
   });
+  
+  // Track mobile state for responsive layout
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const location = useLocation();
 
@@ -1308,8 +1320,7 @@ export default function ServiceManager() {
     }
   };
 
-  // Mobile view - DISABLED (always use Desktop modal)
-  const isMobile = false; // window.innerWidth < 768;
+  // Mobile view - Check screen width
   if (isMobile) {
     return (
       <>
