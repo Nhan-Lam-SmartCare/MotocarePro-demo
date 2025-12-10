@@ -50,6 +50,141 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
   viewMode = false,
   onSwitchToEdit,
 }) => {
+  // Popular motorcycle models in Vietnam - same as desktop
+  const POPULAR_MOTORCYCLES = [
+    // === HONDA ===
+    "Honda Wave Alpha",
+    "Honda Wave RSX",
+    "Honda Wave RSX FI",
+    "Honda Wave 110",
+    "Honda Wave S110",
+    "Honda Super Dream",
+    "Honda Dream",
+    "Honda Blade 110",
+    "Honda Future 125",
+    "Honda Future Neo",
+    "Honda Winner X",
+    "Honda Winner 150",
+    "Honda CB150R",
+    "Honda CB150X",
+    "Honda CB300R",
+    "Honda Vision",
+    "Honda Air Blade 125",
+    "Honda Air Blade 150",
+    "Honda Air Blade 160",
+    "Honda SH Mode 125",
+    "Honda SH 125i",
+    "Honda SH 150i",
+    "Honda SH 160i",
+    "Honda SH 350i",
+    "Honda Lead 125",
+    "Honda PCX 125",
+    "Honda PCX 160",
+    "Honda Vario 125",
+    "Honda Vario 150",
+    "Honda Vario 160",
+    "Honda ADV 150",
+    "Honda ADV 160",
+    "Honda ADV 350",
+    "Honda Forza 250",
+    "Honda Forza 300",
+    "Honda Forza 350",
+    "Honda Giorno",
+    "Honda Stylo 160",
+    "Honda Click",
+    "Honda Super Cub",
+    "Honda Dream II",
+    // === YAMAHA ===
+    "Yamaha Sirius",
+    "Yamaha Sirius FI",
+    "Yamaha Sirius RC",
+    "Yamaha Jupiter",
+    "Yamaha Jupiter FI",
+    "Yamaha Jupiter Finn",
+    "Yamaha Exciter 135",
+    "Yamaha Exciter 150",
+    "Yamaha Exciter 155",
+    "Yamaha FZ150i",
+    "Yamaha MT-15",
+    "Yamaha R15",
+    "Yamaha Grande",
+    "Yamaha Grande Hybrid",
+    "Yamaha Janus",
+    "Yamaha FreeGo",
+    "Yamaha FreeGo S",
+    "Yamaha Latte",
+    "Yamaha NVX 125",
+    "Yamaha NVX 155",
+    "Yamaha NMAX",
+    "Yamaha NMAX 155",
+    "Yamaha XMAX 300",
+    "Yamaha Nouvo",
+    "Yamaha Nouvo LX",
+    "Yamaha Mio",
+    "Yamaha Mio Classico",
+    // === SUZUKI ===
+    "Suzuki Axelo",
+    "Suzuki Viva",
+    "Suzuki Smash",
+    "Suzuki Revo",
+    "Suzuki Raider 150",
+    "Suzuki Raider R150",
+    "Suzuki Satria F150",
+    "Suzuki GSX-R150",
+    "Suzuki GSX-S150",
+    "Suzuki Address",
+    "Suzuki Address 110",
+    "Suzuki Impulse",
+    "Suzuki Burgman Street",
+    // === SYM ===
+    "SYM Elegant",
+    "SYM Attila",
+    "SYM Attila Venus",
+    "SYM Angela",
+    "SYM Galaxy",
+    "SYM Star SR",
+    "SYM Shark",
+    // === PIAGGIO & VESPA ===
+    "Piaggio Liberty",
+    "Piaggio Liberty 125",
+    "Piaggio Liberty 150",
+    "Piaggio Medley",
+    "Piaggio Medley 125",
+    "Vespa Sprint",
+    "Vespa Sprint 125",
+    "Vespa Sprint 150",
+    "Vespa Primavera",
+    "Vespa Primavera 125",
+    "Vespa LX",
+    "Vespa S",
+    "Vespa GTS",
+    "Vespa GTS 125",
+    "Vespa GTS 300",
+    // === KYMCO ===
+    "Kymco Like",
+    "Kymco Like 125",
+    "Kymco Like 150",
+    "Kymco Many",
+    "Kymco Many 110",
+    "Kymco Many 125",
+    // === VINFAST ===
+    "VinFast Klara",
+    "VinFast Klara S",
+    "VinFast Ludo",
+    "VinFast Impes",
+    "VinFast Tempest",
+    "VinFast Vento",
+    "VinFast Evo200",
+    "VinFast Feliz",
+    "VinFast Feliz S",
+    "VinFast Theon",
+    // === KHÁC ===
+    "Xe điện khác",
+    "Xe 50cc khác",
+    "Xe nhập khẩu khác",
+    "Khác",
+  ];
+
   // Find customer and vehicle from workOrder data
   const initialCustomer = useMemo(() => {
     if (!workOrder) return null;
@@ -263,6 +398,11 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [newCustomerVehicleModel, setNewCustomerVehicleModel] = useState("");
   const [newCustomerLicensePlate, setNewCustomerLicensePlate] = useState("");
+
+  // State for vehicle model dropdowns
+  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+  const [showCustomerVehicleDropdown, setShowCustomerVehicleDropdown] =
+    useState(false);
 
   // State for editing existing customer
   const [isEditingCustomer, setIsEditingCustomer] = useState(false);
@@ -2300,17 +2440,50 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-xs font-medium text-slate-400 mb-1">
                   Tên xe
                 </label>
                 <input
                   type="text"
                   value={newVehicleName}
-                  onChange={(e) => setNewVehicleName(e.target.value)}
-                  placeholder="Honda Wave RSX"
+                  onChange={(e) => {
+                    setNewVehicleName(e.target.value);
+                    setShowVehicleDropdown(true);
+                  }}
+                  onFocus={() => setShowVehicleDropdown(true)}
+                  placeholder="Chọn hoặc nhập dòng xe"
                   className="w-full px-2.5 py-1.5 bg-[#2b2b40] rounded-lg text-white text-xs"
                 />
+                {/* Vehicle Model Dropdown */}
+                {showVehicleDropdown && (
+                  <div className="absolute z-20 w-full mt-1 bg-[#2b2b40] border border-slate-600 rounded-lg shadow-lg max-h-[150px] overflow-y-auto">
+                    {POPULAR_MOTORCYCLES.filter((model) =>
+                      model.toLowerCase().includes(newVehicleName.toLowerCase())
+                    )
+                      .slice(0, 10)
+                      .map((model) => (
+                        <button
+                          key={model}
+                          type="button"
+                          onClick={() => {
+                            setNewVehicleName(model);
+                            setShowVehicleDropdown(false);
+                          }}
+                          className="w-full text-left px-2.5 py-2 hover:bg-slate-600 text-xs text-white border-b border-slate-700 last:border-0"
+                        >
+                          {model}
+                        </button>
+                      ))}
+                    {POPULAR_MOTORCYCLES.filter((model) =>
+                      model.toLowerCase().includes(newVehicleName.toLowerCase())
+                    ).length === 0 && (
+                      <div className="px-2.5 py-2 text-xs text-slate-400 text-center">
+                        Không tìm thấy - nhập tên xe mới
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-1.5">
@@ -2391,17 +2564,54 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                 <h4 className="text-xs font-semibold text-green-400 uppercase tracking-wide">
                   🏍️ Thông tin xe
                 </h4>
-                <div>
+                <div className="relative">
                   <label className="block text-xs font-medium text-slate-400 mb-1">
                     Loại xe
                   </label>
                   <input
                     type="text"
                     value={newCustomerVehicleModel}
-                    onChange={(e) => setNewCustomerVehicleModel(e.target.value)}
-                    placeholder="Wave, Exciter, Vision..."
+                    onChange={(e) => {
+                      setNewCustomerVehicleModel(e.target.value);
+                      setShowCustomerVehicleDropdown(true);
+                    }}
+                    onFocus={() => setShowCustomerVehicleDropdown(true)}
+                    placeholder="Chọn hoặc nhập dòng xe..."
                     className="w-full px-3 py-2.5 bg-[#2b2b40] rounded-lg text-white text-sm"
                   />
+                  {/* Vehicle Model Dropdown for New Customer */}
+                  {showCustomerVehicleDropdown && (
+                    <div className="absolute z-20 w-full mt-1 bg-[#2b2b40] border border-slate-600 rounded-lg shadow-lg max-h-[150px] overflow-y-auto">
+                      {POPULAR_MOTORCYCLES.filter((model) =>
+                        model
+                          .toLowerCase()
+                          .includes(newCustomerVehicleModel.toLowerCase())
+                      )
+                        .slice(0, 10)
+                        .map((model) => (
+                          <button
+                            key={model}
+                            type="button"
+                            onClick={() => {
+                              setNewCustomerVehicleModel(model);
+                              setShowCustomerVehicleDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-slate-600 text-sm text-white border-b border-slate-700 last:border-0"
+                          >
+                            {model}
+                          </button>
+                        ))}
+                      {POPULAR_MOTORCYCLES.filter((model) =>
+                        model
+                          .toLowerCase()
+                          .includes(newCustomerVehicleModel.toLowerCase())
+                      ).length === 0 && (
+                        <div className="px-3 py-2 text-sm text-slate-400 text-center">
+                          Không tìm thấy - nhập tên xe mới
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>

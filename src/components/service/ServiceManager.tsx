@@ -4609,6 +4609,11 @@ const WorkOrderModal: React.FC<{
     licensePlate: "",
   });
 
+  // Edit customer state
+  const [isEditingCustomer, setIsEditingCustomer] = useState(false);
+  const [editCustomerName, setEditCustomerName] = useState("");
+  const [editCustomerPhone, setEditCustomerPhone] = useState("");
+
   // Get customer's vehicles
   const currentCustomer = customers.find(
     (c) => c.phone === formData.customerPhone
@@ -4685,6 +4690,11 @@ const WorkOrderModal: React.FC<{
     // Reset discount type to amount when opening/changing order
     setDiscountType("amount");
     setDiscountPercent(0);
+
+    // Reset edit customer state
+    setIsEditingCustomer(false);
+    setEditCustomerName("");
+    setEditCustomerPhone("");
   }, [order]);
 
   // Filter customers based on search - show all if search is empty
@@ -4772,6 +4782,39 @@ const WorkOrderModal: React.FC<{
     setNewVehicle({ model: "", licensePlate: "" });
     setShowAddVehicleModal(false);
     showToast.success("Đã thêm xe mới");
+  };
+
+  // Handler: Save edited customer info
+  const handleSaveEditedCustomer = async () => {
+    if (!currentCustomer) return;
+    if (!editCustomerName.trim() || !editCustomerPhone.trim()) {
+      showToast.error("Vui lòng nhập đầy đủ tên và số điện thoại");
+      return;
+    }
+
+    try {
+      await upsertCustomer({
+        ...currentCustomer,
+        name: editCustomerName.trim(),
+        phone: editCustomerPhone.trim(),
+      });
+
+      // Update formData with new customer info
+      setFormData({
+        ...formData,
+        customerName: editCustomerName.trim(),
+        customerPhone: editCustomerPhone.trim(),
+      });
+
+      // Update customer search
+      setCustomerSearch(editCustomerName.trim());
+
+      setIsEditingCustomer(false);
+      showToast.success("Đã cập nhật thông tin khách hàng");
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      showToast.error("Có lỗi khi cập nhật thông tin");
+    }
   };
 
   // Calculate totals
@@ -6278,83 +6321,171 @@ const WorkOrderModal: React.FC<{
                 {formData.customerName && formData.customerPhone && (
                   <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {formData.customerName}
-                        </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">
-                          <span className="inline-flex items-center gap-1">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              className="w-3.5 h-3.5"
+                      {/* View Mode */}
+                      {!isEditingCustomer ? (
+                        <>
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                              {formData.customerName}
+                            </div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400">
+                              <span className="inline-flex items-center gap-1">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  className="w-3.5 h-3.5"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M2.25 6.75c0 8.284 6.716 15 15 15 .828 0 1.5-.672 1.5-1.5v-2.25a1.5 1.5 0 00-1.5-1.5h-1.158a1.5 1.5 0 00-1.092.468l-.936.996a1.5 1.5 0 01-1.392.444 12.035 12.035 0 01-7.29-7.29 1.5 1.5 0 01.444-1.392l.996-.936a1.5 1.5 0 00.468-1.092V6.75A1.5 1.5 0 006.75 5.25H4.5c-.828 0-1.5.672-1.5 1.5z"
+                                  />
+                                </svg>
+                                {formData.customerPhone}
+                              </span>
+                            </div>
+                            {(formData.vehicleModel ||
+                              formData.licensePlate) && (
+                              <div className="text-xs text-slate-600 dark:text-slate-400">
+                                <span className="inline-flex items-center gap-1">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    className="w-3.5 h-3.5"
+                                  >
+                                    <circle cx="6" cy="17" r="2" />
+                                    <circle cx="18" cy="17" r="2" />
+                                    <path d="M4 17h2l4-6h2l2 3h4" />
+                                  </svg>
+                                  {formData.vehicleModel}{" "}
+                                  {formData.licensePlate &&
+                                    `- ${formData.licensePlate}`}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {/* Edit Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditCustomerName(
+                                  formData.customerName || ""
+                                );
+                                setEditCustomerPhone(
+                                  formData.customerPhone || ""
+                                );
+                                setIsEditingCustomer(true);
+                              }}
+                              className="text-slate-400 hover:text-blue-500 text-sm flex items-center"
+                              title="Sửa thông tin khách hàng"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M2.25 6.75c0 8.284 6.716 15 15 15 .828 0 1.5-.672 1.5-1.5v-2.25a1.5 1.5 0 00-1.5-1.5h-1.158a1.5 1.5 0 00-1.092.468l-.936.996a1.5 1.5 0 01-1.392.444 12.035 12.035 0 01-7.29-7.29 1.5 1.5 0 01.444-1.392l.996-.936a1.5 1.5 0 00.468-1.092V6.75A1.5 1.5 0 006.75 5.25H4.5c-.828 0-1.5.672-1.5 1.5z"
-                              />
-                            </svg>
-                            {formData.customerPhone}
-                          </span>
-                        </div>
-                        {(formData.vehicleModel || formData.licensePlate) && (
-                          <div className="text-xs text-slate-600 dark:text-slate-400">
-                            <span className="inline-flex items-center gap-1">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="2"
-                                className="w-3.5 h-3.5"
+                                className="w-4 h-4"
+                                aria-hidden="true"
                               >
-                                <circle cx="6" cy="17" r="2" />
-                                <circle cx="18" cy="17" r="2" />
-                                <path d="M4 17h2l4-6h2l2 3h4" />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+                                />
                               </svg>
-                              {formData.vehicleModel}{" "}
-                              {formData.licensePlate &&
-                                `- ${formData.licensePlate}`}
-                            </span>
+                            </button>
+                            {/* Delete Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomerSearch("");
+                                setFormData({
+                                  ...formData,
+                                  customerName: "",
+                                  customerPhone: "",
+                                  vehicleId: undefined,
+                                  vehicleModel: "",
+                                  licensePlate: "",
+                                });
+                              }}
+                              className="text-slate-400 hover:text-red-500 text-sm flex items-center"
+                              title="Xóa khách hàng"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className="w-4 h-4"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </button>
                           </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCustomerSearch("");
-                          setFormData({
-                            ...formData,
-                            customerName: "",
-                            customerPhone: "",
-                            vehicleId: undefined,
-                            vehicleModel: "",
-                            licensePlate: "",
-                          });
-                        }}
-                        className="text-slate-400 hover:text-red-500 text-sm flex items-center"
-                        title="Xóa khách hàng"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          className="w-4 h-4"
-                          aria-hidden="true"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
+                        </>
+                      ) : (
+                        /* Edit Mode */
+                        <div className="w-full space-y-2">
+                          <div>
+                            <label className="text-xs text-slate-500 dark:text-slate-400">
+                              Tên khách hàng
+                            </label>
+                            <input
+                              type="text"
+                              value={editCustomerName}
+                              onChange={(e) =>
+                                setEditCustomerName(e.target.value)
+                              }
+                              className="w-full px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                              placeholder="Nhập tên khách hàng"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500 dark:text-slate-400">
+                              Số điện thoại
+                            </label>
+                            <input
+                              type="tel"
+                              value={editCustomerPhone}
+                              onChange={(e) =>
+                                setEditCustomerPhone(e.target.value)
+                              }
+                              className="w-full px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                              placeholder="Nhập số điện thoại"
+                            />
+                          </div>
+                          <div className="flex gap-2 justify-end pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingCustomer(false)}
+                              className="px-3 py-1 text-xs bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSaveEditedCustomer}
+                              className="px-3 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                            >
+                              Lưu
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
