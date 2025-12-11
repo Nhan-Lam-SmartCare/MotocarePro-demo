@@ -2346,7 +2346,8 @@ const WorkOrderModal: React.FC<{
                                     🔹 {customer.phone}
                                   </div>
                                   {(customer.vehicleModel ||
-                                    customer.licensePlate) && (
+                                    customer.licensePlate ||
+                                    customer.vehicles?.length > 0) && (
                                     <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
                                       <svg
                                         className="w-3 h-3"
@@ -2358,15 +2359,35 @@ const WorkOrderModal: React.FC<{
                                         <circle cx="18" cy="17" r="2" />
                                         <path d="M4 17h2l4-6h2l2 3h4" />
                                       </svg>
-                                      {customer.vehicleModel && (
-                                        <span>{customer.vehicleModel}</span>
-                                      )}
-                                      {customer.licensePlate && (
-                                        <span className="font-mono font-medium">
-                                          {customer.vehicleModel && " - "}
-                                          {customer.licensePlate}
-                                        </span>
-                                      )}
+                                      {(() => {
+                                        const primaryVehicle =
+                                          customer.vehicles?.find(
+                                            (v: any) => v.isPrimary
+                                          ) || customer.vehicles?.[0];
+                                        const model =
+                                          primaryVehicle?.model ||
+                                          customer.vehicleModel;
+                                        const plate =
+                                          primaryVehicle?.licensePlate ||
+                                          customer.licensePlate;
+                                        return (
+                                          <>
+                                            {model && <span>{model}</span>}
+                                            {plate && (
+                                              <span className="font-mono font-semibold text-yellow-600 dark:text-yellow-400">
+                                                {model && " - "}
+                                                {plate}
+                                              </span>
+                                            )}
+                                            {customer.vehicles?.length > 1 && (
+                                              <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">
+                                                (+{customer.vehicles.length - 1}
+                                                )
+                                              </span>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
                                     </div>
                                   )}
                                 </div>
@@ -3064,7 +3085,7 @@ const WorkOrderModal: React.FC<{
                     <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
                       <button
                         onClick={() => {
-                          if (newService.description && newService.price > 0) {
+                          if (newService.description && newService.price >= 0) {
                             setAdditionalServices([
                               ...additionalServices,
                               { ...newService, id: `SRV-${Date.now()}` },

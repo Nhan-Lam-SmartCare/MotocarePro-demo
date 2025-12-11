@@ -1212,20 +1212,57 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
                 {/* Customer List */}
                 <div className="max-h-48 overflow-y-auto space-y-2">
-                  {filteredCustomers.slice(0, 5).map((customer) => (
-                    <div
-                      key={customer.id}
-                      onClick={() => handleSelectCustomer(customer)}
-                      className="p-3 bg-[#1e1e2d] rounded-lg cursor-pointer hover:bg-[#2b2b40] transition-colors"
-                    >
-                      <div className="text-white font-medium">
-                        {customer.name}
+                  {filteredCustomers.slice(0, 5).map((customer) => {
+                    // Get primary vehicle or first vehicle
+                    const primaryVehicle =
+                      customer.vehicles?.find((v: any) => v.isPrimary) ||
+                      customer.vehicles?.[0];
+                    const vehicleInfo =
+                      primaryVehicle?.licensePlate ||
+                      customer.licensePlate ||
+                      primaryVehicle?.model ||
+                      customer.vehicleModel;
+
+                    return (
+                      <div
+                        key={customer.id}
+                        onClick={() => handleSelectCustomer(customer)}
+                        className="p-3 bg-[#1e1e2d] rounded-lg cursor-pointer hover:bg-[#2b2b40] transition-colors"
+                      >
+                        <div className="text-white font-medium">
+                          {customer.name}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          🔹 {customer.phone}
+                        </div>
+                        {vehicleInfo && (
+                          <div className="text-xs text-blue-400 mt-0.5 flex items-center gap-1">
+                            <span>🏍️</span>
+                            {primaryVehicle?.model || customer.vehicleModel
+                              ? `${
+                                  primaryVehicle?.model || customer.vehicleModel
+                                }`
+                              : ""}
+                            {primaryVehicle?.licensePlate ||
+                            customer.licensePlate ? (
+                              <span className="font-mono font-semibold text-yellow-400">
+                                {(primaryVehicle?.model ||
+                                  customer.vehicleModel) &&
+                                  " - "}
+                                {primaryVehicle?.licensePlate ||
+                                  customer.licensePlate}
+                              </span>
+                            ) : null}
+                          </div>
+                        )}
+                        {customer.vehicles && customer.vehicles.length > 1 && (
+                          <div className="text-[10px] text-slate-500 mt-1">
+                            +{customer.vehicles.length - 1} xe khác
+                          </div>
+                        )}
                       </div>
-                      <div className="text-xs text-slate-400">
-                        {customer.phone}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {/* Show add new customer when no results or always at bottom */}
                   {customerSearchTerm && filteredCustomers.length === 0 && (
@@ -2420,7 +2457,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
             <div className="p-4 border-t border-slate-700">
               <button
                 onClick={handleAddService}
-                disabled={!newServiceName.trim() || newServicePrice <= 0}
+                disabled={!newServiceName.trim() || newServicePrice < 0}
                 className="w-full py-4 bg-gradient-to-r from-[#009ef7] to-purple-600 hover:from-[#0077c7] hover:to-purple-700 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-bold text-sm rounded-lg transition-all shadow-lg"
               >
                 LƯU VÀO PHIẾU
