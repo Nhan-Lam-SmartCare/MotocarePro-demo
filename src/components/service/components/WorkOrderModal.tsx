@@ -622,7 +622,8 @@ const WorkOrderModal: React.FC<{
   // 🔹 FIX: Chỉ tính additionalPayment MỚI khi checkbox được check
   // Không lấy giá trị cũ để tránh thanh toán 2 lần
   // 🔹 CHỈ TÍNH THANH TOÁN KHI STATUS LÀ "TRẢ MÁY"
-  const totalAdditionalPayment = (formData.status === "Trả máy" && showPartialPayment) ? partialPayment : 0;
+  const totalAdditionalPayment =
+    formData.status === "Trả máy" && showPartialPayment ? partialPayment : 0;
   const totalPaid = totalDeposit + totalAdditionalPayment;
   const remainingAmount = Math.max(0, total - totalPaid);
 
