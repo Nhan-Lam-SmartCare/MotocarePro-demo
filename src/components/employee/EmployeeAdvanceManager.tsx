@@ -44,6 +44,12 @@ export default function EmployeeAdvanceManager() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | EmployeeAdvance["status"]
   >("all");
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all"); // NEW: Filter by employee
+
+  // Payment form state
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState("");
 
   // Form state
   const [formData, setFormData] = useState({
@@ -69,9 +75,11 @@ export default function EmployeeAdvanceManager() {
         advance.reason?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         statusFilter === "all" || advance.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesEmployee =
+        employeeFilter === "all" || advance.employeeId === employeeFilter;
+      return matchesSearch && matchesStatus && matchesEmployee;
     });
-  }, [advances, searchQuery, statusFilter]);
+  }, [advances, searchQuery, statusFilter, employeeFilter]);
 
   const handleCreateAdvance = async () => {
     if (!formData.employeeId || !formData.advanceAmount) {
@@ -112,6 +120,9 @@ export default function EmployeeAdvanceManager() {
         branchId: currentBranchId,
       });
 
+      // Refresh data to show new advance immediately
+      queryClient.invalidateQueries({ queryKey: ["employee-advances"] });
+
       setShowCreateModal(false);
       setFormData({
         employeeId: "",
@@ -121,6 +132,8 @@ export default function EmployeeAdvanceManager() {
         isInstallment: false,
         installmentMonths: "3",
       });
+
+      showToast.success("Đã tạo đơn ứng lương");
     } catch (error) {
       // Error handled by mutation
     }
@@ -223,6 +236,82 @@ export default function EmployeeAdvanceManager() {
     }
   };
 
+  const handleMakePayment = async () => {
+    if (!selectedAdvance || !paymentAmount) {
+      showToast.error("Vui lòng nhập số tiền trả");
+      return;
+    }
+
+    const amount = parseFloat(paymentAmount);
+    if (amount <= 0 || amount > selectedAdvance.remainingAmount) {
+      showToast.error(
+        `Số tiền không hợp lệ. Còn nợ: ${formatCurrency(
+          selectedAdvance.remainingAmount
+        )}`
+      );
+      return;
+    }
+
+    try {
+      // Create payment record
+      const { error: paymentError } = await supabase
+        .from("employee_advance_payments")
+        .insert({
+          advance_id: selectedAdvance.id,
+          employee_id: selectedAdvance.employeeId,
+          amount: amount,
+          payment_date: new Date().toISOString(),
+          payment_month: new Date().toISOString().slice(0, 7), // YYYY-MM
+          notes: paymentNotes || `Nhân viên trả tiền ứng`,
+          branch_id: currentBranchId,
+        });
+
+      if (paymentError) {
+        console.error("Error creating payment:", paymentError);
+        showToast.error("Đã xảy ra lỗi khi ghi nhận thanh toán");
+        return;
+      }
+
+      // Create cash transaction (income) for the repayment
+      const transactionId = `REPAY-${selectedAdvance.id}-${Date.now()}`;
+      const { error: txError } = await supabase
+        .from("cash_transactions")
+        .insert({
+          id: transactionId,
+          type: "income",
+          category: "employee_advance_repayment",
+          amount: amount,
+          date: new Date().toISOString(),
+          description: `Trả tiền ứng - ${
+            selectedAdvance.employeeName
+          } (${formatCurrency(amount)})`,
+          branchid: currentBranchId,
+          paymentsource:
+            selectedAdvance.paymentMethod === "cash" ? "cash" : "bank",
+        });
+
+      if (txError) {
+        console.error("Error creating repayment transaction:", txError);
+        showToast.warning("Đã ghi nhận thanh toán nhưng chưa ghi sổ quỹ");
+      } else {
+        showToast.success(`Đã ghi nhận thanh toán ${formatCurrency(amount)}`);
+      }
+
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ["employee-advances"] });
+
+      // Reset form and close
+      setPaymentAmount("");
+      setPaymentNotes("");
+      setShowPaymentForm(false);
+      setShowDetailModal(false);
+      setSelectedAdvance(null);
+    } catch (error) {
+      console.error("Error making payment:", error);
+      showToast.error("Đã xảy ra lỗi");
+    }
+  };
+
   const getStatusBadge = (status: EmployeeAdvance["status"]) => {
     const styles = {
       pending:
@@ -299,6 +388,83 @@ export default function EmployeeAdvanceManager() {
             </button>
           </div>
 
+          {/* Employee-specific summary when filtered */}
+          {employeeFilter !== "all" &&
+            (() => {
+              const selectedEmployee = activeEmployees.find(
+                (emp) => emp.id === employeeFilter
+              );
+              const employeeAdvances = filteredAdvances;
+              const employeeTotal = employeeAdvances.reduce(
+                (sum, adv) => sum + adv.advanceAmount,
+                0
+              );
+              const employeeRemaining = employeeAdvances.reduce(
+                (sum, adv) => sum + adv.remainingAmount,
+                0
+              );
+              const employeePaid = employeeAdvances.reduce(
+                (sum, adv) => sum + adv.paidAmount,
+                0
+              );
+
+              return (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 mb-6 border-2 border-blue-200 dark:border-blue-700">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                        👤 {selectedEmployee?.name}
+                      </h3>
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                        {selectedEmployee?.position} •{" "}
+                        {selectedEmployee?.department}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setEmployeeFilter("all")}
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-white/80 dark:bg-slate-800/80 rounded-lg p-4">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                        Tổng đã ứng
+                      </p>
+                      <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                        {formatCurrency(employeeTotal)}
+                      </p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-slate-800/80 rounded-lg p-4">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                        Đã trả
+                      </p>
+                      <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                        {formatCurrency(employeePaid)}
+                      </p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-slate-800/80 rounded-lg p-4">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                        Còn nợ
+                      </p>
+                      <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                        {formatCurrency(employeeRemaining)}
+                      </p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-slate-800/80 rounded-lg p-4">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                        Số đơn
+                      </p>
+                      <p className="text-xl font-bold text-slate-900 dark:text-white">
+                        {employeeAdvances.length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
@@ -364,6 +530,18 @@ export default function EmployeeAdvanceManager() {
                 className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
               />
             </div>
+            <select
+              value={employeeFilter}
+              onChange={(e) => setEmployeeFilter(e.target.value)}
+              className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+            >
+              <option value="all">Tất cả nhân viên</option>
+              {activeEmployees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name}
+                </option>
+              ))}
+            </select>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
@@ -435,7 +613,12 @@ export default function EmployeeAdvanceManager() {
                       <td className="px-4 py-3">
                         <div>
                           <div className="font-medium text-slate-900 dark:text-white">
-                            {advance.employeeName}
+                            {advance.employeeName ||
+                              employees.find(
+                                (emp) => emp.id === advance.employeeId
+                              )?.name ||
+                              advance.employeeId ||
+                              "Chưa có tên"}
                           </div>
                           {advance.reason && (
                             <div className="text-sm text-slate-500 dark:text-slate-400">
@@ -756,7 +939,12 @@ export default function EmployeeAdvanceManager() {
                     Nhân viên
                   </p>
                   <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                    {selectedAdvance.employeeName}
+                    {selectedAdvance.employeeName ||
+                      employees.find(
+                        (emp) => emp.id === selectedAdvance.employeeId
+                      )?.name ||
+                      selectedAdvance.employeeId ||
+                      "Chưa có tên"}
                   </p>
                 </div>
                 <div>
@@ -868,6 +1056,94 @@ export default function EmployeeAdvanceManager() {
                   </p>
                 </div>
               )}
+
+              {/* Payment form */}
+              {selectedAdvance.remainingAmount > 0 &&
+                (selectedAdvance.status === "approved" ||
+                  selectedAdvance.status === "paid") && (
+                  <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                    {!showPaymentForm ? (
+                      <button
+                        onClick={() => setShowPaymentForm(true)}
+                        className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                      >
+                        <DollarSign className="w-5 h-5" />
+                        Trả tiền ứng
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                          <p className="text-sm font-semibold text-green-800 dark:text-green-300 mb-3">
+                            💵 Trả tiền ứng lương
+                          </p>
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-sm font-medium text-green-700 dark:text-green-300 mb-1">
+                                Số tiền trả{" "}
+                                <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="number"
+                                value={paymentAmount}
+                                onChange={(e) =>
+                                  setPaymentAmount(e.target.value)
+                                }
+                                placeholder={`Tối đa: ${formatCurrency(
+                                  selectedAdvance.remainingAmount
+                                )}`}
+                                max={selectedAdvance.remainingAmount}
+                                className="w-full px-3 py-2 border border-green-300 dark:border-green-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                              />
+                              {paymentAmount && (
+                                <p className="mt-1 text-sm text-green-600 dark:text-green-400">
+                                  ={" "}
+                                  {formatCurrency(
+                                    parseFloat(paymentAmount) || 0
+                                  )}
+                                </p>
+                              )}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-green-700 dark:text-green-300 mb-1">
+                                Ghi chú
+                              </label>
+                              <input
+                                type="text"
+                                value={paymentNotes}
+                                onChange={(e) =>
+                                  setPaymentNotes(e.target.value)
+                                }
+                                placeholder="VD: Trả lần 1, trừ lương tháng 12..."
+                                className="w-full px-3 py-2 border border-green-300 dark:border-green-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setShowPaymentForm(false);
+                              setPaymentAmount("");
+                              setPaymentNotes("");
+                            }}
+                            className="flex-1 px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            onClick={handleMakePayment}
+                            disabled={
+                              !paymentAmount || parseFloat(paymentAmount) <= 0
+                            }
+                            className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-lg font-medium"
+                          >
+                            Xác nhận trả
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
             </div>
 
             <div className="flex gap-3 justify-end mt-6">

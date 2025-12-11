@@ -743,7 +743,18 @@ export async function completeWorkOrderPayment(
       | undefined;
 
     if (!workOrderRow) {
-      return failure({ code: "unknown", message: "Kết quả RPC không hợp lệ" });
+      console.error("[completeWorkOrderPayment] Invalid RPC result:", {
+        data,
+        orderId,
+        paymentMethod,
+        paymentAmount,
+      });
+      return failure({
+        code: "unknown",
+        message: `Kết quả RPC không hợp lệ. Vui lòng kiểm tra lại database function 'work_order_complete_payment'. Data received: ${JSON.stringify(
+          data
+        )}`,
+      });
     }
 
     await safeAudit(userId, {
