@@ -59,6 +59,7 @@ import {
   updateVehicleMaintenances,
 } from "../../utils/maintenanceReminder";
 import { RepairTemplatesModal } from "./components/RepairTemplatesModal";
+import { USER_ROLES } from "../../constants";
 
 interface StoreSettings {
   store_name?: string;
@@ -446,34 +447,59 @@ export default function ServiceManager() {
     paymentFilter,
   ]);
 
+  // Tạo danh sách chỉ lọc theo ngày để tính stats (không bị ảnh hưởng bởi filter thanh toán/KTV)
+  const dateFilteredOrders = useMemo(() => {
+    let filtered = [...displayWorkOrders];
+
+    // Date filter only
+    if (dateFilter !== "all") {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      filtered = filtered.filter((o) => {
+        const orderDate = new Date(o.creationDate || (o as any).creationdate);
+
+        if (dateFilter === "today") {
+          return orderDate >= today;
+        } else if (dateFilter === "week") {
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return orderDate >= weekAgo;
+        } else if (dateFilter === "month") {
+          const monthAgo = new Date(today);
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          return orderDate >= monthAgo;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  }, [displayWorkOrders, dateFilter]);
+
   const stats = useMemo(() => {
-    const pending = displayWorkOrders.filter(
+    // Sử dụng dateFilteredOrders để tính stats theo bộ lọc ngày (không bị ảnh hưởng bởi filter khác)
+    const pending = dateFilteredOrders.filter(
       (o) => o.status === "Tiếp nhận"
     ).length;
-    const inProgress = displayWorkOrders.filter(
+    const inProgress = dateFilteredOrders.filter(
       (o) => o.status === "Đang sửa"
     ).length;
-    const done = displayWorkOrders.filter(
+    const done = dateFilteredOrders.filter(
       (o) => o.status === "Đã sửa xong"
     ).length;
-    const delivered = displayWorkOrders.filter(
+    const delivered = dateFilteredOrders.filter(
       (o) => o.status === "Trả máy"
     ).length;
-    const todayRevenue = displayWorkOrders
-      .filter(
-        (o) =>
-          o.paymentStatus === "paid" &&
-          new Date(o.creationDate).toDateString() === new Date().toDateString()
-      )
+
+    // Tính doanh thu theo bộ lọc ngày đã chọn
+    const filteredRevenue = dateFilteredOrders
+      .filter((o) => o.paymentStatus === "paid")
       .reduce((sum, o) => sum + o.total, 0);
 
     // Profit = Revenue - Cost (parts costPrice + services costPrice)
-    const todayProfit = displayWorkOrders
-      .filter(
-        (o) =>
-          o.paymentStatus === "paid" &&
-          new Date(o.creationDate).toDateString() === new Date().toDateString()
-      )
+    const filteredProfit = dateFilteredOrders
+      .filter((o) => o.paymentStatus === "paid")
       .reduce((sum, o) => {
         // Calculate parts cost (costPrice * quantity)
         const partsCost =
@@ -493,8 +519,15 @@ export default function ServiceManager() {
         return sum + (o.total - partsCost - servicesCost);
       }, 0);
 
-    return { pending, inProgress, done, delivered, todayRevenue, todayProfit };
-  }, [displayWorkOrders]);
+    return {
+      pending,
+      inProgress,
+      done,
+      delivered,
+      filteredRevenue,
+      filteredProfit,
+    };
+  }, [dateFilteredOrders]);
 
   const totalOpenTickets = stats.pending + stats.inProgress + stats.done;
   const urgentTickets = stats.pending + stats.inProgress;
@@ -504,9 +537,23 @@ export default function ServiceManager() {
   const completionRate = totalOpenTickets
     ? Math.round((stats.done / totalOpenTickets) * 100)
     : 0;
-  const profitMargin = stats.todayRevenue
-    ? Math.round((stats.todayProfit / stats.todayRevenue) * 100)
+  const profitMargin = stats.filteredRevenue
+    ? Math.round((stats.filteredProfit / stats.filteredRevenue) * 100)
     : 0;
+
+  // Label cho doanh thu/lợi nhuận theo bộ lọc ngày
+  const getDateFilterLabel = () => {
+    switch (dateFilter) {
+      case "today":
+        return "hôm nay";
+      case "week":
+        return "7 ngày qua";
+      case "month":
+        return "tháng này";
+      default:
+        return "tất cả";
+    }
+  };
 
   const FILTER_BADGE_CLASSES: Record<FilterColor, string> = {
     slate:
@@ -533,7 +580,7 @@ export default function ServiceManager() {
         key: "all",
         label: "Tất cả",
         color: "slate",
-        count: displayWorkOrders.filter(
+        count: dateFilteredOrders.filter(
           (o) => o.status !== "Trả máy" && !o.refunded
         ).length,
       },
@@ -563,7 +610,7 @@ export default function ServiceManager() {
       },
     ],
     [
-      displayWorkOrders,
+      dateFilteredOrders,
       stats.delivered,
       stats.done,
       stats.inProgress,
@@ -2231,16 +2278,16 @@ export default function ServiceManager() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[9px] font-semibold uppercase tracking-wide text-white/80">
-                  Doanh thu hôm nay
+                  Doanh thu {getDateFilterLabel()}
                 </p>
                 <p className="mt-1 text-xl font-semibold">
-                  {formatCurrency(stats.todayRevenue)}
+                  {formatCurrency(stats.filteredRevenue)}
                 </p>
               </div>
               <HandCoins className="w-6 h-6 text-white/80" />
             </div>
             <p className="mt-1.5 text-[10px] text-white/80">
-              Bao gồm các phiếu đã thanh toán trong ngày
+              Bao gồm các phiếu đã thanh toán {getDateFilterLabel()}
             </p>
           </div>
 
@@ -2248,10 +2295,10 @@ export default function ServiceManager() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
-                  Lợi nhuận hôm nay
+                  Lợi nhuận {getDateFilterLabel()}
                 </p>
                 <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-100">
-                  {formatCurrency(stats.todayProfit)}
+                  {formatCurrency(stats.filteredProfit)}
                 </p>
               </div>
               <TrendingUp className="w-6 h-6 text-blue-500" />
@@ -2446,6 +2493,24 @@ export default function ServiceManager() {
                         Math.round((paidAmount / totalAmount) * 100)
                       )
                     : 0;
+
+                  // Tính lợi nhuận cho owner
+                  // Lợi nhuận = Tổng tiền - Giá vốn phụ tùng - Giá vốn dịch vụ gia công
+                  const partsCostPrice =
+                    order.partsUsed?.reduce(
+                      (sum, p) => sum + (p.costPrice || 0) * (p.quantity || 1),
+                      0
+                    ) || 0;
+                  const servicesCostPrice =
+                    order.additionalServices?.reduce(
+                      (sum: number, s: any) =>
+                        sum + (s.costPrice || 0) * (s.quantity || 1),
+                      0
+                    ) || 0;
+                  const orderProfit =
+                    totalAmount - partsCostPrice - servicesCostPrice;
+                  const isOwner = profile?.role === USER_ROLES.OWNER;
+
                   const paymentPillClass =
                     order.paymentStatus === "paid"
                       ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
@@ -2589,6 +2654,32 @@ export default function ServiceManager() {
                           <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                             {formatCurrency(totalAmount)}
                           </div>
+
+                          {/* Lợi nhuận - Chỉ hiển thị cho owner */}
+                          {isOwner && order.paymentStatus === "paid" && (
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="text-slate-500">LN:</span>
+                              <span
+                                className={`font-semibold ${
+                                  orderProfit > 0
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : "text-red-500"
+                                }`}
+                              >
+                                {orderProfit > 0 ? "+" : ""}
+                                {formatCurrency(orderProfit)}
+                              </span>
+                              {totalAmount > 0 && (
+                                <span className="text-slate-400">
+                                  (
+                                  {Math.round(
+                                    (orderProfit / totalAmount) * 100
+                                  )}
+                                  %)
+                                </span>
+                              )}
+                            </div>
+                          )}
 
                           {/* Progress bar + Đã thu */}
                           {totalAmount > 0 && (
