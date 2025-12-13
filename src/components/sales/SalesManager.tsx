@@ -2610,16 +2610,29 @@ const SalesManager: React.FC = () => {
     }
   }, [lowStockCount, outOfStockCount]);
 
-  // Filter customers by search
+  // Filter customers by search - tìm theo tên, SĐT và biển số xe
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers.slice(0, 10);
+    const searchLower = customerSearch.toLowerCase();
     return customers
-      .filter(
-        (customer) =>
-          customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-          customer.phone?.includes(customerSearch) ||
-          false
-      )
+      .filter((customer) => {
+        // Tìm theo tên
+        if (customer.name.toLowerCase().includes(searchLower)) return true;
+        // Tìm theo SĐT
+        if (customer.phone?.includes(customerSearch)) return true;
+        // Tìm theo biển số xe (trong mảng vehicles hoặc licensePlate cũ)
+        if (customer.licensePlate?.toLowerCase().includes(searchLower))
+          return true;
+        if (
+          customer.vehicles?.some(
+            (v) =>
+              v.licensePlate?.toLowerCase().includes(searchLower) ||
+              v.model?.toLowerCase().includes(searchLower)
+          )
+        )
+          return true;
+        return false;
+      })
       .slice(0, 10);
   }, [customers, customerSearch]);
 
@@ -3861,28 +3874,78 @@ const SalesManager: React.FC = () => {
                   />
                   {/* Dropdown results - positioned relative to input container */}
                   {showCustomerDropdown && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg">
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg">
                       {filteredCustomers.length > 0 ? (
-                        filteredCustomers.map((customer) => (
-                          <button
-                            key={customer.id}
-                            onClick={() => {
-                              setSelectedCustomer(customer);
-                              setCustomerSearch(customer.name);
-                              setShowCustomerDropdown(false);
-                            }}
-                            className="w-full text-left px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-600 border-b border-slate-100 dark:border-slate-600 last:border-b-0"
-                          >
-                            <div className="font-medium text-slate-900 dark:text-slate-100 text-sm">
-                              {customer.name}
+                        filteredCustomers.map((customer) => {
+                          const primaryVehicle =
+                            customer.vehicles?.find((v) => v.isPrimary) ||
+                            customer.vehicles?.[0];
+                          const vehicleInfo =
+                            primaryVehicle ||
+                            (customer.licensePlate || customer.vehicleModel
+                              ? {
+                                  model: customer.vehicleModel,
+                                  licensePlate: customer.licensePlate,
+                                }
+                              : null);
+
+                          return (
+                            <div
+                              key={customer.id}
+                              className="flex items-center gap-2 px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-600 border-b border-slate-100 dark:border-slate-600 last:border-b-0"
+                            >
+                              <button
+                                onClick={() => {
+                                  setSelectedCustomer(customer);
+                                  setCustomerSearch(customer.name);
+                                  setShowCustomerDropdown(false);
+                                }}
+                                className="flex-1 text-left"
+                              >
+                                <div className="font-medium text-slate-900 dark:text-slate-100 text-sm">
+                                  {customer.name}
+                                </div>
+                                {customer.phone && (
+                                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    📞 {customer.phone}
+                                  </div>
+                                )}
+                                {vehicleInfo && (
+                                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                                    🏍️ {vehicleInfo.model || ""}{" "}
+                                    {vehicleInfo.licensePlate
+                                      ? `• ${vehicleInfo.licensePlate}`
+                                      : ""}
+                                  </div>
+                                )}
+                              </button>
+                              <button
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log(
+                                    "Edit button clicked for customer:",
+                                    customer.name
+                                  );
+                                  // Lưu customer ID để CustomerManager tự động mở form edit
+                                  localStorage.setItem(
+                                    "editCustomerId",
+                                    customer.id
+                                  );
+                                  console.log(
+                                    "Saved editCustomerId to localStorage:",
+                                    customer.id
+                                  );
+                                  window.location.hash = "#/customers";
+                                }}
+                                className="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors flex-shrink-0 font-semibold border-2 border-blue-600"
+                                title="Chỉnh sửa khách hàng"
+                              >
+                                Sửa
+                              </button>
                             </div>
-                            {customer.phone && (
-                              <div className="text-xs text-slate-500 dark:text-slate-400">
-                                📞 {customer.phone}
-                              </div>
-                            )}
-                          </button>
-                        ))
+                          );
+                        })
                       ) : (
                         <div className="px-3 py-3 text-center text-slate-500 dark:text-slate-400 text-sm">
                           {customerSearch ? (
@@ -3957,6 +4020,33 @@ const SalesManager: React.FC = () => {
                             </span>
                           </div>
                         )}
+                        {(() => {
+                          const primaryVehicle =
+                            selectedCustomer.vehicles?.find(
+                              (v) => v.isPrimary
+                            ) || selectedCustomer.vehicles?.[0];
+                          const vehicleInfo =
+                            primaryVehicle ||
+                            (selectedCustomer.licensePlate ||
+                            selectedCustomer.vehicleModel
+                              ? {
+                                  model: selectedCustomer.vehicleModel,
+                                  licensePlate: selectedCustomer.licensePlate,
+                                }
+                              : null);
+
+                          if (vehicleInfo) {
+                            return (
+                              <div className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 truncate">
+                                🏍️ {vehicleInfo.model || ""}{" "}
+                                {vehicleInfo.licensePlate
+                                  ? `• ${vehicleInfo.licensePlate}`
+                                  : ""}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     </div>
                     <button

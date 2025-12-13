@@ -424,6 +424,66 @@ const CustomerManager: React.FC = () => {
     setDisplayCount(20);
   }, [search, activeFilter]);
 
+  // Auto-open edit form if editCustomerId is in localStorage (from SalesManager)
+  useEffect(() => {
+    const editCustomerId = localStorage.getItem("editCustomerId");
+    console.log("[CustomerManager] Checking editCustomerId:", editCustomerId);
+    console.log("[CustomerManager] Customers loaded:", customers.length);
+
+    if (editCustomerId && customers.length > 0) {
+      const customerToEdit = customers.find((c) => c.id === editCustomerId);
+      console.log("[CustomerManager] Found customer to edit:", customerToEdit);
+
+      if (customerToEdit) {
+        setEditCustomer(customerToEdit);
+        localStorage.removeItem("editCustomerId"); // Clear after using
+        console.log(
+          "[CustomerManager] Opened edit form for:",
+          customerToEdit.name
+        );
+      }
+    }
+  }, [customers]);
+
+  // Check immediately when component mounts or becomes visible
+  useEffect(() => {
+    const checkAndOpenEdit = () => {
+      const editCustomerId = localStorage.getItem("editCustomerId");
+      console.log(
+        "[CustomerManager MOUNT] Checking editCustomerId:",
+        editCustomerId
+      );
+
+      if (editCustomerId && customers.length > 0) {
+        const customerToEdit = customers.find((c) => c.id === editCustomerId);
+        console.log("[CustomerManager MOUNT] Found customer:", customerToEdit);
+
+        if (customerToEdit) {
+          setTimeout(() => {
+            setEditCustomer(customerToEdit);
+            localStorage.removeItem("editCustomerId");
+            console.log(
+              "[CustomerManager MOUNT] Opened edit form for:",
+              customerToEdit.name
+            );
+          }, 100);
+        }
+      }
+    };
+
+    // Check immediately
+    checkAndOpenEdit();
+
+    // Also check after a delay to handle race conditions
+    const timer1 = setTimeout(checkAndOpenEdit, 300);
+    const timer2 = setTimeout(checkAndOpenEdit, 800);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [customers.length]);
+
   // Helper function to calculate actual stats for a customer (consistent with CustomerHistoryModal)
   const calculateCustomerStats = (customer: Customer) => {
     const customerSales = allSales.filter(
