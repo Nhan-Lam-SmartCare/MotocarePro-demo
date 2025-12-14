@@ -766,7 +766,7 @@ export default function ServiceManager() {
   const handleDoPrint = () => {
     setTimeout(() => {
       printElementById("work-order-receipt");
-    }, 100);
+    }, 500);
   };
 
   // 🔹 Handle refund work order
@@ -2097,7 +2097,7 @@ export default function ServiceManager() {
                       <div
                         style={{
                           display: "flex",
-                          alignItems: "flex-start",
+                          alignItems: "center",
                           gap: "3mm",
                         }}
                       >
@@ -2140,8 +2140,8 @@ export default function ServiceManager() {
                               src={storeSettings.bank_qr_url}
                               alt="QR Banking"
                               style={{
-                                height: "20mm",
-                                width: "20mm",
+                                height: "25mm",
+                                width: "25mm",
                                 objectFit: "contain",
                               }}
                               crossOrigin="anonymous"
@@ -3033,6 +3033,7 @@ export default function ServiceManager() {
                       <img
                         src={storeSettings.logo_url}
                         alt="Logo"
+                        crossOrigin="anonymous"
                         style={{
                           height: "18mm",
                           width: "18mm",
@@ -3136,60 +3137,71 @@ export default function ServiceManager() {
                       }}
                     >
                       {storeSettings?.bank_name && (
-                        <>
-                          <div
-                            style={{
-                              fontWeight: "bold",
-                              marginBottom: "1mm",
-                              color: "#000",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "flex-end",
-                              gap: "1mm",
-                            }}
-                          >
-                            <svg
-                              style={{
-                                width: "10px",
-                                height: "10px",
-                                flexShrink: 0,
-                              }}
-                              viewBox="0 0 24 24"
-                              fill="#0891b2"
-                            >
-                              <path d="M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zm-5-9L2 6v2h20V6z" />
-                            </svg>
-                            <span>{storeSettings.bank_name}</span>
-                          </div>
-                          {storeSettings.bank_account_number && (
-                            <div style={{ color: "#000" }}>
-                              STK: {storeSettings.bank_account_number}
-                            </div>
-                          )}
-                          {storeSettings.bank_account_holder && (
-                            <div style={{ color: "#000", fontSize: "7.5pt" }}>
-                              {storeSettings.bank_account_holder}
-                            </div>
-                          )}
-                          {storeSettings.bank_qr_url && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-end",
+                            gap: "3mm",
+                            border: "1px solid #3b82f6",
+                            borderRadius: "2mm",
+                            padding: "2mm",
+                            backgroundColor: "#eff6ff",
+                          }}
+                        >
+                          {/* Bank Info */}
+                          <div style={{ textAlign: "right", flex: 1 }}>
                             <div
                               style={{
-                                marginTop: "2mm",
-                                display: "inline-block",
+                                fontWeight: "bold",
+                                marginBottom: "1mm",
+                                color: "#000",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "flex-end",
+                                gap: "1mm",
                               }}
                             >
+                              <svg
+                                style={{
+                                  width: "10px",
+                                  height: "10px",
+                                  flexShrink: 0,
+                                }}
+                                viewBox="0 0 24 24"
+                                fill="#0891b2"
+                              >
+                                <path d="M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zm-5-9L2 6v2h20V6z" />
+                              </svg>
+                              <span>{storeSettings.bank_name}</span>
+                            </div>
+                            {storeSettings.bank_account_number && (
+                              <div style={{ color: "#000" }}>
+                                STK: {storeSettings.bank_account_number}
+                              </div>
+                            )}
+                            {storeSettings.bank_account_holder && (
+                              <div style={{ color: "#000", fontSize: "7.5pt" }}>
+                                {storeSettings.bank_account_holder}
+                              </div>
+                            )}
+                          </div>
+                          {/* QR Code - Larger */}
+                          {storeSettings.bank_qr_url && (
+                            <div style={{ flexShrink: 0 }}>
                               <img
                                 src={storeSettings.bank_qr_url}
                                 alt="QR Banking"
+                                crossOrigin="anonymous"
                                 style={{
-                                  height: "15mm",
-                                  width: "15mm",
+                                  height: "25mm",
+                                  width: "25mm",
                                   objectFit: "contain",
                                 }}
                               />
                             </div>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -3838,6 +3850,7 @@ export default function ServiceManager() {
               <img
                 src={storeSettings.logo_url}
                 alt="Logo"
+                crossOrigin="anonymous"
                 style={{
                   height: "18mm",
                   width: "18mm",
@@ -3927,56 +3940,67 @@ export default function ServiceManager() {
               }}
             >
               {storeSettings?.bank_name && (
-                <>
-                  <div
-                    style={{
-                      fontWeight: "bold",
-                      marginBottom: "1mm",
-                      color: "#000",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "flex-end",
-                      gap: "1mm",
-                    }}
-                  >
-                    <svg
-                      style={{ width: "10px", height: "10px", flexShrink: 0 }}
-                      viewBox="0 0 24 24"
-                      fill="#0891b2"
-                    >
-                      <path d="M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zm-5-9L2 6v2h20V6z" />
-                    </svg>
-                    <span>{storeSettings.bank_name}</span>
-                  </div>
-                  {storeSettings.bank_account_number && (
-                    <div style={{ color: "#000" }}>
-                      STK: {storeSettings.bank_account_number}
-                    </div>
-                  )}
-                  {storeSettings.bank_account_holder && (
-                    <div style={{ color: "#000", fontSize: "7.5pt" }}>
-                      {storeSettings.bank_account_holder}
-                    </div>
-                  )}
-                  {storeSettings.bank_qr_url && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    gap: "3mm",
+                    border: "1px solid #3b82f6",
+                    borderRadius: "2mm",
+                    padding: "2mm",
+                    backgroundColor: "#eff6ff",
+                  }}
+                >
+                  {/* Bank Info */}
+                  <div style={{ textAlign: "right", flex: 1 }}>
                     <div
                       style={{
-                        marginTop: "2mm",
-                        display: "inline-block",
+                        fontWeight: "bold",
+                        marginBottom: "1mm",
+                        color: "#000",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        gap: "1mm",
                       }}
                     >
+                      <svg
+                        style={{ width: "10px", height: "10px", flexShrink: 0 }}
+                        viewBox="0 0 24 24"
+                        fill="#0891b2"
+                      >
+                        <path d="M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zm-5-9L2 6v2h20V6z" />
+                      </svg>
+                      <span>{storeSettings.bank_name}</span>
+                    </div>
+                    {storeSettings.bank_account_number && (
+                      <div style={{ color: "#000" }}>
+                        STK: {storeSettings.bank_account_number}
+                      </div>
+                    )}
+                    {storeSettings.bank_account_holder && (
+                      <div style={{ color: "#000", fontSize: "7.5pt" }}>
+                        {storeSettings.bank_account_holder}
+                      </div>
+                    )}
+                  </div>
+                  {/* QR Code - Larger */}
+                  {storeSettings.bank_qr_url && (
+                    <div style={{ flexShrink: 0 }}>
                       <img
                         src={storeSettings.bank_qr_url}
                         alt="QR Banking"
+                        crossOrigin="anonymous"
                         style={{
-                          height: "15mm",
-                          width: "15mm",
+                          height: "25mm",
+                          width: "25mm",
                           objectFit: "contain",
                         }}
                       />
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -4055,7 +4079,7 @@ export default function ServiceManager() {
                       paddingLeft: "3mm",
                     }}
                   >
-                    Thanh Lộc
+                    SĐT:
                   </td>
                   <td style={{ paddingBottom: "2mm" }}>
                     {printOrder.customerPhone}
@@ -4070,13 +4094,21 @@ export default function ServiceManager() {
                   >
                     Loại xe:
                   </td>
-                  <td style={{ paddingBottom: "2mm" }} colSpan={3}>
+                  <td style={{ paddingBottom: "2mm" }}>
                     {printOrder.vehicleModel}
                   </td>
-                </tr>
-                <tr>
-                  <td style={{ fontWeight: "bold" }}>Biển số:</td>
-                  <td colSpan={3}>{printOrder.licensePlate}</td>
+                  <td
+                    style={{
+                      fontWeight: "bold",
+                      paddingBottom: "2mm",
+                      paddingLeft: "3mm",
+                    }}
+                  >
+                    Biển số:
+                  </td>
+                  <td style={{ paddingBottom: "2mm" }}>
+                    {printOrder.licensePlate}
+                  </td>
                 </tr>
               </tbody>
             </table>
