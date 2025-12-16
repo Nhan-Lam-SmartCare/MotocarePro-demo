@@ -917,7 +917,9 @@ const WorkOrderModal: React.FC<{
       }
 
       // Create deposit cash transaction (Thu tiền cọc vào quỹ)
-      const depositTxId = `TX-${Date.now()}-DEP`;
+      const depositTxId = `TX-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}-DEP`;
       await supabase.from("cash_transactions").insert({
         id: depositTxId,
         type: "income",
@@ -933,7 +935,9 @@ const WorkOrderModal: React.FC<{
       });
 
       // Create expense transaction (Phiếu chi để đặt hàng)
-      const expenseTxId = `TX-${Date.now()}-EXP`;
+      const expenseTxId = `TX-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}-EXP`;
       await supabase.from("cash_transactions").insert({
         id: expenseTxId,
         type: "expense",
@@ -1614,7 +1618,9 @@ const WorkOrderModal: React.FC<{
             );
 
             if (totalOutsourcingCost > 0) {
-              const outsourcingTxId = `EXPENSE-${Date.now()}`;
+              const outsourcingTxId = `EXPENSE-${Date.now()}-${Math.random()
+                .toString(36)
+                .substr(2, 9)}`;
 
               // Create expense transaction
               try {
@@ -1624,72 +1630,86 @@ const WorkOrderModal: React.FC<{
                   branchid: currentBranchId,
                 });
 
-                const { error: expenseError } = await supabase
+                // Check if transaction already exists
+                const { data: existingTx } = await supabase
                   .from("cash_transactions")
-                  .insert({
-                    id: outsourcingTxId,
-                    type: "expense",
-                    category: "outsourcing",
-                    amount: -totalOutsourcingCost, // Negative for expense
-                    date: new Date().toISOString(),
-                    description: `Chi phí gia công bên ngoài - Phiếu #${orderId
-                      .split("-")
-                      .pop()} - ${additionalServices
-                      .map((s) => s.description)
-                      .join(", ")}`,
-                    branchid: currentBranchId,
-                    paymentsource: "cash",
-                    reference: orderId,
-                  });
+                  .select("id")
+                  .eq("reference", orderId)
+                  .eq("category", "outsourcing")
+                  .maybeSingle();
 
-                if (expenseError) {
-                  console.error("[Outsourcing] Insert FAILED:", expenseError);
-                  showToast.error(
-                    `Lỗi tạo phiếu chi gia công: ${expenseError.message}`
+                if (existingTx) {
+                  console.log(
+                    "[Outsourcing] Transaction already exists, skipping insert"
                   );
                 } else {
-                  console.log("[Outsourcing] Insert SUCCESS");
-                  // Update context
-                  setCashTransactions((prev: any[]) => [
-                    ...prev,
-                    {
+                  const { error: expenseError } = await supabase
+                    .from("cash_transactions")
+                    .insert({
                       id: outsourcingTxId,
                       type: "expense",
                       category: "outsourcing",
-                      amount: -totalOutsourcingCost,
+                      amount: -totalOutsourcingCost, // Negative for expense
                       date: new Date().toISOString(),
                       description: `Chi phí gia công bên ngoài - Phiếu #${orderId
                         .split("-")
-                        .pop()}`,
-                      branchId: currentBranchId,
-                      paymentSource: "cash",
+                        .pop()} - ${additionalServices
+                        .map((s) => s.description)
+                        .join(", ")}`,
+                      branchid: currentBranchId,
+                      paymentsource: "cash",
                       reference: orderId,
-                    },
-                  ]);
+                    });
 
-                  // Update payment sources balance
-                  setPaymentSources((prev: any[]) =>
-                    prev.map((ps) => {
-                      if (ps.id === "cash") {
-                        return {
-                          ...ps,
-                          balance: {
-                            ...ps.balance,
-                            [currentBranchId]:
-                              (ps.balance[currentBranchId] || 0) -
-                              totalOutsourcingCost,
-                          },
-                        };
-                      }
-                      return ps;
-                    })
-                  );
+                  if (expenseError) {
+                    console.error("[Outsourcing] Insert FAILED:", expenseError);
+                    showToast.error(
+                      `Lỗi tạo phiếu chi gia công: ${expenseError.message}`
+                    );
+                  } else {
+                    console.log("[Outsourcing] Insert SUCCESS");
+                    // Update context
+                    setCashTransactions((prev: any[]) => [
+                      ...prev,
+                      {
+                        id: outsourcingTxId,
+                        type: "expense",
+                        category: "outsourcing",
+                        amount: -totalOutsourcingCost,
+                        date: new Date().toISOString(),
+                        description: `Chi phí gia công bên ngoài - Phiếu #${orderId
+                          .split("-")
+                          .pop()}`,
+                        branchId: currentBranchId,
+                        paymentSource: "cash",
+                        reference: orderId,
+                      },
+                    ]);
 
-                  showToast.info(
-                    `Đã tạo phiếu chi ${formatCurrency(
-                      totalOutsourcingCost
-                    )} cho gia công bên ngoài`
-                  );
+                    // Update payment sources balance
+                    setPaymentSources((prev: any[]) =>
+                      prev.map((ps) => {
+                        if (ps.id === "cash") {
+                          return {
+                            ...ps,
+                            balance: {
+                              ...ps.balance,
+                              [currentBranchId]:
+                                (ps.balance[currentBranchId] || 0) -
+                                totalOutsourcingCost,
+                            },
+                          };
+                        }
+                        return ps;
+                      })
+                    );
+
+                    showToast.info(
+                      `Đã tạo phiếu chi ${formatCurrency(
+                        totalOutsourcingCost
+                      )} cho gia công bên ngoài`
+                    );
+                  }
                 }
               } catch (err) {
                 console.error("Error creating outsourcing expense:", err);
@@ -1698,7 +1718,9 @@ const WorkOrderModal: React.FC<{
 
             // 🔹 Xử lý khoản chi từ giá bán âm (costPrice = 0)
             if (negativeSalesPayment > 0) {
-              const negativeSalesTxId = `EXPENSE-NEG-${Date.now()}`;
+              const negativeSalesTxId = `EXPENSE-NEG-${Date.now()}-${Math.random()
+                .toString(36)
+                .substr(2, 9)}`;
 
               try {
                 console.log("[Negative Sales] Inserting expense transaction:", {
@@ -1711,75 +1733,89 @@ const WorkOrderModal: React.FC<{
                   (s) => s.price < 0 && (s.costPrice || 0) === 0
                 );
 
-                const { error: negExpenseError } = await supabase
+                // Check if transaction already exists
+                const { data: existingNegTx } = await supabase
                   .from("cash_transactions")
-                  .insert({
-                    id: negativeSalesTxId,
-                    type: "expense",
-                    category: "refund", // Hoặc category phù hợp
-                    amount: -negativeSalesPayment, // Negative for expense
-                    date: new Date().toISOString(),
-                    description: `Chi tiền (giá bán âm) - Phiếu #${orderId
-                      .split("-")
-                      .pop()} - ${negativeServices
-                      .map((s) => s.description)
-                      .join(", ")}`,
-                    branchid: currentBranchId,
-                    paymentsource: "cash",
-                    reference: orderId,
-                  });
+                  .select("id")
+                  .eq("reference", orderId)
+                  .eq("category", "refund")
+                  .maybeSingle();
 
-                if (negExpenseError) {
-                  console.error(
-                    "[Negative Sales] Insert FAILED:",
-                    negExpenseError
-                  );
-                  showToast.error(
-                    `Lỗi tạo phiếu chi (giá bán âm): ${negExpenseError.message}`
+                if (existingNegTx) {
+                  console.log(
+                    "[Negative Sales] Transaction already exists, skipping insert"
                   );
                 } else {
-                  console.log("[Negative Sales] Insert SUCCESS");
-                  // Update context
-                  setCashTransactions((prev: any[]) => [
-                    ...prev,
-                    {
+                  const { error: negExpenseError } = await supabase
+                    .from("cash_transactions")
+                    .insert({
                       id: negativeSalesTxId,
                       type: "expense",
-                      category: "refund",
-                      amount: -negativeSalesPayment,
+                      category: "refund", // Hoặc category phù hợp
+                      amount: -negativeSalesPayment, // Negative for expense
                       date: new Date().toISOString(),
                       description: `Chi tiền (giá bán âm) - Phiếu #${orderId
                         .split("-")
-                        .pop()}`,
-                      branchId: currentBranchId,
-                      paymentSource: "cash",
+                        .pop()} - ${negativeServices
+                        .map((s) => s.description)
+                        .join(", ")}`,
+                      branchid: currentBranchId,
+                      paymentsource: "cash",
                       reference: orderId,
-                    },
-                  ]);
+                    });
 
-                  // Update payment sources balance
-                  setPaymentSources((prev: any[]) =>
-                    prev.map((ps) => {
-                      if (ps.id === "cash") {
-                        return {
-                          ...ps,
-                          balance: {
-                            ...ps.balance,
-                            [currentBranchId]:
-                              (ps.balance[currentBranchId] || 0) -
-                              negativeSalesPayment,
-                          },
-                        };
-                      }
-                      return ps;
-                    })
-                  );
+                  if (negExpenseError) {
+                    console.error(
+                      "[Negative Sales] Insert FAILED:",
+                      negExpenseError
+                    );
+                    showToast.error(
+                      `Lỗi tạo phiếu chi (giá bán âm): ${negExpenseError.message}`
+                    );
+                  } else {
+                    console.log("[Negative Sales] Insert SUCCESS");
+                    // Update context
+                    setCashTransactions((prev: any[]) => [
+                      ...prev,
+                      {
+                        id: negativeSalesTxId,
+                        type: "expense",
+                        category: "refund",
+                        amount: -negativeSalesPayment,
+                        date: new Date().toISOString(),
+                        description: `Chi tiền (giá bán âm) - Phiếu #${orderId
+                          .split("-")
+                          .pop()}`,
+                        branchId: currentBranchId,
+                        paymentSource: "cash",
+                        reference: orderId,
+                      },
+                    ]);
 
-                  showToast.info(
-                    `Đã tạo phiếu chi ${formatCurrency(
-                      negativeSalesPayment
-                    )} từ giá bán âm`
-                  );
+                    // Update payment sources balance
+                    setPaymentSources((prev: any[]) =>
+                      prev.map((ps) => {
+                        if (ps.id === "cash") {
+                          return {
+                            ...ps,
+                            balance: {
+                              ...ps.balance,
+                              [currentBranchId]:
+                                (ps.balance[currentBranchId] || 0) -
+                                negativeSalesPayment,
+                            },
+                          };
+                        }
+                        return ps;
+                      })
+                    );
+
+                    showToast.info(
+                      `Đã tạo phiếu chi ${formatCurrency(
+                        negativeSalesPayment
+                      )} từ giá bán âm`
+                    );
+                  }
                 }
               } catch (err) {
                 console.error("Error creating negative sales expense:", err);

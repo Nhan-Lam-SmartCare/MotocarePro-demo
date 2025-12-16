@@ -194,7 +194,9 @@ export const CreatePOModal: React.FC<CreatePOModalProps> = ({
       onClose();
       // Reset form
       setSupplierId("");
-      setExpectedDate("");
+      const resetDate = new Date();
+      resetDate.setDate(resetDate.getDate() + 7);
+      setExpectedDate(resetDate.toISOString().split("T")[0]);
       setNotes("");
       setItems([]);
     } catch (error) {

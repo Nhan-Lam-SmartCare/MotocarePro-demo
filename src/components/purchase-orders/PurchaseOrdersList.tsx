@@ -208,10 +208,12 @@ export const PurchaseOrdersList: React.FC<PurchaseOrdersListProps> = ({
                     </div>
 
                     {/* Created by */}
-                    {po.created_by && (
+                    {(po.creator?.name || po.creator?.email) && (
                       <div className="text-xs text-slate-500 dark:text-slate-500 mb-1">
                         Người tạo:{" "}
-                        <span className="font-medium">{po.created_by}</span>
+                        <span className="font-medium">
+                          {po.creator.name || po.creator.email}
+                        </span>
                       </div>
                     )}
 

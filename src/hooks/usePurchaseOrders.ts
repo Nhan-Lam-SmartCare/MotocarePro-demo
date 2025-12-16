@@ -46,7 +46,33 @@ export function usePurchaseOrders(branchId?: string) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return (data || []) as PurchaseOrder[];
+
+      // Fetch user info for creators
+      const pos = (data || []) as PurchaseOrder[];
+      const userIds = [
+        ...new Set(pos.map((po) => po.created_by).filter(Boolean)),
+      ];
+
+      if (userIds.length > 0) {
+        const { data: users } = await supabase
+          .from("user_profiles")
+          .select("id, email, full_name")
+          .in("id", userIds);
+
+        if (users) {
+          const userMap = new Map(users.map((u) => [u.id, u]));
+          pos.forEach((po) => {
+            if (po.created_by) {
+              const user = userMap.get(po.created_by);
+              if (user) {
+                po.creator = { email: user.email, name: user.full_name };
+              }
+            }
+          });
+        }
+      }
+
+      return pos;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -75,7 +101,23 @@ export function usePurchaseOrder(id: string) {
         .single();
 
       if (error) throw error;
-      return data as PurchaseOrder;
+
+      const po = data as PurchaseOrder;
+
+      // Fetch creator info
+      if (po.created_by) {
+        const { data: user } = await supabase
+          .from("user_profiles")
+          .select("id, email, full_name")
+          .eq("id", po.created_by)
+          .single();
+
+        if (user) {
+          po.creator = { email: user.email, name: user.full_name };
+        }
+      }
+
+      return po;
     },
     enabled: !!id,
   });

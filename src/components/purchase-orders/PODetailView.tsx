@@ -275,6 +275,16 @@ export const PODetailView: React.FC<PODetailViewProps> = ({
                 </div>
               </div>
             )}
+            {(po.creator?.name || po.creator?.email) && (
+              <div>
+                <div className="text-xs text-slate-500 dark:text-slate-500 mb-1">
+                  Người tạo
+                </div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">
+                  {po.creator.name || po.creator.email}
+                </div>
+              </div>
+            )}
             {po.notes && (
               <div className="md:col-span-2">
                 <div className="text-xs text-slate-500 dark:text-slate-500 mb-1">
