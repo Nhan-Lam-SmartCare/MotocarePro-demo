@@ -20,6 +20,13 @@ BEGIN
 END $$;
 
 -- =============================================================================
+-- DROP ALL OLD VERSIONS FIRST
+-- =============================================================================
+DROP FUNCTION IF EXISTS public.work_order_create_atomic CASCADE;
+DROP FUNCTION IF EXISTS public.work_order_update_atomic CASCADE;
+DROP FUNCTION IF EXISTS public.work_order_complete_payment CASCADE;
+
+-- =============================================================================
 -- 1. CREATE FUNCTION: Tạo phiếu - chỉ reserve, không trừ kho
 -- =============================================================================
 CREATE OR REPLACE FUNCTION public.work_order_create_atomic(
@@ -28,6 +35,8 @@ CREATE OR REPLACE FUNCTION public.work_order_create_atomic(
   p_customer_phone TEXT,
   p_vehicle_model TEXT,
   p_license_plate TEXT,
+  p_vehicle_id TEXT,
+  p_current_km INT,
   p_issue_description TEXT,
   p_technician_name TEXT,
   p_status TEXT,
@@ -106,7 +115,7 @@ BEGIN
       -- Get current stock and reserved with row lock
       SELECT 
         COALESCE((stock->>p_branch_id)::int, 0),
-        COALESCE((reserved->>p_branch_id)::int, 0)
+        COALESCE((reservedstock->>p_branch_id)::int, 0)
       INTO v_current_stock, v_current_reserved
       FROM parts WHERE id = v_part_id FOR UPDATE;
       
@@ -131,8 +140,8 @@ BEGIN
 
       -- RESERVE stock (increase reserved amount) - KHÔNG trừ kho thực
       UPDATE parts
-      SET reserved = jsonb_set(
-        COALESCE(reserved, '{}'::jsonb),
+      SET reservedstock = jsonb_set(
+        COALESCE(reservedstock, '{}'::jsonb),
         ARRAY[p_branch_id],
         to_jsonb(v_current_reserved + v_quantity)
       )
@@ -142,14 +151,14 @@ BEGIN
 
   -- Insert work order
   INSERT INTO work_orders(
-    id, customerName, customerPhone, vehicleModel, licensePlate,
+    id, customerName, customerPhone, vehicleModel, licensePlate, vehicleId, currentKm,
     issueDescription, technicianName, status, laborCost, discount,
     partsUsed, additionalServices, total, branchId, paymentStatus,
     paymentMethod, depositAmount, additionalPayment, totalPaid,
     remainingAmount, creationDate
   )
   VALUES (
-    p_order_id, p_customer_name, p_customer_phone, p_vehicle_model, p_license_plate,
+    p_order_id, p_customer_name, p_customer_phone, p_vehicle_model, p_license_plate, p_vehicle_id, p_current_km,
     p_issue_description, p_technician_name, p_status, p_labor_cost, p_discount,
     p_parts_used, p_additional_services, p_total, p_branch_id, p_payment_status,
     p_payment_method, 
@@ -254,6 +263,8 @@ CREATE OR REPLACE FUNCTION public.work_order_update_atomic(
   p_customer_phone TEXT,
   p_vehicle_model TEXT,
   p_license_plate TEXT,
+  p_vehicle_id TEXT,
+  p_current_km INT,
   p_issue_description TEXT,
   p_technician_name TEXT,
   p_status TEXT,
@@ -351,12 +362,12 @@ BEGIN
 
     -- Release reserved if quantity decreased
     IF v_quantity_diff > 0 THEN
-      SELECT COALESCE((reserved->>v_branch_id)::int, 0) INTO v_current_reserved
+      SELECT COALESCE((reservedstock->>v_branch_id)::int, 0) INTO v_current_reserved
       FROM parts WHERE id = v_part_id FOR UPDATE;
 
       UPDATE parts
-      SET reserved = jsonb_set(
-        COALESCE(reserved, '{}'::jsonb),
+      SET reservedstock = jsonb_set(
+        COALESCE(reservedstock, '{}'::jsonb),
         ARRAY[v_branch_id],
         to_jsonb(GREATEST(0, v_current_reserved - v_quantity_diff))
       )
@@ -393,7 +404,7 @@ BEGIN
     IF v_quantity_diff > 0 THEN
       SELECT 
         COALESCE((stock->>v_branch_id)::int, 0),
-        COALESCE((reserved->>v_branch_id)::int, 0)
+        COALESCE((reservedstock->>v_branch_id)::int, 0)
       INTO v_current_stock, v_current_reserved
       FROM parts WHERE id = v_part_id FOR UPDATE;
 
@@ -410,8 +421,8 @@ BEGIN
       END IF;
 
       UPDATE parts
-      SET reserved = jsonb_set(
-        COALESCE(reserved, '{}'::jsonb),
+      SET reservedstock = jsonb_set(
+        COALESCE(reservedstock, '{}'::jsonb),
         ARRAY[v_branch_id],
         to_jsonb(v_current_reserved + v_quantity_diff)
       )
@@ -467,6 +478,8 @@ BEGIN
     customerPhone = p_customer_phone,
     vehicleModel = p_vehicle_model,
     licensePlate = p_license_plate,
+    vehicleId = p_vehicle_id,
+    currentKm = p_current_km,
     issueDescription = p_issue_description,
     technicianName = p_technician_name,
     status = p_status,
@@ -510,14 +523,11 @@ COMMENT ON FUNCTION public.work_order_update_atomic IS 'Cập nhật phiếu s�
 -- =============================================================================
 -- 3. COMPLETE PAYMENT FUNCTION: Trừ kho thực khi thanh toán hoàn tất
 -- =============================================================================
--- Drop old function with different signature first
-DROP FUNCTION IF EXISTS public.work_order_complete_payment(TEXT, TEXT, NUMERIC, TEXT);
-DROP FUNCTION IF EXISTS public.work_order_complete_payment(TEXT, NUMERIC, TEXT, TEXT);
-
+-- ⚠️ QUAN TRỌNG: Thứ tự parameters PHẢI KHỚP với TypeScript code
 CREATE OR REPLACE FUNCTION public.work_order_complete_payment(
   p_order_id TEXT,
-  p_payment_amount NUMERIC,
   p_payment_method TEXT,
+  p_payment_amount NUMERIC,
   p_user_id TEXT DEFAULT NULL
 ) RETURNS JSONB
 LANGUAGE plpgsql
@@ -526,16 +536,20 @@ AS $$
 DECLARE
   v_order RECORD;
   v_part JSONB;
+  v_service JSONB;
   v_part_id TEXT;
   v_part_name TEXT;
   v_quantity INT;
   v_current_stock INT;
   v_current_reserved INT;
   v_payment_tx_id TEXT;
+  v_cost_tx_id TEXT;
   v_total_paid NUMERIC;
   v_remaining NUMERIC;
   v_new_status TEXT;
   v_user_branch TEXT;
+  v_should_deduct_inventory BOOLEAN;
+  v_total_service_cost NUMERIC := 0;
 BEGIN
   -- Get user's branch
   SELECT branch_id INTO v_user_branch
@@ -557,6 +571,11 @@ BEGIN
     RAISE EXCEPTION 'BRANCH_MISMATCH';
   END IF;
 
+  -- Check if already refunded
+  IF v_order.refunded = TRUE THEN
+    RAISE EXCEPTION 'ORDER_REFUNDED';
+  END IF;
+
   -- Calculate new totals
   v_total_paid := COALESCE(v_order.totalPaid, 0) + p_payment_amount;
   v_remaining := v_order.total - v_total_paid;
@@ -571,27 +590,63 @@ BEGIN
     v_new_status := 'unpaid';
   END IF;
 
-  -- Create payment transaction
-  v_payment_tx_id := gen_random_uuid()::text;
-  INSERT INTO cash_transactions(
-    id, type, category, amount, date, description, branchId, paymentSource, reference
-  )
-  VALUES (
-    v_payment_tx_id,
-    'income',
-    'service_income',
-    p_payment_amount,
-    NOW(),
-    'Thanh toán sửa chữa ' || p_order_id,
-    v_order.branchId,
-    p_payment_method,
-    p_order_id
-  );
+  -- CHỈ TRỪ KHO NẾU: (1) Thanh toán đủ VÀ (2) Chưa trừ kho trước đó
+  v_should_deduct_inventory := (v_new_status = 'paid' AND COALESCE(v_order.inventory_deducted, FALSE) = FALSE);
+
+  -- Create payment transaction (nếu có số tiền thanh toán)
+  IF p_payment_amount > 0 AND p_payment_method IS NOT NULL THEN
+    v_payment_tx_id := gen_random_uuid()::text;
+    INSERT INTO cash_transactions(
+      id, type, category, amount, date, description, branchid, paymentsource, reference
+    )
+    VALUES (
+      v_payment_tx_id,
+      'income',
+      'service_income',
+      p_payment_amount,
+      NOW(),
+      'Thanh toán sửa chữa ' || p_order_id,
+      v_order.branchid,
+      p_payment_method,
+      p_order_id
+    );
+  END IF;
 
   -- ==========================================================================
-  -- Nếu THANH TOÁN ĐỦ: Trừ kho thực + tạo inventory transactions
+  -- Nếu THANH TOÁN ĐỦ: Tạo transaction CHI cho giá vốn dịch vụ bổ sung
   -- ==========================================================================
-  IF v_new_status = 'paid' AND v_order.partsUsed IS NOT NULL THEN
+  IF v_new_status = 'paid' AND v_order.additionalServices IS NOT NULL THEN
+    -- Tính tổng giá vốn dịch vụ
+    FOR v_service IN SELECT * FROM jsonb_array_elements(v_order.additionalServices)
+    LOOP
+      v_total_service_cost := v_total_service_cost + 
+        COALESCE((v_service->>'costPrice')::numeric, 0) * COALESCE((v_service->>'quantity')::int, 1);
+    END LOOP;
+
+    -- Tạo transaction CHI nếu có giá vốn
+    IF v_total_service_cost > 0 THEN
+      v_cost_tx_id := gen_random_uuid()::text;
+      INSERT INTO cash_transactions(
+        id, type, category, amount, date, description, branchid, paymentsource, reference
+      )
+      VALUES (
+        v_cost_tx_id,
+        'expense',
+        'service_cost',
+        v_total_service_cost,
+        NOW(),
+        'Giá vốn dịch vụ gia công - Phiếu ' || p_order_id,
+        v_order.branchid,
+        p_payment_method,
+        p_order_id
+      );
+    END IF;
+  END IF;
+
+  -- ==========================================================================
+  -- Nếu THANH TOÁN ĐỦ VÀ CHƯA TRỪ KHO: Trừ kho thực + tạo inventory transactions
+  -- ==========================================================================
+  IF v_should_deduct_inventory AND v_order.partsUsed IS NOT NULL THEN
     FOR v_part IN SELECT * FROM jsonb_array_elements(v_order.partsUsed)
     LOOP
       v_part_id := (v_part->>'partId');
@@ -604,16 +659,20 @@ BEGIN
 
       -- Get current stock and reserved
       SELECT 
-        COALESCE((stock->>v_order.branchId)::int, 0),
-        COALESCE((reserved->>v_order.branchId)::int, 0)
+        COALESCE((stock->>v_order.branchid)::int, 0),
+        COALESCE((reservedstock->>v_order.branchid)::int, 0)
       INTO v_current_stock, v_current_reserved
       FROM parts WHERE id = v_part_id FOR UPDATE;
 
+      IF NOT FOUND THEN
+        CONTINUE;
+      END IF;
+
       -- 1. Giảm reserved
       UPDATE parts
-      SET reserved = jsonb_set(
-        COALESCE(reserved, '{}'::jsonb),
-        ARRAY[v_order.branchId],
+      SET reservedstock = jsonb_set(
+        COALESCE(reservedstock, '{}'::jsonb),
+        ARRAY[v_order.branchid],
         to_jsonb(GREATEST(0, v_current_reserved - v_quantity))
       )
       WHERE id = v_part_id;
@@ -622,15 +681,15 @@ BEGIN
       UPDATE parts
       SET stock = jsonb_set(
         stock,
-        ARRAY[v_order.branchId],
+        ARRAY[v_order.branchid],
         to_jsonb(GREATEST(0, v_current_stock - v_quantity))
       )
       WHERE id = v_part_id;
 
       -- 3. Tạo inventory transaction (Xuất kho)
       INSERT INTO inventory_transactions(
-        id, type, partId, partName, quantity, date, unitPrice, totalPrice,
-        branchId, notes, workOrderId
+        id, type, "partId", "partName", quantity, date, "unitPrice", "totalPrice",
+        "branchId", notes, "workOrderId"
       )
       VALUES (
         gen_random_uuid()::text,
@@ -639,10 +698,10 @@ BEGIN
         v_part_name,
         v_quantity,
         NOW(),
-        public.mc_avg_cost(v_part_id, v_order.branchId),
-        public.mc_avg_cost(v_part_id, v_order.branchId) * v_quantity,
-        v_order.branchId,
-        'Xuất kho khi thanh toán phiếu sửa chữa',
+        COALESCE((v_part->>'price')::numeric, 0),
+        COALESCE((v_part->>'price')::numeric, 0) * v_quantity,
+        v_order.branchid,
+        'Xuất kho khi thanh toán phiếu ' || p_order_id,
         p_order_id
       );
     END LOOP;
@@ -651,12 +710,14 @@ BEGIN
   -- Update work order
   UPDATE work_orders
   SET
-    paymentStatus = v_new_status,
-    totalPaid = v_total_paid,
-    remainingAmount = v_remaining,
-    additionalPayment = COALESCE(additionalPayment, 0) + p_payment_amount,
-    cashTransactionId = v_payment_tx_id,
-    paymentDate = NOW()
+    paymentstatus = v_new_status,
+    totalpaid = v_total_paid,
+    remainingamount = v_remaining,
+    additionalpayment = COALESCE(additionalpayment, 0) + p_payment_amount,
+    cashtransactionid = COALESCE(v_payment_tx_id, cashtransactionid),
+    paymentdate = CASE WHEN v_payment_tx_id IS NOT NULL THEN NOW() ELSE paymentdate END,
+    paymentmethod = COALESCE(p_payment_method, paymentmethod),
+    inventory_deducted = CASE WHEN v_should_deduct_inventory THEN TRUE ELSE inventory_deducted END
   WHERE id = p_order_id;
 
   RETURN jsonb_build_object(
@@ -665,7 +726,8 @@ BEGIN
     'paymentStatus', v_new_status,
     'totalPaid', v_total_paid,
     'remainingAmount', v_remaining,
-    'inventoryDeducted', (v_new_status = 'paid')
+    'inventoryDeducted', v_should_deduct_inventory,
+    'paymentTransactionId', v_payment_tx_id
   );
 
 EXCEPTION
@@ -675,11 +737,10 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.work_order_complete_payment TO authenticated;
-COMMENT ON FUNCTION public.work_order_complete_payment IS 'Thanh toán phiếu sửa chữa - trừ kho thực khi thanh toán đủ';
+COMMENT ON FUNCTION public.work_order_complete_payment 
+IS 'Thanh toán phiếu sửa chữa - Tự động trừ kho khi thanh toán đủ (chỉ 1 lần)';
 
 -- =============================================================================
--- 4. REFUND/CANCEL: Giải phóng reserved và hoàn kho nếu cần
+-- DONE! Script complete
 -- =============================================================================
--- (Giữ nguyên function refund hiện tại, chỉ cần đảm bảo release reserved)
-
 SELECT 'Reserve stock logic installed successfully!' AS result;

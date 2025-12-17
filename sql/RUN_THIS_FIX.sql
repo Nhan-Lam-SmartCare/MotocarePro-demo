@@ -1,21 +1,9 @@
--- =============================================================================
--- SỬA LỖI: Stock không giảm khi bán hàng trong phiếu sửa chữa
--- =============================================================================
--- Ngày: 2025-12-08
--- 
--- VẤN ĐỀ:
--- - Sản phẩm đã bán trong work order nhưng vẫn còn tồn kho
--- - Không có record "Xuất kho" trong inventory_transactions
--- - Function work_order_complete_payment chưa có logic ngăn trừ kho 2 lần
---
--- Script này sẽ TỰ ĐỘNG:
--- 1. Tạo cột inventory_deducted nếu chưa có
--- 2. Cập nhật function work_order_complete_payment với logic mới
--- 3. Tìm và sửa TẤT CẢ phiếu đã thanh toán nhưng chưa trừ kho
--- 4. Hiển thị báo cáo chi tiết
---
--- CÁCH DÙNG: Copy toàn bộ script và paste vào SQL Editor, nhấn Run
--- =============================================================================
+-- =====================================================================
+-- 🚀 CHẠY SCRIPT NÀY ĐỂ SỬA LỖI
+-- =====================================================================
+-- Copy TOÀN BỘ file này và paste vào Supabase SQL Editor
+-- Sau đó click RUN
+-- =====================================================================
 
 DO $$
 DECLARE
@@ -78,7 +66,7 @@ BEGIN
       WHERE it."workOrderId" = wo.id
         AND it.type = 'Xuất kho'
     ) = 0
-    AND wo.creationdate >= '2025-11-01'; -- Sửa từ tháng 11
+    AND wo.creationdate >= '2025-11-01';
   
   RAISE NOTICE '   📊 Tìm thấy % phiếu đã thanh toán nhưng chưa trừ kho', v_total_orders;
   RAISE NOTICE '';
@@ -211,8 +199,9 @@ BEGIN
 
 END $$;
 
--- Cài đặt function mới
--- ⚠️ QUAN TRỌNG: Thứ tự parameters PHẢI KHỚP với code TypeScript
+-- =====================================================================
+-- TẠO FUNCTION MỚI (Signature đúng với TypeScript code)
+-- =====================================================================
 CREATE OR REPLACE FUNCTION public.work_order_complete_payment(
   p_order_id TEXT,
   p_payment_method TEXT,
@@ -276,10 +265,10 @@ BEGIN
     v_new_status := 'unpaid';
   END IF;
 
-  -- 🔹 CHỈ TRỪ KHO NẾU: (1) Thanh toán đủ VÀ (2) Chưa trừ kho trước đó
+  -- CHỈ TRỪ KHO NẾU: (1) Thanh toán đủ VÀ (2) Chưa trừ kho trước đó
   v_should_deduct_inventory := (v_new_status = 'paid' AND COALESCE(v_order.inventory_deducted, FALSE) = FALSE);
 
-  -- Create payment transaction (nếu có số tiền thanh toán)
+  -- Create payment transaction
   IF p_payment_amount > 0 AND p_payment_method IS NOT NULL THEN
     v_payment_tx_id := gen_random_uuid()::text;
     INSERT INTO cash_transactions(
@@ -298,9 +287,7 @@ BEGIN
     );
   END IF;
 
-  -- ==========================================================================
-  -- Nếu THANH TOÁN ĐỦ VÀ CHƯA TRỪ KHO: Trừ kho thực + tạo inventory transactions
-  -- ==========================================================================
+  -- Trừ kho nếu thanh toán đủ và chưa trừ
   IF v_should_deduct_inventory AND v_order.partsused IS NOT NULL THEN
     FOR v_part IN SELECT * FROM jsonb_array_elements(v_order.partsused)
     LOOP
@@ -315,24 +302,24 @@ BEGIN
       -- Get current stock and reserved
       SELECT 
         COALESCE((stock->>v_order.branchid)::int, 0),
-        COALESCE((reserved->>v_order.branchid)::int, 0)
+        COALESCE((reservedstock->>v_order.branchid)::int, 0)
       INTO v_current_stock, v_current_reserved
       FROM parts WHERE id = v_part_id FOR UPDATE;
 
       IF NOT FOUND THEN
-        CONTINUE; -- Skip if part not found
+        CONTINUE;
       END IF;
 
-      -- 1. Giảm reserved
+      -- Giảm reserved
       UPDATE parts
-      SET reserved = jsonb_set(
-        COALESCE(reserved, '{}'::jsonb),
+      SET reservedstock = jsonb_set(
+        COALESCE(reservedstock, '{}'::jsonb),
         ARRAY[v_order.branchid],
         to_jsonb(GREATEST(0, v_current_reserved - v_quantity))
       )
       WHERE id = v_part_id;
 
-      -- 2. Giảm stock thực
+      -- Giảm stock
       UPDATE parts
       SET stock = jsonb_set(
         stock,
@@ -341,7 +328,7 @@ BEGIN
       )
       WHERE id = v_part_id;
 
-      -- 3. Tạo inventory transaction (Xuất kho)
+      -- Tạo inventory transaction
       INSERT INTO inventory_transactions(
         id, type, "partId", "partName", quantity, date, "unitPrice", "totalPrice",
         "branchId", notes, "workOrderId"
@@ -353,10 +340,10 @@ BEGIN
         v_part_name,
         v_quantity,
         NOW(),
-        COALESCE((v_part->>'unitPrice')::numeric, 0),
-        COALESCE((v_part->>'totalPrice')::numeric, 0),
+        COALESCE((v_part->>'price')::numeric, 0),
+        COALESCE((v_part->>'price')::numeric, 0) * v_quantity,
         v_order.branchid,
-        'Xuất kho khi thanh toán phiếu sửa chữa ' || p_order_id,
+        'Xuất kho khi thanh toán phiếu ' || p_order_id,
         p_order_id
       );
     END LOOP;
@@ -392,79 +379,7 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.work_order_complete_payment TO authenticated;
-COMMENT ON FUNCTION public.work_order_complete_payment 
-IS 'Thanh toán phiếu sửa chữa - Tự động trừ kho khi thanh toán đủ (chỉ 1 lần)';
 
--- =============================================================================
--- QUERY KIỂM TRA KẾT QUẢ (Chạy sau khi script hoàn thành)
--- =============================================================================
-
--- Kiểm tra phiếu SC-20251206-673440
-SELECT 
-  wo.id,
-  wo.paymentstatus,
-  wo.inventory_deducted,
-  jsonb_array_length(wo.partsused) as parts_count,
-  (
-    SELECT COUNT(*)
-    FROM inventory_transactions it
-    WHERE it."workOrderId" = wo.id AND it.type = 'Xuất kho'
-  ) as xuatkho_count
-FROM work_orders wo
-WHERE wo.id = (SELECT id FROM work_orders WHERE creationdate::date = '2025-12-06' ORDER BY creationdate DESC LIMIT 1);
-
--- Kiểm tra tồn kho NHB35P
-SELECT 
-  p.name,
-  p.sku,
-  p.stock
-FROM parts p
-WHERE p.sku = 'NHB35P' OR p.name LIKE '%NHB35P%'
-ORDER BY p.name;
-
--- Thống kê tổng quan
-SELECT 
-  'Tổng phiếu paid (từ 01/11)' as metric,
-  COUNT(*) as count
-FROM work_orders
-WHERE paymentstatus = 'paid' AND creationdate >= '2025-11-01'
-UNION ALL
-SELECT 
-  'Phiếu đã trừ kho',
-  COUNT(*)
-FROM work_orders
-WHERE paymentstatus = 'paid' 
-  AND inventory_deducted = TRUE 
-  AND creationdate >= '2025-11-01'
-UNION ALL
-SELECT 
-  'Phiếu CHƯA trừ kho',
-  COUNT(*)
-FROM work_orders
-WHERE paymentstatus = 'paid' 
-  AND COALESCE(inventory_deducted, FALSE) = FALSE
-  AND creationdate >= '2025-11-01';
-
--- CHI TIẾT 2 phiếu CHƯA trừ kho
-SELECT 
-  wo.id,
-  wo.creationdate,
-  wo.customername,
-  wo.vehiclemodel,
-  wo.licensePlate,
-  wo.total,
-  wo.paymentstatus,
-  wo.inventory_deducted,
-  jsonb_array_length(wo.partsused) as parts_count,
-  wo.partsused,
-  (
-    SELECT COUNT(*)
-    FROM inventory_transactions it
-    WHERE it."workOrderId" = wo.id AND it.type = 'Xuất kho'
-  ) as xuatkho_count
-FROM work_orders wo
-WHERE wo.paymentstatus = 'paid' 
-  AND COALESCE(wo.inventory_deducted, FALSE) = FALSE
-  AND wo.creationdate >= '2025-11-01'
-ORDER BY wo.creationdate DESC;
-
+-- =====================================================================
+-- ✅ XONG! Bây giờ refresh lại website và thử thanh toán
+-- =====================================================================

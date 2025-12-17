@@ -1019,6 +1019,7 @@ const getCategoryLabel = (category?: string) => {
     supplier_payment: "Chi trả NCC",
     utilities: "Điện nước",
     rent: "Tiền thuê mặt bằng",
+    service_cost: "Giá vốn dịch vụ",
   };
   return category ? labels[category] || category : "--";
 };

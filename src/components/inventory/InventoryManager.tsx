@@ -28,6 +28,7 @@ import { safeAudit } from "../../lib/repository/auditLogsRepository";
 import { supabase } from "../../supabaseClient";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
+  usePartsRepo,
   usePartsRepoPaged,
   useCreatePartRepo,
   useUpdatePartRepo,
@@ -3213,6 +3214,7 @@ const InventoryHistorySection: React.FC<{
   const queryClient = useQueryClient();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
   const { data: supplierDebts = [] } = useSupplierDebtsRepo();
+  const { data: parts = [] } = usePartsRepo();
   const [activeTimeFilter, setActiveTimeFilter] = useState("7days");
   const [customStartDate, setCustomStartDate] = useState(
     formatDate(new Date(), true)
@@ -3807,20 +3809,33 @@ const InventoryHistorySection: React.FC<{
 
                         return (
                           <>
-                            {displayItems.map((item, idx) => (
-                              <div
-                                key={item.id}
-                                className="text-xs text-slate-700 dark:text-slate-300"
-                              >
-                                <span className="font-medium">
-                                  {item.quantity} x
-                                </span>{" "}
-                                {item.partName}
-                                <span className="text-slate-400 ml-1">
-                                  ({formatCurrency(item.unitPrice || 0)})
-                                </span>
-                              </div>
-                            ))}
+                            {displayItems.map((item, idx) => {
+                              const part = parts.find(
+                                (p) => p.id === item.partId
+                              );
+                              const sellingPrice =
+                                part?.retailPrice?.[currentBranchId || ""] || 0;
+                              return (
+                                <div
+                                  key={item.id}
+                                  className="text-xs text-slate-700 dark:text-slate-300"
+                                >
+                                  <span className="font-medium">
+                                    {item.quantity} x
+                                  </span>{" "}
+                                  {item.partName}
+                                  <span className="text-slate-400 ml-1">
+                                    (Nhập: {formatCurrency(item.unitPrice || 0)}
+                                    )
+                                  </span>
+                                  {sellingPrice > 0 && (
+                                    <span className="text-emerald-600 dark:text-emerald-400 ml-1">
+                                      • Bán: {formatCurrency(sellingPrice)}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
                             {hasMore && (
                               <button
                                 onClick={() =>
