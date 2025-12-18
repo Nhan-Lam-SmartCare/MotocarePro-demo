@@ -201,9 +201,8 @@ const MainLayout: React.FC = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors pb-20 md:pb-0">
       <Nav />
       <main
-        className={`max-w-[1600px] mx-auto ${
-          isSalesPage ? "p-0" : "p-0 md:p-6"
-        }`}
+        className={`max-w-[1600px] mx-auto ${isSalesPage ? "p-0" : "p-0 md:p-6"
+          }`}
       >
         <Routes>
           <Route path="/" element={<Navigate to="/service" replace />} />

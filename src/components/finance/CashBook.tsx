@@ -451,11 +451,10 @@ const CashBook: React.FC = () => {
               Chênh lệch
             </div>
             <div
-              className={`text-xl font-bold ${
-                summary.balance >= 0
+              className={`text-xl font-bold ${summary.balance >= 0
                   ? "text-blue-900 dark:text-blue-100"
                   : "text-red-600 dark:text-red-400"
-              }`}
+                }`}
             >
               {formatCurrency(summary.balance)}
             </div>
@@ -546,11 +545,10 @@ const CashBook: React.FC = () => {
                   <button
                     key={option.value}
                     onClick={() => setFilterType(option.value as any)}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      filterType === option.value
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${filterType === option.value
                         ? "bg-blue-600 text-white"
                         : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-                    }`}
+                      }`}
                   >
                     {option.label}
                   </button>
@@ -600,11 +598,10 @@ const CashBook: React.FC = () => {
                   <button
                     key={option.value}
                     onClick={() => setFilterDateRange(option.value as any)}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      filterDateRange === option.value
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${filterDateRange === option.value
                         ? "bg-blue-600 text-white"
                         : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-                    }`}
+                      }`}
                   >
                     {option.label}
                   </button>
@@ -642,11 +639,10 @@ const CashBook: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <div
-                      className={`font-bold ${
-                        isIncomeType(tx.type)
+                      className={`font-bold ${isIncomeType(tx.type)
                           ? "text-green-600 dark:text-green-400"
                           : "text-red-600 dark:text-red-400"
-                      }`}
+                        }`}
                     >
                       {isIncomeType(tx.type) ? "+" : "-"}
                       {formatCurrency(Math.abs(tx.amount))}
@@ -785,11 +781,10 @@ const CashBook: React.FC = () => {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                          isIncomeType(tx.type)
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${isIncomeType(tx.type)
                             ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                             : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                        }`}
+                          }`}
                       >
                         {isIncomeType(tx.type) ? "↑ Thu" : "↓ Chi"}
                       </span>
@@ -798,7 +793,7 @@ const CashBook: React.FC = () => {
                       {getCategoryLabel(tx.category)}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium">
-                      {(tx as any).recipient || "--"}
+                      {(tx as any).target_name || (tx as any).recipient || "--"}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
                       <div className="flex flex-col">
@@ -824,14 +819,13 @@ const CashBook: React.FC = () => {
                       })()}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
-                      {profilesMap[(tx as any).created_by] || "--"}
+                      {profilesMap[(tx as any).created_by] || (tx as any).created_by || "--"}
                     </td>
                     <td
-                      className={`px-4 py-3 text-right text-sm font-semibold ${
-                        isIncomeType(tx.type)
+                      className={`px-4 py-3 text-right text-sm font-semibold ${isIncomeType(tx.type)
                           ? "text-green-600 dark:text-green-400"
                           : "text-red-600 dark:text-red-400"
-                      }`}
+                        }`}
                     >
                       {isIncomeType(tx.type) ? "+" : "-"}
                       {formatCurrency(Math.abs(tx.amount))}
@@ -926,13 +920,13 @@ const CashBook: React.FC = () => {
                   prev.map((ps) =>
                     ps.id === transaction.paymentSourceId
                       ? {
-                          ...ps,
-                          balance: {
-                            ...ps.balance,
-                            [currentBranchId]:
-                              (ps.balance[currentBranchId] || 0) + delta,
-                          },
-                        }
+                        ...ps,
+                        balance: {
+                          ...ps.balance,
+                          [currentBranchId]:
+                            (ps.balance[currentBranchId] || 0) + delta,
+                        },
+                      }
                       : ps
                   )
                 );
@@ -1090,11 +1084,10 @@ const AddTransactionModal: React.FC<{
       <div className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[90vh] sm:max-h-[85vh] flex flex-col mb-16 sm:mb-0">
         {/* Header with gradient */}
         <div
-          className={`px-4 py-3 flex-shrink-0 ${
-            type === "income"
+          className={`px-4 py-3 flex-shrink-0 ${type === "income"
               ? "bg-gradient-to-r from-emerald-500 to-green-600"
               : "bg-gradient-to-r from-rose-500 to-red-600"
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -1134,11 +1127,10 @@ const AddTransactionModal: React.FC<{
                 setType("income");
                 setCategory("");
               }}
-              className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                type === "income"
+              className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${type === "income"
                   ? "bg-emerald-500 text-white shadow-md"
                   : "text-slate-600 dark:text-slate-300"
-              }`}
+                }`}
             >
               📥 Thu tiền
             </button>
@@ -1148,11 +1140,10 @@ const AddTransactionModal: React.FC<{
                 setType("expense");
                 setCategory("");
               }}
-              className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                type === "expense"
+              className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${type === "expense"
                   ? "bg-rose-500 text-white shadow-md"
                   : "text-slate-600 dark:text-slate-300"
-              }`}
+                }`}
             >
               📤 Chi tiền
             </button>
@@ -1170,11 +1161,10 @@ const AddTransactionModal: React.FC<{
                 value={amount}
                 onChange={(e) => setAmount(formatNumber(e.target.value))}
                 placeholder="0"
-                className={`w-full px-3 py-2 text-lg font-bold bg-slate-50 dark:bg-slate-700/50 border-2 rounded-lg text-right pr-8 ${
-                  type === "income"
+                className={`w-full px-3 py-2 text-lg font-bold bg-slate-50 dark:bg-slate-700/50 border-2 rounded-lg text-right pr-8 ${type === "income"
                     ? "border-emerald-200 dark:border-emerald-800 focus:border-emerald-500 text-emerald-600 dark:text-emerald-400"
                     : "border-rose-200 dark:border-rose-800 focus:border-rose-500 text-rose-600 dark:text-rose-400"
-                } focus:outline-none`}
+                  } focus:outline-none`}
                 required
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">
@@ -1194,13 +1184,12 @@ const AddTransactionModal: React.FC<{
                   key={cat.value}
                   type="button"
                   onClick={() => setCategory(cat.value)}
-                  className={`p-1.5 rounded-lg text-center transition-all ${
-                    category === cat.value
+                  className={`p-1.5 rounded-lg text-center transition-all ${category === cat.value
                       ? type === "income"
                         ? "bg-emerald-100 dark:bg-emerald-900/30 border-2 border-emerald-500 text-emerald-700 dark:text-emerald-300"
                         : "bg-rose-100 dark:bg-rose-900/30 border-2 border-rose-500 text-rose-700 dark:text-rose-300"
                       : "bg-slate-50 dark:bg-slate-700/50 border-2 border-transparent text-slate-700 dark:text-slate-300"
-                  }`}
+                    }`}
                 >
                   <div className="text-base leading-none">{cat.icon}</div>
                   <div className="text-[8px] font-medium leading-tight mt-0.5">
@@ -1220,22 +1209,20 @@ const AddTransactionModal: React.FC<{
               <button
                 type="button"
                 onClick={() => setPaymentSource("cash")}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${
-                  paymentSource === "cash"
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${paymentSource === "cash"
                     ? "bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-500 text-amber-700 dark:text-amber-300"
                     : "bg-slate-50 dark:bg-slate-700/50 border-2 border-transparent text-slate-600 dark:text-slate-400"
-                }`}
+                  }`}
               >
                 💵 Tiền mặt
               </button>
               <button
                 type="button"
                 onClick={() => setPaymentSource("bank")}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${
-                  paymentSource === "bank"
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${paymentSource === "bank"
                     ? "bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-500 text-blue-700 dark:text-blue-300"
                     : "bg-slate-50 dark:bg-slate-700/50 border-2 border-transparent text-slate-600 dark:text-slate-400"
-                }`}
+                  }`}
               >
                 🏦 Ngân hàng
               </button>
@@ -1293,11 +1280,10 @@ const AddTransactionModal: React.FC<{
           <button
             type="submit"
             form="cashTxForm"
-            className={`w-full py-3.5 rounded-xl font-bold text-white text-base shadow-xl active:scale-95 transition-all ${
-              type === "income"
+            className={`w-full py-3.5 rounded-xl font-bold text-white text-base shadow-xl active:scale-95 transition-all ${type === "income"
                 ? "bg-gradient-to-r from-emerald-500 to-green-600"
                 : "bg-gradient-to-r from-rose-500 to-red-600"
-            }`}
+              }`}
           >
             {type === "income" ? "✓ Xác nhận thu tiền" : "✓ Xác nhận chi tiền"}
           </button>
@@ -1617,9 +1603,8 @@ const DeleteConfirmModal: React.FC<{
                 Loại:
               </span>
               <span
-                className={`text-sm font-medium ${
-                  isIncome ? "text-green-600" : "text-red-600"
-                }`}
+                className={`text-sm font-medium ${isIncome ? "text-green-600" : "text-red-600"
+                  }`}
               >
                 {isIncome ? "Thu" : "Chi"}
               </span>
@@ -1629,9 +1614,8 @@ const DeleteConfirmModal: React.FC<{
                 Số tiền:
               </span>
               <span
-                className={`text-sm font-bold ${
-                  isIncome ? "text-green-600" : "text-red-600"
-                }`}
+                className={`text-sm font-bold ${isIncome ? "text-green-600" : "text-red-600"
+                  }`}
               >
                 {isIncome ? "+" : "-"}
                 {formatCurrency(Math.abs(transaction.amount))}

@@ -70,1767 +70,13 @@ type StockFilter = "all" | "low" | "out";
 const LOW_STOCK_THRESHOLD = 5;
 
 // Sale Detail Modal Component (for viewing/editing sale details)
-interface SaleDetailModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  sale: Sale | null;
-  onPrint: (sale: Sale) => void;
-}
-
-const SaleDetailModal: React.FC<SaleDetailModalProps> = ({
-  isOpen,
-  onClose,
-  sale,
-  onPrint,
-}) => {
-  if (!isOpen || !sale) return null;
-
-  const itemsTotal = sale.items.reduce(
-    (sum, item) => sum + item.quantity * item.sellingPrice,
-    0
-  );
-  const totalDiscount = itemsTotal - sale.total;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-            Chi tiết đơn hàng
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-2xl"
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Sale Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-slate-500 dark:text-slate-400">
-                Mã đơn hàng
-              </label>
-              <div className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                {sale.sale_code || formatAnyId(sale.id) || sale.id}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm text-slate-500 dark:text-slate-400">
-                Ngày tạo
-              </label>
-              <div className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                {formatDate(new Date(sale.date), false)}{" "}
-                {new Date(sale.date).toLocaleTimeString("vi-VN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm text-slate-500 dark:text-slate-400">
-                Khách hàng
-              </label>
-              <div className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                {sale.customer.name}
-              </div>
-              {sale.customer.phone && (
-                <div className="text-sm text-slate-500">
-                  {sale.customer.phone}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="text-sm text-slate-500 dark:text-slate-400">
-                Nhân viên bán hàng
-              </label>
-              <div className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                {(sale as any).username || sale.userName || "N/A"}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm text-slate-500 dark:text-slate-400">
-                Phương thức thanh toán
-              </label>
-              <div className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                {sale.paymentMethod === "cash" ? "Tiền mặt" : "Chuyển khoản"}
-              </div>
-            </div>
-          </div>
-
-          {/* Items Table */}
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">
-              Sản phẩm
-            </h3>
-            <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-slate-50 dark:bg-slate-700">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
-                      Tên sản phẩm
-                    </th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
-                      SL
-                    </th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
-                      Đơn giá
-                    </th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
-                      Thành tiền
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-                  {sale.items.map((item, idx) => (
-                    <tr key={idx}>
-                      <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">
-                        {item.partName}
-                        {item.sku && (
-                          <div className="text-xs text-slate-500">
-                            SKU: {item.sku}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-slate-100">
-                        {item.quantity}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-slate-100">
-                        {formatCurrency(item.sellingPrice)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right font-semibold text-slate-900 dark:text-slate-100">
-                        {formatCurrency(item.quantity * item.sellingPrice)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Summary */}
-          <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">
-                  Tạm tính:
-                </span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">
-                  {formatCurrency(itemsTotal)}
-                </span>
-              </div>
-              {totalDiscount > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">
-                    Giảm giá:
-                  </span>
-                  <span className="font-semibold text-red-600 dark:text-red-400">
-                    -{formatCurrency(totalDiscount)}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between text-lg font-bold border-t border-slate-200 dark:border-slate-700 pt-2">
-                <span className="text-slate-900 dark:text-slate-100">
-                  Tổng cộng:
-                </span>
-                <span className="text-green-600 dark:text-green-400">
-                  {formatCurrency(sale.total)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="flex justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-700">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          >
-            Đóng
-          </button>
-          <button
-            onClick={() => {
-              onPrint(sale);
-              onClose();
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-              />
-            </svg>
-            In hóa đơn
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { SaleDetailModal } from "./modals/SaleDetailModal";
 
 // Edit Sale Modal Component
-interface EditSaleModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  sale: Sale | null;
-  onSave: (updatedSale: {
-    id: string;
-    items: CartItem[];
-    customer: { id?: string; name: string; phone?: string };
-    paymentMethod: "cash" | "bank";
-    discount: number;
-  }) => Promise<void>;
-}
-
-const EditSaleModal: React.FC<EditSaleModalProps> = ({
-  isOpen,
-  onClose,
-  sale,
-  onSave,
-}) => {
-  const { customers, upsertCustomer } = useAppContext();
-  const { data: repoParts = [] } = usePartsRepo();
-  const queryClient = useQueryClient();
-  const { profile } = useAuth();
-
-  const [editItems, setEditItems] = useState<CartItem[]>([]);
-  const [editCustomer, setEditCustomer] = useState({
-    id: "",
-    name: "",
-    phone: "",
-  });
-  const [editPaymentMethod, setEditPaymentMethod] = useState<"cash" | "bank">(
-    "cash"
-  );
-  const [editDiscount, setEditDiscount] = useState(0);
-
-  // State for adding products
-  const [searchPart, setSearchPart] = useState("");
-  const [showPartDropdown, setShowPartDropdown] = useState(false);
-
-  // State for adding customers
-  const [showCustomerForm, setShowCustomerForm] = useState(false);
-  const [newCustomerName, setNewCustomerName] = useState("");
-  const [newCustomerPhone, setNewCustomerPhone] = useState("");
-  const [newCustomerLicensePlate, setNewCustomerLicensePlate] = useState("");
-  const [customerSearchText, setCustomerSearchText] = useState("");
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-
-  // Initialize form when sale changes
-  useEffect(() => {
-    if (sale) {
-      setEditItems([...sale.items]);
-      setEditCustomer({
-        id: sale.customer.id || "",
-        name: sale.customer.name,
-        phone: sale.customer.phone || "",
-      });
-      setCustomerSearchText(sale.customer.name);
-      setEditPaymentMethod(sale.paymentMethod);
-      setEditDiscount(sale.discount || 0);
-    }
-  }, [sale]);
-
-  if (!isOpen || !sale) return null;
-
-  const subtotal = editItems.reduce(
-    (sum, item) => sum + item.quantity * item.sellingPrice,
-    0
-  );
-  const total = subtotal - editDiscount;
-
-  // Filter parts for search
-  const availableParts = repoParts.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchPart.toLowerCase()) ||
-      p.sku.toLowerCase().includes(searchPart.toLowerCase())
-  );
-
-  // Filter customers for search (by name, phone, or license plate)
-  const filteredCustomers = customers.filter((c) => {
-    const q = customerSearchText.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(q) ||
-      c.phone?.toLowerCase().includes(q) ||
-      (c.vehicles &&
-        c.vehicles.some((v: any) => v.licensePlate?.toLowerCase().includes(q)))
-    );
-  });
-
-  const handleAddPart = (part: Part) => {
-    // Check if current branch has stock
-    const branchStock =
-      typeof part.stock === "object"
-        ? part.stock[sale.branchId] || 0
-        : part.stock;
-
-    // Get selling price for current branch
-    const branchPrice =
-      typeof part.retailPrice === "object"
-        ? part.retailPrice[sale.branchId] || 0
-        : part.retailPrice || 0;
-
-    const existing = editItems.find((i) => i.partId === part.id);
-    if (existing) {
-      // Increase quantity
-      setEditItems(
-        editItems.map((i) =>
-          i.partId === part.id ? { ...i, quantity: i.quantity + 1 } : i
-        )
-      );
-    } else {
-      // Add new item
-      setEditItems([
-        ...editItems,
-        {
-          partId: part.id,
-          partName: part.name,
-          sku: part.sku,
-          quantity: 1,
-          sellingPrice: branchPrice,
-          stockSnapshot: typeof branchStock === "number" ? branchStock : 0,
-        },
-      ]);
-    }
-    setSearchPart("");
-    setShowPartDropdown(false);
-  };
-
-  const handleSelectCustomer = (customer: Customer) => {
-    setEditCustomer({
-      id: customer.id,
-      name: customer.name,
-      phone: customer.phone || "",
-    });
-    setCustomerSearchText(customer.name);
-    setShowCustomerDropdown(false);
-  };
-
-  const handleAddNewCustomer = async () => {
-    if (!newCustomerName.trim()) {
-      showToast.error("Vui lòng nhập tên khách hàng");
-      return;
-    }
-
-    try {
-      const newCustomer: Customer = {
-        id: crypto.randomUUID(),
-        name: newCustomerName,
-        phone: newCustomerPhone || undefined,
-        email: "",
-        created_at: new Date().toISOString(),
-        vehicles: newCustomerLicensePlate.trim()
-          ? [{ licensePlate: newCustomerLicensePlate.trim().toUpperCase() }]
-          : undefined,
-      };
-
-      await upsertCustomer(newCustomer);
-
-      setEditCustomer({
-        id: newCustomer.id,
-        name: newCustomer.name,
-        phone: newCustomer.phone || "",
-      });
-      setCustomerSearchText(newCustomer.name);
-      setShowCustomerForm(false);
-      setNewCustomerName("");
-      setNewCustomerPhone("");
-      setNewCustomerLicensePlate("");
-      showToast.success("Thêm khách hàng thành công");
-    } catch (error) {
-      console.error("Error adding customer:", error);
-      showToast.error("Lỗi khi thêm khách hàng");
-    }
-  };
-
-  const handleUpdateQuantity = (partId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      setEditItems(editItems.filter((i) => i.partId !== partId));
-    } else {
-      setEditItems(
-        editItems.map((i) =>
-          i.partId === partId ? { ...i, quantity: newQuantity } : i
-        )
-      );
-    }
-  };
-
-  const handleUpdatePrice = (partId: string, newPrice: number) => {
-    setEditItems(
-      editItems.map((i) =>
-        i.partId === partId ? { ...i, sellingPrice: newPrice } : i
-      )
-    );
-  };
-
-  const handleRemoveItem = (partId: string) => {
-    setEditItems(editItems.filter((i) => i.partId !== partId));
-  };
-
-  const handleSave = async () => {
-    if (editItems.length === 0) {
-      showToast.error("Vui lòng có ít nhất một sản phẩm");
-      return;
-    }
-    if (!editCustomer.name) {
-      showToast.error("Vui lòng nhập tên khách hàng");
-      return;
-    }
-
-    try {
-      await onSave({
-        id: sale.id,
-        items: editItems,
-        customer: editCustomer,
-        paymentMethod: editPaymentMethod,
-        discount: editDiscount,
-      });
-      // Success toast will be shown by onSave callback
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["salesRepoPaged"] });
-      onClose();
-    } catch (error) {
-      console.error("Error saving sale:", error);
-      // Error toast will be shown by onSave callback
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-2xl max-h-[95vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-            ✏️ [Chỉnh sửa] Đơn Xuất Bán {sale.sale_code || formatAnyId(sale.id)}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-2xl leading-none"
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Thời gian bán hàng */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Thời gian bán hàng:
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={formatDate(new Date(sale.date), false)}
-                disabled
-                className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-              />
-              <input
-                type="text"
-                value={new Date(sale.date).toLocaleTimeString("vi-VN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-                disabled
-                className="w-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-center"
-              />
-            </div>
-          </div>
-
-          {/* Khách hàng */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Khách hàng: ℹ️
-            </label>
-            {!showCustomerForm ? (
-              <>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      value={customerSearchText}
-                      onChange={(e) => {
-                        setCustomerSearchText(e.target.value);
-                        setShowCustomerDropdown(true);
-                      }}
-                      onFocus={() => setShowCustomerDropdown(true)}
-                      placeholder="Tìm kiếm và chọn một khách hàng"
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                    />
-                    {showCustomerDropdown && filteredCustomers.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
-                        {filteredCustomers.slice(0, 10).map((customer) => (
-                          <button
-                            key={customer.id}
-                            onClick={() => handleSelectCustomer(customer)}
-                            className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-600 text-sm"
-                          >
-                            <div className="font-medium text-slate-900 dark:text-slate-100">
-                              {customer.name}
-                            </div>
-                            {customer.phone && (
-                              <div className="text-xs text-slate-500">
-                                {customer.phone}
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setShowCustomerForm(true)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    Thêm mới
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="border border-slate-300 dark:border-slate-600 rounded-lg p-3 space-y-2">
-                <input
-                  type="text"
-                  value={newCustomerName}
-                  onChange={(e) => setNewCustomerName(e.target.value)}
-                  placeholder="Tên khách hàng"
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                />
-                <input
-                  type="tel"
-                  value={newCustomerPhone}
-                  onChange={(e) => setNewCustomerPhone(e.target.value)}
-                  placeholder="Số điện thoại (tùy chọn)"
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                />
-                <input
-                  type="text"
-                  value={newCustomerLicensePlate}
-                  onChange={(e) =>
-                    setNewCustomerLicensePlate(e.target.value.toUpperCase())
-                  }
-                  placeholder="Biển số xe (tùy chọn)"
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAddNewCustomer}
-                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Lưu
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowCustomerForm(false);
-                      setNewCustomerName("");
-                      setNewCustomerPhone("");
-                      setNewCustomerLicensePlate("");
-                    }}
-                    className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300"
-                  >
-                    Hủy
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Chi tiết sản phẩm */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Chi tiết sản phẩm:
-              </label>
-            </div>
-
-            {/* Product search */}
-            <div className="relative mb-3">
-              <input
-                type="text"
-                value={searchPart}
-                onChange={(e) => {
-                  setSearchPart(e.target.value);
-                  setShowPartDropdown(true);
-                }}
-                onFocus={() => setShowPartDropdown(true)}
-                placeholder="Tìm kiếm và thêm sản phẩm..."
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-              />
-              {showPartDropdown && searchPart && availableParts.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
-                  {availableParts.slice(0, 10).map((part) => (
-                    <button
-                      key={part.id}
-                      onClick={() => handleAddPart(part)}
-                      className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-600 text-sm"
-                    >
-                      <div className="font-medium text-slate-900 dark:text-slate-100">
-                        {part.name}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        SKU: {part.sku}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-slate-50 dark:bg-slate-700">
-                  <tr>
-                    <th className="text-center px-2 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 w-8">
-                      -
-                    </th>
-                    <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                      Tên
-                    </th>
-                    <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 w-20">
-                      SL
-                    </th>
-                    <th className="text-right px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 w-24">
-                      Đơn giá
-                    </th>
-                    <th className="text-right px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 w-28">
-                      Thành tiền
-                    </th>
-                    <th className="w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-                  {editItems.map((item, idx) => (
-                    <tr key={item.partId}>
-                      <td className="px-2 py-2 text-center text-sm text-slate-900 dark:text-slate-100">
-                        {idx + 1}
-                      </td>
-                      <td className="px-3 py-2 text-sm">
-                        <div className="font-medium text-slate-900 dark:text-slate-100">
-                          {item.partName}
-                        </div>
-                        <div className="text-xs text-slate-500">{item.sku}</div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            handleUpdateQuantity(
-                              item.partId,
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          min="1"
-                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <NumberInput
-                          value={item.sellingPrice}
-                          onChange={(val) =>
-                            handleUpdatePrice(item.partId, val)
-                          }
-                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {formatCurrency(item.quantity * item.sellingPrice)}
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <button
-                          onClick={() => handleRemoveItem(item.partId)}
-                          className="text-slate-400 hover:text-red-600 transition-colors"
-                        >
-                          <XMarkIcon className="w-5 h-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {editItems.length === 0 && (
-              <div className="text-center py-8 text-slate-400 text-sm">
-                Chưa có sản phẩm nào
-              </div>
-            )}
-            {editItems.length > 0 && (
-              <div className="mt-2 text-right">
-                <div className="text-sm text-slate-600 dark:text-slate-400">
-                  TỔNG:
-                </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {formatCurrency(subtotal)}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Chọn nhân viên bán hàng */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Chọn nhân viên bán hàng
-            </label>
-            <select
-              disabled
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-            >
-              <option>{(sale as any).username || sale.userName}</option>
-            </select>
-          </div>
-
-          {/* Công nợ section */}
-          <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Công nợ:
-            </label>
-            <div className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-              Khách hàng phải thanh toán
-            </div>
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 mb-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-green-700 dark:text-green-400">
-                  TỔNG PHẢI THU:
-                </span>
-                <span className="text-lg font-bold text-green-700 dark:text-green-400">
-                  {formatCurrency(total)}
-                </span>
-              </div>
-              <div className="mt-2 flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
-                <input type="checkbox" checked readOnly />
-                <span>Đã thanh toán đủ</span>
-              </div>
-            </div>
-
-            {/* Payment method buttons */}
-            <div className="mb-3">
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-2">
-                - Thời gian Người thu - Ghi chú
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setEditPaymentMethod("cash")}
-                  className={`flex-1 py-2 rounded-lg border transition-colors text-sm font-medium ${
-                    editPaymentMethod === "cash"
-                      ? "bg-green-600 text-white border-green-600"
-                      : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  Tiền mặt
-                </button>
-                <button
-                  onClick={() => setEditPaymentMethod("bank")}
-                  className={`flex-1 py-2 rounded-lg border transition-colors text-sm font-medium ${
-                    editPaymentMethod === "bank"
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  Chuyển khoản
-                </button>
-              </div>
-            </div>
-
-            {/* Payment details table */}
-            <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-700">
-                  <tr>
-                    <th className="text-center px-2 py-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                      -
-                    </th>
-                    <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                      Thời gian
-                    </th>
-                    <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                      Người thu - Ghi chú
-                    </th>
-                    <th className="text-right px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                      Số tiền
-                    </th>
-                    <th className="w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-slate-800">
-                  <tr>
-                    <td className="px-2 py-2 text-center text-slate-900 dark:text-slate-100">
-                      1
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="text-slate-900 dark:text-slate-100">
-                        {new Date(sale.date).toLocaleTimeString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}{" "}
-                        {formatDate(new Date(sale.date), false)}
-                      </div>
-                      <div className="text-xs text-slate-500">(Tiền mặt)</div>
-                    </td>
-                    <td className="px-3 py-2 text-slate-900 dark:text-slate-100">
-                      {(sale as any).username || sale.userName}
-                    </td>
-                    <td className="px-3 py-2 text-right text-slate-900 dark:text-slate-100">
-                      {formatCurrency(total)}
-                    </td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-2 text-right">
-              <div className="text-sm text-slate-600 dark:text-slate-400">
-                Tổng đã thu
-              </div>
-              <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                {formatCurrency(total)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors font-medium"
-          >
-            ĐÓNG
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={editItems.length === 0}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-          >
-            LƯU
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { EditSaleModal } from "./modals/EditSaleModal";
 
 // Sales History Modal Component (refactored to accept pagination & search props)
-interface SalesHistoryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  sales: Sale[];
-  currentBranchId: string;
-  onPrintReceipt: (sale: Sale) => void;
-  onEditSale: (sale: Sale) => void;
-  onDeleteSale: (saleId: string) => void;
-  page: number;
-  totalPages: number;
-  total: number;
-  hasMore: boolean;
-  pageSize: number;
-  onPrevPage: () => void;
-  onNextPage: () => void;
-  onPageSizeChange: (size: number) => void;
-  search: string;
-  onSearchChange: (s: string) => void;
-  fromDate?: string;
-  toDate?: string;
-  onDateRangeChange: (from?: string, to?: string) => void;
-  status?: "all" | "completed" | "cancelled" | "refunded";
-  onStatusChange?: (s: "all" | "completed" | "cancelled" | "refunded") => void;
-  paymentMethodFilter?: "all" | "cash" | "bank";
-  onPaymentMethodFilterChange?: (m: "all" | "cash" | "bank") => void;
-  keysetMode?: boolean;
-  onToggleKeyset?: (checked: boolean) => void;
-  customerDebts?: any[]; // Add customerDebts prop
-}
-
-const SalesHistoryModal: React.FC<SalesHistoryModalProps> = ({
-  isOpen,
-  onClose,
-  sales,
-  currentBranchId,
-  onPrintReceipt,
-  onEditSale,
-  onDeleteSale,
-  page,
-  totalPages,
-  total,
-  hasMore,
-  pageSize,
-  onPrevPage,
-  onNextPage,
-  onPageSizeChange,
-  search,
-  onSearchChange,
-  fromDate,
-  toDate,
-  onDateRangeChange,
-  status = "all",
-  onStatusChange,
-  paymentMethodFilter = "all",
-  onPaymentMethodFilterChange,
-  keysetMode = false,
-  onToggleKeyset,
-  customerDebts = [], // Destructure customerDebts with default value
-}) => {
-  const { profile } = useAuth();
-  const [activeTimeFilter, setActiveTimeFilter] = useState("7days");
-  const [searchText, setSearchText] = useState("");
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
-  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [dropdownOpenSaleId, setDropdownOpenSaleId] = useState<string | null>(
-    null
-  );
-  const [salesDropdownPos, setSalesDropdownPos] = useState({
-    top: 0,
-    right: 0,
-  });
-
-  // Compute date range when filter changes
-  useEffect(() => {
-    const today = new Date();
-    const startOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate()
-    );
-    const endOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-      23,
-      59,
-      59,
-      999
-    );
-    let from: Date | undefined;
-    let to: Date | undefined;
-    switch (activeTimeFilter) {
-      case "today":
-        from = startOfDay;
-        to = endOfDay;
-        break;
-      case "week": {
-        // Current week (Monday to Sunday)
-        const dayOfWeek = today.getDay();
-        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday
-        const monday = new Date(today);
-        monday.setDate(today.getDate() + diff);
-        from = new Date(
-          monday.getFullYear(),
-          monday.getMonth(),
-          monday.getDate()
-        );
-        to = endOfDay;
-        break;
-      }
-      case "month": {
-        // Current month
-        from = new Date(today.getFullYear(), today.getMonth(), 1);
-        to = endOfDay;
-        break;
-      }
-      case "7days": {
-        const s = new Date(today);
-        s.setDate(s.getDate() - 6);
-        from = new Date(s.getFullYear(), s.getMonth(), s.getDate());
-        to = endOfDay;
-        break;
-      }
-      case "30days": {
-        const s = new Date(today);
-        s.setDate(s.getDate() - 29);
-        from = new Date(s.getFullYear(), s.getMonth(), s.getDate());
-        to = endOfDay;
-        break;
-      }
-      case "custom": {
-        if (customStartDate && customEndDate) {
-          from = new Date(customStartDate);
-          to = new Date(customEndDate + "T23:59:59");
-        }
-        break;
-      }
-      case "all":
-        from = undefined;
-        to = undefined;
-        break;
-    }
-    onDateRangeChange(
-      from ? from.toISOString() : undefined,
-      to ? to.toISOString() : undefined
-    );
-  }, [activeTimeFilter, customStartDate, customEndDate, onDateRangeChange]);
-
-  // Filter and sort sales
-  const filteredSales = useMemo(() => {
-    let filtered = sales.filter(
-      (sale) =>
-        sale.branchId === currentBranchId ||
-        (sale as any).branchid === currentBranchId
-    );
-
-    // Search filter
-    if (searchText) {
-      filtered = filtered.filter(
-        (sale) =>
-          sale.id.toLowerCase().includes(searchText.toLowerCase()) ||
-          (sale.sale_code || "")
-            .toLowerCase()
-            .includes(searchText.toLowerCase()) ||
-          sale.customer.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          ((sale as any).username || sale.userName || "")
-            .toLowerCase()
-            .includes(searchText.toLowerCase())
-      );
-    }
-
-    // Sort by date desc
-    filtered.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
-    return filtered;
-  }, [sales, currentBranchId, searchText]);
-
-  // Calculate total revenue
-  const totalRevenue = useMemo(() => {
-    return filteredSales.reduce((sum, sale) => sum + sale.total, 0);
-  }, [filteredSales]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (!target.closest(".dropdown-menu-container")) {
-        setDropdownOpenSaleId(null);
-      }
-    };
-    if (dropdownOpenSaleId) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [dropdownOpenSaleId]);
-
-  if (!isOpen) return null;
-
-  return (
-    <React.Fragment>
-      <div className="fixed inset-0 bg-black/60 z-50 flex md:items-center md:justify-center items-end justify-center p-0 md:p-4">
-        <div className="bg-white dark:bg-slate-800 w-full md:max-w-7xl max-h-[95vh] md:rounded-2xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-bottom">
-          {/* Header with time filter and stats */}
-          <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/70 backdrop-blur">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                  Lịch sử bán hàng
-                </p>
-                <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Theo dõi giao dịch gần đây
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                className="text-slate-500 hover:text-slate-900 dark:hover:text-white text-2xl leading-none px-2"
-                aria-label="Đóng lịch sử bán hàng"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Time filter buttons */}
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-thin">
-                {[
-                  { key: "7days", label: "7 ngày qua" },
-                  { key: "week", label: "Tuần" },
-                  { key: "month", label: "Tháng" },
-                  { key: "30days", label: "30 ngày qua" },
-                  { key: "custom", label: "Tùy chọn" },
-                  { key: "all", label: "Tất cả" },
-                ].map((filter) => (
-                  <button
-                    key={filter.key}
-                    onClick={() => setActiveTimeFilter(filter.key)}
-                    className={`px-4 py-2 rounded-2xl text-sm font-medium whitespace-nowrap border transition-all min-w-[96px] ${
-                      activeTimeFilter === filter.key
-                        ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/30"
-                        : "bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-transparent"
-                    }`}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Search and stats */}
-              <div className="flex flex-col md:flex-row md:items-center gap-3">
-                <div className="w-full md:flex-1 relative">
-                  <input
-                    type="text"
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    placeholder="Tìm hóa đơn, khách hàng hoặc mã phiếu"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
-                  />
-                  <svg
-                    className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M11 19a8 8 0 100-16 8 8 0 000 16z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M21 21l-4.3-4.3"
-                    />
-                  </svg>
-                </div>
-                <div className="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto">
-                  <div className="text-right">
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Tổng doanh thu
-                    </div>
-                    <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                      {formatCurrency(totalRevenue)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Custom date range picker */}
-              {activeTimeFilter === "custom" && (
-                <div className="flex flex-col md:flex-row md:items-center gap-3">
-                  <label className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                    Từ
-                    <input
-                      type="date"
-                      value={customStartDate}
-                      onChange={(e) => setCustomStartDate(e.target.value)}
-                      className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm"
-                    />
-                  </label>
-                  <label className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                    Đến
-                    <input
-                      type="date"
-                      value={customEndDate}
-                      onChange={(e) => setCustomEndDate(e.target.value)}
-                      className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm"
-                    />
-                  </label>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Sales list */}
-          <div className="flex-1 overflow-y-auto">
-            {filteredSales.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                Không có hóa đơn nào
-              </div>
-            ) : (
-              <div>
-                {/* Header Row */}
-                <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 bg-slate-100 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 sticky top-0 z-10">
-                  <div className="col-span-1 text-xs font-semibold text-slate-600 dark:text-slate-300"></div>
-                  <div className="col-span-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Mã phiếu
-                  </div>
-                  <div className="col-span-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Khách hàng
-                  </div>
-                  <div className="col-span-4 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Chi tiết
-                  </div>
-                  <div className="col-span-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Thanh toán
-                  </div>
-                  <div className="col-span-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Thao tác
-                  </div>
-                </div>
-
-                {/* Sales List */}
-                <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {filteredSales.map((sale) => {
-                    const saleDate = new Date(sale.date);
-                    const subtotal = sale.items.reduce(
-                      (sum, item) =>
-                        sum + item.quantity * (item as any).sellingPrice,
-                      0
-                    );
-
-                    // Check if this sale has debt
-                    const saleDebt = (customerDebts || []).find((debt) =>
-                      debt.description?.includes(sale.sale_code || sale.id)
-                    );
-
-                    const paidAmount = saleDebt
-                      ? saleDebt.totalAmount - saleDebt.remainingAmount
-                      : sale.total;
-                    const remainingDebt = saleDebt?.remainingAmount || 0;
-                    const hasDebt = remainingDebt > 0;
-                    const itemDisplayLimit = 3;
-                    const displayItems = sale.items.slice(0, itemDisplayLimit);
-                    const remainingItems =
-                      sale.items.length - displayItems.length;
-                    const formattedDate = saleDate.toLocaleDateString("vi-VN", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    });
-                    const formattedTime = saleDate.toLocaleTimeString("vi-VN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    });
-                    const customerInitial = (
-                      sale.customer?.name?.charAt(0) || "K"
-                    ).toUpperCase();
-                    const paymentLabel =
-                      sale.paymentMethod === "cash"
-                        ? "Tiền mặt"
-                        : "Chuyển khoản";
-
-                    return (
-                      <div
-                        key={sale.id}
-                        className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                      >
-                        {/* Mobile friendly card */}
-                        <div className="md:hidden flex flex-col gap-3 bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              {sale.sale_code && (
-                                <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-300">
-                                  <Receipt className="w-4 h-4" />
-                                  {sale.sale_code}
-                                </div>
-                              )}
-                              <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1">
-                                <CalendarDays className="w-3.5 h-3.5" />
-                                <span>
-                                  {formattedDate} · {formattedTime}
-                                </span>
-                              </div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1">
-                                <span className="font-medium text-slate-600 dark:text-slate-300">
-                                  NV
-                                </span>
-                                <span>
-                                  {sale.userName ||
-                                    (sale as any).username ||
-                                    "N/A"}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs text-slate-500 dark:text-slate-400">
-                                Tổng tiền
-                              </div>
-                              <div className="text-lg font-bold text-slate-900 dark:text-white">
-                                {formatCurrency(sale.total)}
-                              </div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 justify-end mt-1">
-                                {sale.paymentMethod === "cash" ? (
-                                  <Banknote className="w-4 h-4" />
-                                ) : (
-                                  <CreditCard className="w-4 h-4" />
-                                )}
-                                <span>{paymentLabel}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/30 rounded-2xl p-3">
-                            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-200 font-semibold">
-                              {customerInitial}
-                            </div>
-                            <div>
-                              <div className="text-base font-semibold text-slate-900 dark:text-white">
-                                {sale.customer?.name || "Khách vãng lai"}
-                              </div>
-                              {sale.customer?.phone && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                  <svg
-                                    className="w-3.5 h-3.5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M2 5.5C2 4.119 3.12 3 4.5 3h1.76c.636 0 1.197.4 1.39 1.005l.8 2.47a1.5 1.5 0 01-.35 1.46L7.11 8.94a12.044 12.044 0 005.95 5.95l1.006-1.002a1.5 1.5 0 011.46-.349l2.469.8c.606.193 1.005.754 1.005 1.39V19.5c0 1.38-1.119 2.5-2.5 2.5h-.25C8.268 22 2 15.732 2 7.75v-.25z"
-                                    />
-                                  </svg>
-                                  {sale.customer.phone}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            {displayItems.map((item, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-start justify-between text-sm text-slate-700 dark:text-slate-200"
-                              >
-                                <div>
-                                  <span className="font-semibold">
-                                    {item.quantity} x {item.partName}
-                                  </span>
-                                  <div className="text-xs text-slate-400">
-                                    {formatCurrency(
-                                      (item as any).sellingPrice || 0
-                                    )}{" "}
-                                    / sản phẩm
-                                  </div>
-                                </div>
-                                <span className="font-bold text-slate-900 dark:text-white">
-                                  {formatCurrency(
-                                    item.quantity *
-                                      ((item as any).sellingPrice || 0)
-                                  )}
-                                </span>
-                              </div>
-                            ))}
-                            {remainingItems > 0 && (
-                              <div className="text-xs text-slate-500 dark:text-slate-400">
-                                +{remainingItems} sản phẩm khác
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-wrap gap-2">
-                            {hasDebt ? (
-                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-200">
-                                ⚠️ Còn nợ {formatCurrency(remainingDebt)}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-200">
-                                ✓ Đã thanh toán
-                              </span>
-                            )}
-                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                              {paymentLabel}
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2 pt-3 border-t border-dashed border-slate-200 dark:border-slate-700">
-                            <button
-                              onClick={() => onPrintReceipt(sale)}
-                              className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium"
-                            >
-                              In hoá đơn
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedSale(sale);
-                                setShowDetailModal(true);
-                              }}
-                              className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium"
-                            >
-                              Xem chi tiết
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedSale(sale);
-                                setShowEditModal(true);
-                              }}
-                              className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium"
-                            >
-                              Chỉnh sửa
-                            </button>
-                            {canDo(profile?.role, "sale.delete") && (
-                              <button
-                                onClick={() => onDeleteSale(sale.id)}
-                                className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 text-sm font-medium"
-                              >
-                                Xóa đơn
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="hidden md:grid grid-cols-12 gap-4 items-start">
-                          {/* Checkbox */}
-                          <div className="col-span-1 flex items-start pt-1">
-                            <input
-                              type="checkbox"
-                              className="w-4 h-4 rounded border-slate-300"
-                            />
-                          </div>
-
-                          {/* Cột 1: Mã Phiếu + Thông tin */}
-                          <div className="col-span-2">
-                            <div className="space-y-1">
-                              {sale.sale_code && (
-                                <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                                  {sale.sale_code}
-                                </div>
-                              )}
-                              <div className="text-xs text-slate-500 dark:text-slate-400">
-                                {saleDate.getDate()}/{saleDate.getMonth() + 1}/
-                                {saleDate.getFullYear()}{" "}
-                                {String(saleDate.getHours()).padStart(2, "0")}:
-                                {String(saleDate.getMinutes()).padStart(2, "0")}
-                              </div>
-                              <div className="text-xs text-slate-600 dark:text-slate-300">
-                                <span className="font-medium">NV:</span>{" "}
-                                {sale.userName ||
-                                  (sale as any).username ||
-                                  "N/A"}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Cột 2: Khách hàng */}
-                          <div className="col-span-2">
-                            <div className="space-y-1">
-                              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                {sale.customer?.name || "Khách vãng lai"}
-                              </div>
-                              {sale.customer?.phone && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400">
-                                  📞 {sale.customer.phone}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Cột 3: Chi tiết sản phẩm */}
-                          <div className="col-span-4">
-                            <div className="space-y-1">
-                              {sale.items.map((item, idx) => (
-                                <div
-                                  key={idx}
-                                  className="text-xs text-slate-700 dark:text-slate-300"
-                                >
-                                  <span className="font-medium">
-                                    {item.quantity} x
-                                  </span>{" "}
-                                  {item.partName}
-                                  <span className="text-slate-400 ml-1">
-                                    (
-                                    {formatCurrency(
-                                      (item as any).sellingPrice || 0
-                                    )}
-                                    )
-                                  </span>
-                                  {" = "}
-                                  <span className="font-semibold text-slate-900 dark:text-slate-100">
-                                    {formatCurrency(
-                                      item.quantity *
-                                        ((item as any).sellingPrice || 0)
-                                    )}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Cột 4: Thông tin thanh toán */}
-                          <div className="col-span-2">
-                            <div className="space-y-1">
-                              <div className="text-xs text-slate-600 dark:text-slate-400">
-                                Tổng tiền:
-                              </div>
-                              <div className="text-base font-bold text-slate-900 dark:text-slate-100">
-                                {formatCurrency(sale.total)}
-                              </div>
-
-                              {/* Payment details */}
-                              {hasDebt ? (
-                                <div className="mt-2 space-y-1">
-                                  <div className="text-xs text-green-600 dark:text-green-400">
-                                    Đã trả: {formatCurrency(paidAmount)}
-                                  </div>
-                                  <div className="text-xs font-semibold text-red-600 dark:text-red-400">
-                                    Còn nợ: {formatCurrency(remainingDebt)}
-                                  </div>
-                                  <div className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                                    ⚠️ Còn nợ
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="mt-2">
-                                  <div className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                                    ✓ Đã thanh toán
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="text-xs text-slate-500 mt-1">
-                                {sale.paymentMethod === "cash"
-                                  ? "💵 Tiền mặt"
-                                  : "🏦 Chuyển khoản"}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Actions */}
-                          <div className="col-span-1 flex items-start justify-end gap-2 pt-1">
-                            <button
-                              onClick={() => {
-                                setSelectedSale(sale);
-                                setShowEditModal(true);
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                              title="Chỉnh sửa"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </button>
-                            <div className="relative dropdown-menu-container">
-                              <button
-                                onClick={(e) => {
-                                  const rect =
-                                    e.currentTarget.getBoundingClientRect();
-                                  setSalesDropdownPos({
-                                    top: rect.bottom + 4,
-                                    right: window.innerWidth - rect.right,
-                                  });
-                                  setDropdownOpenSaleId(
-                                    dropdownOpenSaleId === sale.id
-                                      ? null
-                                      : sale.id
-                                  );
-                                }}
-                                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                                title="Tùy chọn"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <circle cx="12" cy="5" r="2" />
-                                  <circle cx="12" cy="12" r="2" />
-                                  <circle cx="12" cy="19" r="2" />
-                                </svg>
-                              </button>
-                              {dropdownOpenSaleId === sale.id && (
-                                <div
-                                  className="fixed w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-[9999]"
-                                  style={{
-                                    top: salesDropdownPos.top,
-                                    right: salesDropdownPos.right,
-                                  }}
-                                >
-                                  <button
-                                    onClick={() => {
-                                      onPrintReceipt(sale);
-                                      setDropdownOpenSaleId(null);
-                                    }}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 rounded-t-lg"
-                                  >
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-                                      />
-                                    </svg>
-                                    In lại hóa đơn
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedSale(sale);
-                                      setShowDetailModal(true);
-                                      setDropdownOpenSaleId(null);
-                                    }}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
-                                  >
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                      />
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                      />
-                                    </svg>
-                                    Xem chi tiết
-                                  </button>
-                                  {canDo(profile?.role, "sale.delete") && (
-                                    <button
-                                      onClick={() => {
-                                        if (onDeleteSale) {
-                                          onDeleteSale(sale.id);
-                                        }
-                                        setDropdownOpenSaleId(null);
-                                      }}
-                                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 rounded-b-lg"
-                                    >
-                                      <svg
-                                        className="w-4 h-4"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                        />
-                                      </svg>
-                                      Xóa hóa đơn
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer with pagination */}
-          <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-            <div className="text-sm text-slate-600 dark:text-slate-400">
-              Hiển thị {filteredSales.length} đơn hàng
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Sale Detail Modal */}
-      <SaleDetailModal
-        isOpen={showDetailModal}
-        onClose={() => {
-          setShowDetailModal(false);
-          setSelectedSale(null);
-        }}
-        sale={selectedSale}
-        onPrint={onPrintReceipt}
-      />
-
-      {/* Edit Sale Modal */}
-      <EditSaleModal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setSelectedSale(null);
-        }}
-        sale={selectedSale}
-        onSave={async (updatedSale) => {
-          try {
-            // Import supabase directly for update
-            const { supabase } = await import("../../supabaseClient");
-            const { profile: currentProfile } = await import(
-              "../../contexts/AuthContext"
-            ).then((m) => ({ profile: null }));
-
-            // Calculate new total
-            const subtotal = updatedSale.items.reduce(
-              (sum, item) => sum + item.quantity * item.sellingPrice,
-              0
-            );
-            const newTotal = subtotal - updatedSale.discount;
-
-            // Update sales record
-            const { error: updateError } = await supabase
-              .from("sales")
-              .update({
-                items: updatedSale.items,
-                customer: updatedSale.customer,
-                paymentmethod: updatedSale.paymentMethod,
-                discount: updatedSale.discount,
-                total: newTotal,
-              })
-              .eq("id", updatedSale.id);
-
-            if (updateError) {
-              throw updateError;
-            }
-
-            // Audit log
-            await safeAudit(null, {
-              action: "sale_update",
-              tableName: "sales",
-              recordId: updatedSale.id,
-              newData: {
-                items: updatedSale.items,
-                customer: updatedSale.customer,
-                paymentMethod: updatedSale.paymentMethod,
-                discount: updatedSale.discount,
-                total: newTotal,
-              },
-            });
-
-            // Invalidate queries to refresh data immediately
-            queryClient.invalidateQueries({ queryKey: ["salesRepo"] });
-            queryClient.invalidateQueries({ queryKey: ["salesRepoPaged"] });
-            queryClient.invalidateQueries({ queryKey: ["salesRepoKeyset"] });
-
-            showToast.success("Đã cập nhật đơn hàng thành công");
-            setShowEditModal(false);
-            setSelectedSale(null);
-          } catch (error) {
-            console.error("Error updating sale:", error);
-            showToast.error(
-              "Lỗi khi cập nhật đơn hàng: " + (error as any).message
-            );
-          }
-        }}
-      />
-    </React.Fragment>
-  );
-};
+import { SalesHistoryModal } from "./modals/SalesHistoryModal";
 
 const SalesManager: React.FC = () => {
   const {
@@ -1893,10 +139,10 @@ const SalesManager: React.FC = () => {
       salesStatus === "all"
         ? undefined
         : salesStatus === "cancelled"
-        ? "refunded"
-        : salesStatus === "completed"
-        ? "completed"
-        : salesStatus,
+          ? "refunded"
+          : salesStatus === "completed"
+            ? "completed"
+            : salesStatus,
     paymentMethod:
       salesPaymentMethod === "all" ? undefined : salesPaymentMethod,
   };
@@ -2566,34 +812,34 @@ const SalesManager: React.FC = () => {
     activeClass: string;
     inactiveClass: string;
   }> = [
-    {
-      key: "all",
-      label: "Tất cả",
-      count: filteredParts.length,
-      activeClass:
-        "bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-transparent shadow-blue-500/30",
-      inactiveClass:
-        "bg-white/80 dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700",
-    },
-    {
-      key: "low",
-      label: "Tồn thấp",
-      count: lowStockCount,
-      activeClass:
-        "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-transparent shadow-amber-500/30",
-      inactiveClass:
-        "bg-white/80 dark:bg-slate-900/50 text-amber-700 dark:text-amber-200 border border-amber-200/70 dark:border-amber-800/60",
-    },
-    {
-      key: "out",
-      label: "Hết hàng",
-      count: outOfStockCount,
-      activeClass:
-        "bg-gradient-to-r from-rose-500 to-red-500 text-white border-transparent shadow-rose-500/30",
-      inactiveClass:
-        "bg-white/80 dark:bg-slate-900/50 text-rose-700 dark:text-rose-200 border border-rose-200/70 dark:border-rose-800/60",
-    },
-  ];
+      {
+        key: "all",
+        label: "Tất cả",
+        count: filteredParts.length,
+        activeClass:
+          "bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-transparent shadow-blue-500/30",
+        inactiveClass:
+          "bg-white/80 dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700",
+      },
+      {
+        key: "low",
+        label: "Tồn thấp",
+        count: lowStockCount,
+        activeClass:
+          "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-transparent shadow-amber-500/30",
+        inactiveClass:
+          "bg-white/80 dark:bg-slate-900/50 text-amber-700 dark:text-amber-200 border border-amber-200/70 dark:border-amber-800/60",
+      },
+      {
+        key: "out",
+        label: "Hết hàng",
+        count: outOfStockCount,
+        activeClass:
+          "bg-gradient-to-r from-rose-500 to-red-500 text-white border-transparent shadow-rose-500/30",
+        inactiveClass:
+          "bg-white/80 dark:bg-slate-900/50 text-rose-700 dark:text-rose-200 border border-rose-200/70 dark:border-rose-800/60",
+      },
+    ];
 
   // One-time toast to notify low stock when opening screen
   const lowStockToastShown = useRef(false);
@@ -2723,9 +969,8 @@ const SalesManager: React.FC = () => {
         canvas.toBlob((b) => resolve(b!), "image/png", 1.0);
       });
 
-      const fileName = `hoa-don-${
-        printSale.sale_code || formatAnyId(printSale.id) || printSale.id
-      }.png`;
+      const fileName = `hoa-don-${printSale.sale_code || formatAnyId(printSale.id) || printSale.id
+        }.png`;
 
       // Check if Web Share API is available and supports files
       if (navigator.share && navigator.canShare) {
@@ -2950,9 +1195,8 @@ const SalesManager: React.FC = () => {
         sale.items.forEach((item: any) => {
           const itemTotal = item.quantity * item.sellingPrice;
           const itemDiscount = item.discount || 0;
-          description += `\n  • ${item.quantity} x ${
-            item.partName
-          } - ${formatCurrency(itemTotal)}`;
+          description += `\n  • ${item.quantity} x ${item.partName
+            } - ${formatCurrency(itemTotal)}`;
           if (itemDiscount > 0) {
             description += ` (Giảm: ${formatCurrency(itemDiscount)})`;
           }
@@ -3005,8 +1249,7 @@ const SalesManager: React.FC = () => {
         stack: error?.stack,
       });
       showToast.error(
-        `Không thể tạo công nợ tự động: ${
-          error?.message || "Lỗi không xác định"
+        `Không thể tạo công nợ tự động: ${error?.message || "Lỗi không xác định"
         }`
       );
     }
@@ -3162,8 +1405,8 @@ const SalesManager: React.FC = () => {
         paymentType === "full"
           ? total
           : paymentType === "partial"
-          ? partialAmount
-          : 0; // paymentType === "note" (ghi nợ)
+            ? partialAmount
+            : 0; // paymentType === "note" (ghi nợ)
 
       const remainingAmount = total - paidAmount;
 
@@ -3203,13 +1446,13 @@ const SalesManager: React.FC = () => {
         // Map user info to userName
         const saleWithUserName = createdSale
           ? {
-              ...createdSale,
-              userName:
-                createdSale.user?.full_name ||
-                createdSale.user?.display_name ||
-                createdSale.user?.email ||
-                "N/A",
-            }
+            ...createdSale,
+            userName:
+              createdSale.user?.full_name ||
+              createdSale.user?.display_name ||
+              createdSale.user?.email ||
+              "N/A",
+          }
           : null;
 
         const saleData: Sale =
@@ -3349,8 +1592,8 @@ const SalesManager: React.FC = () => {
         customer.name !== "Khách vãng lai"
           ? customer.name
           : customer.licensePlate
-          ? `Biển số ${customer.licensePlate}`
-          : "Khách vãng lai";
+            ? `Biển số ${customer.licensePlate}`
+            : "Khách vãng lai";
 
       showToast.success(
         `✅ ${service.name} x${quantity} - ${servicePrice.toLocaleString(
@@ -3388,38 +1631,33 @@ const SalesManager: React.FC = () => {
         <div className="grid grid-cols-4 gap-1 px-2 py-2">
           <button
             onClick={() => setMobileTab("products")}
-            className={`flex flex-col items-center gap-1 px-1 py-1.5 rounded-lg transition-all duration-200 ${
-              mobileTab === "products"
-                ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30"
-                : "text-slate-600 dark:text-slate-400 active:scale-95"
-            }`}
+            className={`flex flex-col items-center gap-1 px-1 py-1.5 rounded-lg transition-all duration-200 ${mobileTab === "products"
+              ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30"
+              : "text-slate-600 dark:text-slate-400 active:scale-95"
+              }`}
           >
             <Boxes
-              className={`w-6 h-6 transition-transform ${
-                mobileTab === "products" ? "scale-105" : ""
-              }`}
+              className={`w-6 h-6 transition-transform ${mobileTab === "products" ? "scale-105" : ""
+                }`}
             />
             <span
-              className={`text-[9px] font-medium ${
-                mobileTab === "products" ? "font-semibold" : ""
-              }`}
+              className={`text-[9px] font-medium ${mobileTab === "products" ? "font-semibold" : ""
+                }`}
             >
               Sản phẩm
             </span>
           </button>
           <button
             onClick={() => setMobileTab("cart")}
-            className={`flex flex-col items-center gap-1 px-1 py-1.5 rounded-lg transition-all duration-200 relative ${
-              mobileTab === "cart"
-                ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30"
-                : "text-slate-600 dark:text-slate-400 active:scale-95"
-            }`}
+            className={`flex flex-col items-center gap-1 px-1 py-1.5 rounded-lg transition-all duration-200 relative ${mobileTab === "cart"
+              ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30"
+              : "text-slate-600 dark:text-slate-400 active:scale-95"
+              }`}
           >
             <div className="relative">
               <ShoppingCart
-                className={`w-6 h-6 transition-transform ${
-                  mobileTab === "cart" ? "scale-105" : ""
-                }`}
+                className={`w-6 h-6 transition-transform ${mobileTab === "cart" ? "scale-105" : ""
+                  }`}
               />
               {cartItems.length > 0 && (
                 <span className="absolute -top-1 -right-2 px-1 min-w-[14px] h-[14px] text-[8px] font-bold rounded-full bg-red-500 text-white flex items-center justify-center">
@@ -3428,9 +1666,8 @@ const SalesManager: React.FC = () => {
               )}
             </div>
             <span
-              className={`text-[9px] font-medium ${
-                mobileTab === "cart" ? "font-semibold" : ""
-              }`}
+              className={`text-[9px] font-medium ${mobileTab === "cart" ? "font-semibold" : ""
+                }`}
             >
               Giỏ hàng
             </span>
@@ -3447,21 +1684,18 @@ const SalesManager: React.FC = () => {
               setMobileTab("history");
               setShowSalesHistory(true);
             }}
-            className={`flex flex-col items-center gap-1 px-1 py-1.5 rounded-lg transition-all duration-200 ${
-              mobileTab === "history"
-                ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30"
-                : "text-slate-600 dark:text-slate-400 active:scale-95"
-            }`}
+            className={`flex flex-col items-center gap-1 px-1 py-1.5 rounded-lg transition-all duration-200 ${mobileTab === "history"
+              ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30"
+              : "text-slate-600 dark:text-slate-400 active:scale-95"
+              }`}
           >
             <History
-              className={`w-6 h-6 transition-transform ${
-                mobileTab === "history" ? "scale-105" : ""
-              }`}
+              className={`w-6 h-6 transition-transform ${mobileTab === "history" ? "scale-105" : ""
+                }`}
             />
             <span
-              className={`text-[9px] font-medium ${
-                mobileTab === "history" ? "font-semibold" : ""
-              }`}
+              className={`text-[9px] font-medium ${mobileTab === "history" ? "font-semibold" : ""
+                }`}
             >
               Lịch sử
             </span>
@@ -3472,9 +1706,8 @@ const SalesManager: React.FC = () => {
       <div className="flex h-[calc(100vh-64px)] md:h-screen">
         {/* Main Content Area - Products Grid */}
         <div
-          className={`flex-1 flex flex-col transition-all duration-300 ${
-            mobileTab !== "products" ? "hidden md:flex" : "animate-fade-in"
-          }`}
+          className={`flex-1 flex flex-col transition-all duration-300 ${mobileTab !== "products" ? "hidden md:flex" : "animate-fade-in"
+            }`}
         >
           {/* Search Bar */}
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-700/50 p-3 md:p-4 shadow-sm">
@@ -3509,11 +1742,10 @@ const SalesManager: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowBarcodeInput((prev) => !prev)}
-                    className={`px-4 py-2 rounded-xl border-2 font-semibold text-sm flex items-center gap-2 transition-all ${
-                      showBarcodeInput
-                        ? "border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                        : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 bg-white dark:bg-slate-800"
-                    }`}
+                    className={`px-4 py-2 rounded-xl border-2 font-semibold text-sm flex items-center gap-2 transition-all ${showBarcodeInput
+                      ? "border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                      : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 bg-white dark:bg-slate-800"
+                      }`}
                   >
                     <ScanLine className="w-4 h-4" />
                     <span className="hidden md:inline">
@@ -3635,17 +1867,15 @@ const SalesManager: React.FC = () => {
                     key={option.key}
                     aria-pressed={isActive}
                     onClick={() => setStockFilter(option.key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
-                      isActive ? option.activeClass : option.inactiveClass
-                    }`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${isActive ? option.activeClass : option.inactiveClass
+                      }`}
                   >
                     <span>{option.label}</span>
                     <span
-                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                        isActive
-                          ? "bg-white/30"
-                          : "bg-slate-100 dark:bg-slate-800"
-                      }`}
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${isActive
+                        ? "bg-white/30"
+                        : "bg-slate-100 dark:bg-slate-800"
+                        }`}
                     >
                       {option.count}
                     </span>
@@ -3668,8 +1898,8 @@ const SalesManager: React.FC = () => {
                       ? "Không tìm thấy sản phẩm nào"
                       : "Chưa có sản phẩm"
                     : stockFilter === "low"
-                    ? "Không có sản phẩm tồn thấp"
-                    : "Không có sản phẩm hết hàng"}
+                      ? "Không có sản phẩm tồn thấp"
+                      : "Không có sản phẩm hết hàng"}
                 </div>
                 <div className="text-sm">
                   {filteredParts.length === 0
@@ -3693,31 +1923,29 @@ const SalesManager: React.FC = () => {
                   const statusLabel = isOutOfStock
                     ? "Hết hàng"
                     : isLowStock
-                    ? "Tồn thấp"
-                    : "Sẵn hàng";
+                      ? "Tồn thấp"
+                      : "Sẵn hàng";
                   const statusClass = isOutOfStock
                     ? "bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-200"
                     : isLowStock
-                    ? "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-200"
-                    : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-200";
+                      ? "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-200"
+                      : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-200";
                   const stockBadgeClass = isOutOfStock
                     ? "bg-gradient-to-r from-rose-500 to-red-500 text-white"
                     : isLowStock
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
-                    : "bg-gradient-to-r from-emerald-500 to-green-500 text-white";
+                      ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                      : "bg-gradient-to-r from-emerald-500 to-green-500 text-white";
 
                   return (
                     <div
                       key={part.id}
-                      className={`group relative text-left p-2.5 md:p-3 rounded-xl border transition-all duration-200 h-full ${
-                        isOutOfStock
-                          ? "bg-slate-100/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60"
-                          : "bg-white dark:bg-slate-800/70 border-slate-200/70 dark:border-slate-700 md:hover:border-blue-400 md:dark:hover:border-blue-500 md:hover:shadow-xl md:hover:-translate-y-0.5 md:cursor-pointer"
-                      } ${
-                        inCart
+                      className={`group relative text-left p-2.5 md:p-3 rounded-xl border transition-all duration-200 h-full ${isOutOfStock
+                        ? "bg-slate-100/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60"
+                        : "bg-white dark:bg-slate-800/70 border-slate-200/70 dark:border-slate-700 md:hover:border-blue-400 md:dark:hover:border-blue-500 md:hover:shadow-xl md:hover:-translate-y-0.5 md:cursor-pointer"
+                        } ${inCart
                           ? "ring-2 ring-blue-400 dark:ring-blue-500/60 shadow-md shadow-blue-500/20"
                           : ""
-                      }`}
+                        }`}
                       onClick={() => {
                         // Desktop: click anywhere to add
                         if (window.innerWidth >= 768 && !isOutOfStock) {
@@ -3749,9 +1977,8 @@ const SalesManager: React.FC = () => {
                             </span>
                             {part.category && (
                               <span
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-[70px] ${
-                                  getCategoryColor(part.category).bg
-                                } ${getCategoryColor(part.category).text}`}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-[70px] ${getCategoryColor(part.category).bg
+                                  } ${getCategoryColor(part.category).text}`}
                               >
                                 {part.category}
                               </span>
@@ -3763,22 +1990,20 @@ const SalesManager: React.FC = () => {
                         <div className="flex items-end justify-between pt-2 border-t border-slate-100 dark:border-slate-700/50">
                           <div>
                             <p
-                              className={`text-sm font-bold ${
-                                isOutOfStock
-                                  ? "text-slate-400 dark:text-slate-500"
-                                  : "text-blue-600 dark:text-blue-400"
-                              }`}
+                              className={`text-sm font-bold ${isOutOfStock
+                                ? "text-slate-400 dark:text-slate-500"
+                                : "text-blue-600 dark:text-blue-400"
+                                }`}
                             >
                               {formatCurrency(price)}
                             </p>
                             <span
-                              className={`inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded ${
-                                isOutOfStock
-                                  ? "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"
-                                  : isLowStock
+                              className={`inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded ${isOutOfStock
+                                ? "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"
+                                : isLowStock
                                   ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                                   : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                              }`}
+                                }`}
                             >
                               Tồn: {Math.max(0, Math.floor(stock))}
                             </span>
@@ -3791,11 +2016,10 @@ const SalesManager: React.FC = () => {
                               if (!isOutOfStock) addToCart(part);
                             }}
                             disabled={isOutOfStock}
-                            className={`md:hidden w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                              isOutOfStock
-                                ? "bg-slate-100 dark:bg-slate-700 cursor-not-allowed"
-                                : "bg-blue-500 text-white shadow-md active:scale-95"
-                            }`}
+                            className={`md:hidden w-9 h-9 rounded-lg flex items-center justify-center transition-all ${isOutOfStock
+                              ? "bg-slate-100 dark:bg-slate-700 cursor-not-allowed"
+                              : "bg-blue-500 text-white shadow-md active:scale-95"
+                              }`}
                           >
                             {isOutOfStock ? (
                               <span className="text-slate-400 text-xs">✕</span>
@@ -3815,9 +2039,8 @@ const SalesManager: React.FC = () => {
 
         {/* Right Sidebar - Customer, Cart & Checkout */}
         <div
-          className={`w-full md:w-[40%] bg-white dark:bg-slate-800 md:border-l border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-300 overflow-y-auto ${
-            mobileTab !== "cart" ? "hidden md:flex" : "animate-fade-in"
-          }`}
+          className={`w-full md:w-[40%] bg-white dark:bg-slate-800 md:border-l border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-300 overflow-y-auto ${mobileTab !== "cart" ? "hidden md:flex" : "animate-fade-in"
+            }`}
         >
           {/* Customer Selection */}
           <div className="p-3 md:p-4 border-b border-slate-200 md:border-slate-200/50 dark:border-slate-700/50 bg-white dark:bg-slate-800 md:bg-gradient-to-r md:from-emerald-50/30 md:via-teal-50/20 md:to-cyan-50/30 dark:md:from-slate-800/50 dark:md:via-slate-800/30 dark:md:to-slate-800/50">
@@ -3884,9 +2107,9 @@ const SalesManager: React.FC = () => {
                             primaryVehicle ||
                             (customer.licensePlate || customer.vehicleModel
                               ? {
-                                  model: customer.vehicleModel,
-                                  licensePlate: customer.licensePlate,
-                                }
+                                model: customer.vehicleModel,
+                                licensePlate: customer.licensePlate,
+                              }
                               : null);
 
                           return (
@@ -4028,11 +2251,11 @@ const SalesManager: React.FC = () => {
                           const vehicleInfo =
                             primaryVehicle ||
                             (selectedCustomer.licensePlate ||
-                            selectedCustomer.vehicleModel
+                              selectedCustomer.vehicleModel
                               ? {
-                                  model: selectedCustomer.vehicleModel,
-                                  licensePlate: selectedCustomer.licensePlate,
-                                }
+                                model: selectedCustomer.vehicleModel,
+                                licensePlate: selectedCustomer.licensePlate,
+                              }
                               : null);
 
                           if (vehicleInfo) {
@@ -4121,11 +2344,9 @@ const SalesManager: React.FC = () => {
                               </span>
                               {partInfo?.category && (
                                 <span
-                                  className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
-                                    getCategoryColor(partInfo.category).bg
-                                  } ${
-                                    getCategoryColor(partInfo.category).text
-                                  }`}
+                                  className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${getCategoryColor(partInfo.category).bg
+                                    } ${getCategoryColor(partInfo.category).text
+                                    }`}
                                 >
                                   {partInfo.category}
                                 </span>
@@ -4203,9 +2424,8 @@ const SalesManager: React.FC = () => {
                             </span>
                             {partInfo?.category && (
                               <span
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                  getCategoryColor(partInfo.category).bg
-                                } ${getCategoryColor(partInfo.category).text}`}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getCategoryColor(partInfo.category).bg
+                                  } ${getCategoryColor(partInfo.category).text}`}
                               >
                                 {partInfo.category}
                               </span>
@@ -4368,22 +2588,20 @@ const SalesManager: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <button
                     onClick={() => setPaymentMethod("cash")}
-                    className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl border md:border-2 transition-all font-semibold md:font-bold md:shadow-sm md:hover:shadow-md ${
-                      paymentMethod === "cash"
-                        ? "border-emerald-600 bg-emerald-500 text-white dark:bg-emerald-600 dark:text-white md:shadow-lg"
-                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400"
-                    }`}
+                    className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl border md:border-2 transition-all font-semibold md:font-bold md:shadow-sm md:hover:shadow-md ${paymentMethod === "cash"
+                      ? "border-emerald-600 bg-emerald-500 text-white dark:bg-emerald-600 dark:text-white md:shadow-lg"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400"
+                      }`}
                   >
                     <Banknote className="w-4 h-4 md:w-5 md:h-5" />
                     <span className="text-xs md:text-sm">Tiền mặt</span>
                   </button>
                   <button
                     onClick={() => setPaymentMethod("bank")}
-                    className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl border md:border-2 transition-all font-semibold md:font-bold md:shadow-sm md:hover:shadow-md ${
-                      paymentMethod === "bank"
-                        ? "border-blue-600 bg-blue-500 text-white dark:bg-blue-600 dark:text-white md:shadow-lg"
-                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400"
-                    }`}
+                    className={`flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl border md:border-2 transition-all font-semibold md:font-bold md:shadow-sm md:hover:shadow-md ${paymentMethod === "bank"
+                      ? "border-blue-600 bg-blue-500 text-white dark:bg-blue-600 dark:text-white md:shadow-lg"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400"
+                      }`}
                   >
                     <CreditCard className="w-4 h-4 md:w-5 md:h-5" />
                     <span className="text-xs md:text-sm">Chuyển khoản</span>
@@ -4403,21 +2621,19 @@ const SalesManager: React.FC = () => {
                         setPaymentType("full");
                         setPartialAmount(0);
                       }}
-                      className={`px-2 md:px-3 py-2 md:py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl border md:border-2 transition-all font-bold md:shadow-sm ${
-                        paymentType === "full"
-                          ? "border-orange-600 bg-orange-500 text-white dark:bg-orange-600 dark:text-white md:shadow-lg"
-                          : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-orange-400"
-                      }`}
+                      className={`px-2 md:px-3 py-2 md:py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl border md:border-2 transition-all font-bold md:shadow-sm ${paymentType === "full"
+                        ? "border-orange-600 bg-orange-500 text-white dark:bg-orange-600 dark:text-white md:shadow-lg"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-orange-400"
+                        }`}
                     >
                       Đủ
                     </button>
                     <button
                       onClick={() => setPaymentType("partial")}
-                      className={`px-2 md:px-3 py-2 md:py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl border md:border-2 transition-all font-bold md:shadow-sm ${
-                        paymentType === "partial"
-                          ? "border-orange-600 bg-orange-500 text-white dark:bg-orange-600 dark:text-white md:shadow-lg"
-                          : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-orange-400"
-                      }`}
+                      className={`px-2 md:px-3 py-2 md:py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl border md:border-2 transition-all font-bold md:shadow-sm ${paymentType === "partial"
+                        ? "border-orange-600 bg-orange-500 text-white dark:bg-orange-600 dark:text-white md:shadow-lg"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-orange-400"
+                        }`}
                     >
                       1 phần
                     </button>
@@ -4426,11 +2642,10 @@ const SalesManager: React.FC = () => {
                         setPaymentType("note");
                         setPartialAmount(0);
                       }}
-                      className={`px-2 md:px-3 py-2 md:py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl border md:border-2 transition-all font-bold md:shadow-sm ${
-                        paymentType === "note"
-                          ? "border-orange-600 bg-orange-500 text-white dark:bg-orange-600 dark:text-white md:shadow-lg"
-                          : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-orange-400"
-                      }`}
+                      className={`px-2 md:px-3 py-2 md:py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl border md:border-2 transition-all font-bold md:shadow-sm ${paymentType === "note"
+                        ? "border-orange-600 bg-orange-500 text-white dark:bg-orange-600 dark:text-white md:shadow-lg"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:border-orange-400"
+                        }`}
                     >
                       Ghi nợ
                     </button>
@@ -4471,22 +2686,20 @@ const SalesManager: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setUseCurrentTime(true)}
-                      className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border transition-all font-semibold ${
-                        useCurrentTime
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                          : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400"
-                      }`}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border transition-all font-semibold ${useCurrentTime
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400"
+                        }`}
                     >
                       <span className="text-xs">🕐 Hiện tại</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setUseCurrentTime(false)}
-                      className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border transition-all font-semibold ${
-                        !useCurrentTime
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                          : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400"
-                      }`}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border transition-all font-semibold ${!useCurrentTime
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-400"
+                        }`}
                     >
                       <span className="text-xs">📅 Tùy chỉnh</span>
                     </button>
@@ -4507,22 +2720,20 @@ const SalesManager: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowOrderNote(!showOrderNote)}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border transition-all font-semibold ${
-                      showOrderNote
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400"
-                    }`}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border transition-all font-semibold ${showOrderNote
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400"
+                      }`}
                   >
                     <span className="text-xs">📝 Ghi chú</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setAutoPrintReceipt(!autoPrintReceipt)}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border transition-all font-semibold ${
-                      autoPrintReceipt
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400"
-                    }`}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border transition-all font-semibold ${autoPrintReceipt
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400"
+                      }`}
                   >
                     <span className="text-xs">🖨️ In hoá đơn</span>
                   </button>
@@ -4550,11 +2761,10 @@ const SalesManager: React.FC = () => {
                 <button
                   onClick={handleFinalize}
                   disabled={!paymentMethod || !paymentType}
-                  className={`flex-1 px-3 md:px-4 py-2 md:py-3 font-bold md:font-black rounded-lg md:rounded-xl transition-all md:shadow-lg text-sm md:text-base ${
-                    paymentMethod && paymentType
-                      ? "bg-orange-500 md:bg-gradient-to-r md:from-orange-500 md:to-red-500 hover:bg-orange-600 md:hover:from-orange-600 md:hover:to-red-600 text-white md:shadow-orange-500/30 md:hover:shadow-xl md:hover:shadow-orange-500/40 md:hover:scale-105 md:active:scale-95"
-                      : "bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 cursor-not-allowed opacity-60"
-                  }`}
+                  className={`flex-1 px-3 md:px-4 py-2 md:py-3 font-bold md:font-black rounded-lg md:rounded-xl transition-all md:shadow-lg text-sm md:text-base ${paymentMethod && paymentType
+                    ? "bg-orange-500 md:bg-gradient-to-r md:from-orange-500 md:to-red-500 hover:bg-orange-600 md:hover:from-orange-600 md:hover:to-red-600 text-white md:shadow-orange-500/30 md:hover:shadow-xl md:hover:shadow-orange-500/40 md:hover:scale-105 md:active:scale-95"
+                    : "bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 cursor-not-allowed opacity-60"
+                    }`}
                 >
                   XUẤT BÁN
                 </button>
@@ -5081,8 +3291,8 @@ const SalesManager: React.FC = () => {
                 {paymentType === "full"
                   ? "✓ Đã thanh toán đủ"
                   : paymentType === "partial"
-                  ? `Thanh toán một phần: ${formatCurrency(partialAmount)}`
-                  : "Ghi nợ"}
+                    ? `Thanh toán một phần: ${formatCurrency(partialAmount)}`
+                    : "Ghi nợ"}
               </div>
             </div>
 

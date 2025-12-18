@@ -6,7 +6,7 @@ import { showToast } from "../../utils/toast";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRoles?: ("owner" | "manager" | "staff")[];
+  requiredRoles?: ("owner" | "manager" | "staff" | "accountant")[];
 }
 
 export const ProtectedRoute = ({

@@ -36,6 +36,8 @@ import {
   exportProductProfitReport,
   exportDetailedInventoryReport,
 } from "../../utils/excelExport";
+import { DailyDetailModal } from "./DailyDetailModal";
+
 
 type ReportTab =
   | "revenue"
@@ -54,67 +56,67 @@ const REPORT_TAB_CONFIGS: Array<{
   inactiveClass: string;
   dotClass: string;
 }> = [
-  {
-    key: "revenue",
-    label: "Doanh thu",
-    icon: <DollarSign className="w-4 h-4" />,
-    activeClass:
-      "bg-gradient-to-r from-blue-600 to-sky-500 text-white border-transparent shadow-lg shadow-blue-500/30",
-    inactiveClass:
-      "bg-white dark:bg-slate-900/60 text-blue-700 dark:text-blue-200 border-blue-200 dark:border-blue-700 hover:bg-blue-50/80 dark:hover:bg-blue-900/20",
-    dotClass: "bg-blue-400",
-  },
-  {
-    key: "cashflow",
-    label: "Thu chi",
-    icon: <Wallet className="w-4 h-4" />,
-    activeClass:
-      "bg-gradient-to-r from-emerald-500 to-lime-500 text-white border-transparent shadow-lg shadow-emerald-500/30",
-    inactiveClass:
-      "bg-white dark:bg-slate-900/60 text-emerald-700 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50/70 dark:hover:bg-emerald-900/20",
-    dotClass: "bg-emerald-400",
-  },
-  {
-    key: "inventory",
-    label: "Tồn kho",
-    icon: <Boxes className="w-4 h-4" />,
-    activeClass:
-      "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-transparent shadow-lg shadow-orange-500/30",
-    inactiveClass:
-      "bg-white dark:bg-slate-900/60 text-amber-700 dark:text-amber-200 border-amber-200 dark:border-amber-800 hover:bg-amber-50/70 dark:hover:bg-amber-900/20",
-    dotClass: "bg-amber-400",
-  },
-  {
-    key: "payroll",
-    label: "Lương",
-    icon: <BriefcaseBusiness className="w-4 h-4" />,
-    activeClass:
-      "bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white border-transparent shadow-lg shadow-violet-500/30",
-    inactiveClass:
-      "bg-white dark:bg-slate-900/60 text-violet-700 dark:text-violet-200 border-violet-200 dark:border-violet-800 hover:bg-violet-50/70 dark:hover:bg-violet-900/20",
-    dotClass: "bg-violet-400",
-  },
-  {
-    key: "debt",
-    label: "Công nợ",
-    icon: <ClipboardList className="w-4 h-4" />,
-    activeClass:
-      "bg-gradient-to-r from-rose-500 to-red-500 text-white border-transparent shadow-lg shadow-rose-500/30",
-    inactiveClass:
-      "bg-white dark:bg-slate-900/60 text-rose-700 dark:text-rose-200 border-rose-200 dark:border-rose-800 hover:bg-rose-50/70 dark:hover:bg-rose-900/20",
-    dotClass: "bg-rose-400",
-  },
-  {
-    key: "tax",
-    label: "Báo cáo thuế",
-    icon: <FileText className="w-4 h-4" />,
-    activeClass:
-      "bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-lg shadow-indigo-500/30",
-    inactiveClass:
-      "bg-white dark:bg-slate-900/60 text-indigo-700 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50/70 dark:hover:bg-indigo-900/20",
-    dotClass: "bg-indigo-400",
-  },
-];
+    {
+      key: "revenue",
+      label: "Doanh thu",
+      icon: <DollarSign className="w-4 h-4" />,
+      activeClass:
+        "bg-gradient-to-r from-blue-600 to-sky-500 text-white border-transparent shadow-lg shadow-blue-500/30",
+      inactiveClass:
+        "bg-white dark:bg-slate-900/60 text-blue-700 dark:text-blue-200 border-blue-200 dark:border-blue-700 hover:bg-blue-50/80 dark:hover:bg-blue-900/20",
+      dotClass: "bg-blue-400",
+    },
+    {
+      key: "cashflow",
+      label: "Thu chi",
+      icon: <Wallet className="w-4 h-4" />,
+      activeClass:
+        "bg-gradient-to-r from-emerald-500 to-lime-500 text-white border-transparent shadow-lg shadow-emerald-500/30",
+      inactiveClass:
+        "bg-white dark:bg-slate-900/60 text-emerald-700 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50/70 dark:hover:bg-emerald-900/20",
+      dotClass: "bg-emerald-400",
+    },
+    {
+      key: "inventory",
+      label: "Tồn kho",
+      icon: <Boxes className="w-4 h-4" />,
+      activeClass:
+        "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-transparent shadow-lg shadow-orange-500/30",
+      inactiveClass:
+        "bg-white dark:bg-slate-900/60 text-amber-700 dark:text-amber-200 border-amber-200 dark:border-amber-800 hover:bg-amber-50/70 dark:hover:bg-amber-900/20",
+      dotClass: "bg-amber-400",
+    },
+    {
+      key: "payroll",
+      label: "Lương",
+      icon: <BriefcaseBusiness className="w-4 h-4" />,
+      activeClass:
+        "bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white border-transparent shadow-lg shadow-violet-500/30",
+      inactiveClass:
+        "bg-white dark:bg-slate-900/60 text-violet-700 dark:text-violet-200 border-violet-200 dark:border-violet-800 hover:bg-violet-50/70 dark:hover:bg-violet-900/20",
+      dotClass: "bg-violet-400",
+    },
+    {
+      key: "debt",
+      label: "Công nợ",
+      icon: <ClipboardList className="w-4 h-4" />,
+      activeClass:
+        "bg-gradient-to-r from-rose-500 to-red-500 text-white border-transparent shadow-lg shadow-rose-500/30",
+      inactiveClass:
+        "bg-white dark:bg-slate-900/60 text-rose-700 dark:text-rose-200 border-rose-200 dark:border-rose-800 hover:bg-rose-50/70 dark:hover:bg-rose-900/20",
+      dotClass: "bg-rose-400",
+    },
+    {
+      key: "tax",
+      label: "Báo cáo thuế",
+      icon: <FileText className="w-4 h-4" />,
+      activeClass:
+        "bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent shadow-lg shadow-indigo-500/30",
+      inactiveClass:
+        "bg-white dark:bg-slate-900/60 text-indigo-700 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50/70 dark:hover:bg-indigo-900/20",
+      dotClass: "bg-indigo-400",
+    },
+  ];
 
 const ReportsManager: React.FC = () => {
   const { payrollRecords, customers, suppliers, currentBranchId, employees } =
@@ -174,6 +176,8 @@ const ReportsManager: React.FC = () => {
     new Date().getMonth() + 1
   ); // 1-12
   const [selectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
 
   // Function to handle column sorting
   const handleSort = (column: string) => {
@@ -448,6 +452,9 @@ const ReportsManager: React.FC = () => {
     "nhập hàng",
     "goods_receipt",
     "import",
+    "outsourcing",      // Chi gia công bên ngoài - đã tính trong lợi nhuận phiếu SC
+    "service_cost",     // Chi phí dịch vụ - đã tính trong lợi nhuận phiếu SC
+    "refund",           // Hoàn trả - không phải chi phí thực tế
   ];
 
   // Helper function để check exclude với case-insensitive
@@ -512,9 +519,13 @@ const ReportsManager: React.FC = () => {
       )
       .reduce((sum, t) => sum + t.amount, 0);
     // Phiếu chi: loại trừ chi nhập kho (đã tính trong giá vốn hàng bán)
+    // CHỈ TÍNH expense với amount DƯƠNG (chi thực tế)
     const totalExpense = filteredTransactions
       .filter(
-        (t) => t.type === "expense" && !isExcludedExpenseCategory(t.category)
+        (t) =>
+          t.type === "expense" &&
+          t.amount > 0 && // CHỈ LẤY SỐ DƯƠNG
+          !isExcludedExpenseCategory(t.category)
       )
       .reduce((sum, t) => sum + t.amount, 0);
 
@@ -539,8 +550,8 @@ const ReportsManager: React.FC = () => {
 
   // Doanh thu tổng hợp = Doanh thu bán hàng + Phiếu thu
   const combinedRevenue = revenueReport.totalRevenue + cashTotals.totalIncome;
-  // Lợi nhuận thuần = Lợi nhuận gộp - Phiếu chi (trừ chi nhập kho)
-  const netProfit = revenueReport.totalProfit - cashTotals.totalExpense;
+  // Lợi nhuận ròng = Lợi nhuận + Thu khác - Chi khác
+  const netProfit = revenueReport.totalProfit + cashTotals.totalIncome - cashTotals.totalExpense;
 
   const cashflowReport = useMemo(() => {
     const filteredTransactions = cashTxData.filter((t) => {
@@ -860,11 +871,10 @@ const ReportsManager: React.FC = () => {
                 <button
                   key={month}
                   onClick={() => setSelectedMonth(month)}
-                  className={`p-2 rounded-lg text-sm font-medium transition-all ${
-                    selectedMonth === month
-                      ? "bg-blue-600 text-white shadow-md scale-105"
-                      : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-105"
-                  }`}
+                  className={`p-2 rounded-lg text-sm font-medium transition-all ${selectedMonth === month
+                    ? "bg-blue-600 text-white shadow-md scale-105"
+                    : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-105"
+                    }`}
                 >
                   Tháng {month}
                 </button>
@@ -912,16 +922,14 @@ const ReportsManager: React.FC = () => {
               aria-pressed={isActive}
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all border text-sm ${
-                isActive ? tab.activeClass : tab.inactiveClass
-              }`}
+              className={`px-4 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all border text-sm ${isActive ? tab.activeClass : tab.inactiveClass
+                }`}
             >
               <span className="inline-flex items-center gap-1.5">
                 <span
                   aria-hidden
-                  className={`w-2 h-2 rounded-full ${
-                    isActive ? "bg-white/90" : tab.dotClass
-                  }`}
+                  className={`w-2 h-2 rounded-full ${isActive ? "bg-white/90" : tab.dotClass
+                    }`}
                 ></span>
                 {tab.icon}
                 {tab.label}
@@ -939,23 +947,22 @@ const ReportsManager: React.FC = () => {
             <button
               key={range}
               onClick={() => setDateRange(range)}
-              className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-all ${
-                dateRange === range
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
+              className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-all ${dateRange === range
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                }`}
             >
               {range === "today"
                 ? "Hôm nay"
                 : range === "week"
-                ? "7 ngày"
-                : range === "month"
-                ? "Tháng"
-                : range === "quarter"
-                ? "Quý"
-                : range === "year"
-                ? "Năm"
-                : "Tùy chỉnh"}
+                  ? "7 ngày"
+                  : range === "month"
+                    ? "Tháng"
+                    : range === "quarter"
+                      ? "Quý"
+                      : range === "year"
+                        ? "Năm"
+                        : "Tùy chỉnh"}
             </button>
           )
         )}
@@ -966,11 +973,10 @@ const ReportsManager: React.FC = () => {
               <button
                 key={month}
                 onClick={() => setSelectedMonth(month)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  selectedMonth === month
-                    ? "bg-blue-600 text-white shadow-md scale-105"
-                    : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-105"
-                }`}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedMonth === month
+                  ? "bg-blue-600 text-white shadow-md scale-105"
+                  : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-105"
+                  }`}
               >
                 T{month}
               </button>
@@ -1118,11 +1124,10 @@ const ReportsManager: React.FC = () => {
                   <TrendingUp className="w-3.5 h-3.5" /> Lợi nhuận thuần
                 </div>
                 <div
-                  className={`text-2xl font-bold ${
-                    netProfit >= 0
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
-                  }`}
+                  className={`text-2xl font-bold ${netProfit >= 0
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                    }`}
                 >
                   {formatCurrency(netProfit).replace("₫", "")}
                 </div>
@@ -1268,10 +1273,12 @@ const ReportsManager: React.FC = () => {
                         )
                         .reduce((sum, t) => sum + t.amount, 0);
                       // Chi khác: loại trừ chi nhập kho (đã tính trong giá vốn)
+                      // CHỈ TÍNH expense với amount DƯƠNG (chi thực tế)
                       const chiKhac = cashTxData
                         .filter(
                           (t) =>
                             t.type === "expense" &&
+                            t.amount > 0 && // CHỈ LẤY SỐ DƯƠNG
                             !isExcludedExpenseCategory(t.category) &&
                             t.date.slice(0, 10) === dayDateStr
                         )
@@ -1281,39 +1288,41 @@ const ReportsManager: React.FC = () => {
                       return (
                         <tr
                           key={day.date}
-                          className="hover:bg-slate-50 dark:hover:bg-slate-700/30"
+                          className="hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors group"
+                          onClick={() => setSelectedDate(day.date)}
+                          title="Nhấn để xem chi tiết"
                         >
                           <td className="px-2 py-2 text-center text-xs font-medium text-slate-900 dark:text-white">
                             {index + 1}
                           </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-xs text-slate-900 dark:text-white">
+                          <td className="px-2 py-2 whitespace-nowrap text-xs font-medium text-blue-600 dark:text-blue-400 group-hover:underline">
                             {new Date(day.date).toLocaleDateString("vi-VN")}
                           </td>
-                          <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
+                          <td className={`px-2 py-2 text-right text-xs ${vonNhapKho === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-900 dark:text-white'}`}>
                             {formatCurrency(vonNhapKho)}
                           </td>
-                          <td className="px-2 py-2 text-right text-xs font-semibold text-blue-600 dark:text-blue-400">
+                          <td className={`px-2 py-2 text-right text-xs font-semibold ${tienHang === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-blue-600 dark:text-blue-400'}`}>
                             {formatCurrency(tienHang)}
                           </td>
-                          <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
+                          <td className={`px-2 py-2 text-right text-xs ${vonSuaChua === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-900 dark:text-white'}`}>
                             {formatCurrency(vonSuaChua)}
                           </td>
-                          <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
+                          <td className={`px-2 py-2 text-right text-xs ${congSuaChua === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-900 dark:text-white'}`}>
                             {formatCurrency(congSuaChua)}
                           </td>
-                          <td className="px-2 py-2 text-right text-xs font-bold text-blue-600 dark:text-blue-400">
+                          <td className={`px-2 py-2 text-right text-xs font-bold ${doanhThu === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-blue-600 dark:text-blue-400'}`}>
                             {formatCurrency(doanhThu)}
                           </td>
-                          <td className="px-2 py-2 text-right text-xs font-bold text-orange-600 dark:text-orange-400">
+                          <td className={`px-2 py-2 text-right text-xs font-bold ${loiNhuan === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-orange-600 dark:text-orange-400'}`}>
                             {formatCurrency(loiNhuan)}
                           </td>
-                          <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
+                          <td className={`px-2 py-2 text-right text-xs ${thuKhac === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-900 dark:text-white'}`}>
                             {formatCurrency(thuKhac)}
                           </td>
-                          <td className="px-2 py-2 text-right text-xs text-red-600 dark:text-red-400">
+                          <td className={`px-2 py-2 text-right text-xs ${chiKhac === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-red-600 dark:text-red-400'}`}>
                             {formatCurrency(chiKhac)}
                           </td>
-                          <td className="px-2 py-2 text-right text-xs font-black text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20">
+                          <td className={`px-2 py-2 text-right text-xs font-black ${loiNhuanRong === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-green-700 dark:text-green-400'} bg-green-50 dark:bg-green-900/20 group-hover:bg-green-100 dark:group-hover:bg-green-900/30`}>
                             {formatCurrency(loiNhuanRong)}
                           </td>
                         </tr>
@@ -1329,44 +1338,45 @@ const ReportsManager: React.FC = () => {
                           Tổng:
                         </td>
                         {/* Vốn NK (1) */}
-                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
+                        <td className={`px-2 py-2 text-right text-xs ${revenueReport.totalCost === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-900 dark:text-white'}`}>
                           {formatCurrency(revenueReport.totalCost)}
                         </td>
                         {/* Tiền hàng (2) */}
-                        <td className="px-2 py-2 text-right text-xs font-black text-blue-600 dark:text-blue-400">
+                        <td className={`px-2 py-2 text-right text-xs font-black ${revenueReport.totalRevenue === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-blue-600 dark:text-blue-400'}`}>
                           {formatCurrency(revenueReport.totalRevenue)}
                         </td>
                         {/* Vốn SC (3) = 0 */}
-                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
+                        <td className="px-2 py-2 text-right text-xs text-slate-300 dark:text-slate-600">
                           {formatCurrency(0)}
                         </td>
                         {/* Công SC (4) = 0 */}
-                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
+                        <td className="px-2 py-2 text-right text-xs text-slate-300 dark:text-slate-600">
                           {formatCurrency(0)}
                         </td>
                         {/* Doanh thu (5) = Tiền hàng */}
-                        <td className="px-2 py-2 text-right text-xs font-black text-blue-600 dark:text-blue-400">
+                        <td className={`px-2 py-2 text-right text-xs font-black ${revenueReport.totalRevenue === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-blue-600 dark:text-blue-400'}`}>
                           {formatCurrency(revenueReport.totalRevenue)}
                         </td>
                         {/* Lợi nhuận (6) */}
-                        <td className="px-2 py-2 text-right text-xs font-black text-orange-600 dark:text-orange-400">
+                        <td className={`px-2 py-2 text-right text-xs font-black ${revenueReport.totalProfit === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-orange-600 dark:text-orange-400'}`}>
                           {formatCurrency(revenueReport.totalProfit)}
                         </td>
                         {/* Thu khác (7) */}
-                        <td className="px-2 py-2 text-right text-xs text-slate-900 dark:text-white">
+                        <td className={`px-2 py-2 text-right text-xs ${cashTotals.totalIncome === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-900 dark:text-white'}`}>
                           {formatCurrency(cashTotals.totalIncome)}
                         </td>
                         {/* Chi khác (8) */}
-                        <td className="px-2 py-2 text-right text-xs text-red-600 dark:text-red-400">
+                        <td className={`px-2 py-2 text-right text-xs ${cashTotals.totalExpense === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-red-600 dark:text-red-400'}`}>
                           {formatCurrency(cashTotals.totalExpense)}
                         </td>
                         {/* LN ròng (9) */}
                         <td
-                          className={`px-2 py-2 text-right text-xs font-black ${
-                            netProfit >= 0
+                          className={`px-2 py-2 text-right text-xs font-black ${netProfit === 0
+                            ? 'text-slate-300 dark:text-slate-600'
+                            : netProfit > 0
                               ? "text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30"
                               : "text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30"
-                          }`}
+                            }`}
                         >
                           {formatCurrency(netProfit)}
                         </td>
@@ -1420,11 +1430,10 @@ const ReportsManager: React.FC = () => {
                           </td>
                           <td className="px-4 py-2.5 whitespace-nowrap text-center">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                (sale as any).paymentStatus === "paid"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                  : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                              }`}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${(sale as any).paymentStatus === "paid"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                }`}
                             >
                               {(sale as any).paymentStatus === "paid"
                                 ? "Đã thanh toán"
@@ -1489,38 +1498,34 @@ const ReportsManager: React.FC = () => {
               </div>
 
               <div
-                className={`bg-gradient-to-br rounded-lg p-4 border ${
-                  cashflowReport.netCashFlow >= 0
-                    ? "from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800"
-                    : "from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border-orange-200 dark:border-orange-800"
-                }`}
+                className={`bg-gradient-to-br rounded-lg p-4 border ${cashflowReport.netCashFlow >= 0
+                  ? "from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800"
+                  : "from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border-orange-200 dark:border-orange-800"
+                  }`}
               >
                 <div
-                  className={`text-sm font-medium mb-2 ${
-                    cashflowReport.netCashFlow >= 0
-                      ? "text-blue-700 dark:text-blue-400"
-                      : "text-orange-700 dark:text-orange-400"
-                  }`}
+                  className={`text-sm font-medium mb-2 ${cashflowReport.netCashFlow >= 0
+                    ? "text-blue-700 dark:text-blue-400"
+                    : "text-orange-700 dark:text-orange-400"
+                    }`}
                 >
                   <span className="inline-flex items-center gap-1">
                     <DollarSign className="w-4 h-4" /> Dòng tiền ròng
                   </span>
                 </div>
                 <div
-                  className={`text-3xl font-bold ${
-                    cashflowReport.netCashFlow >= 0
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-orange-600 dark:text-orange-400"
-                  }`}
+                  className={`text-3xl font-bold ${cashflowReport.netCashFlow >= 0
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-orange-600 dark:text-orange-400"
+                    }`}
                 >
                   {formatCurrency(cashflowReport.netCashFlow).replace("₫", "")}
                 </div>
                 <div
-                  className={`text-xs mt-1 ${
-                    cashflowReport.netCashFlow >= 0
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-orange-600 dark:text-orange-400"
-                  }`}
+                  className={`text-xs mt-1 ${cashflowReport.netCashFlow >= 0
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-orange-600 dark:text-orange-400"
+                    }`}
                 >
                   đ
                 </div>
@@ -1810,11 +1815,10 @@ const ReportsManager: React.FC = () => {
                           </td>
                           <td className="px-4 py-2 text-center">
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                record.paymentStatus === "paid"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                  : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                              }`}
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${record.paymentStatus === "paid"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                }`}
                             >
                               {record.paymentStatus === "paid"
                                 ? "Đã trả"
@@ -1966,6 +1970,25 @@ const ReportsManager: React.FC = () => {
           </div>
         )}
       </div>
+      {/* Daily Detail Modal */}
+      {selectedDate && (
+        <DailyDetailModal
+          isOpen={!!selectedDate}
+          onClose={() => setSelectedDate(null)}
+          date={selectedDate}
+          sales={
+            revenueReport.dailyReport.find((d) => d.date === selectedDate)
+              ?.sales || []
+          }
+          workOrders={
+            revenueReport.dailyReport.find((d) => d.date === selectedDate)
+              ?.workOrders || []
+          }
+          cashTransactions={cashTxData.filter(
+            (t) => t.date.slice(0, 10) === selectedDate
+          )}
+        />
+      )}
     </div>
   );
 };

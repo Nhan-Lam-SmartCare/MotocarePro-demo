@@ -47,6 +47,7 @@ import { useConfirm } from "../../hooks/useConfirm";
 import ConfirmModal from "../common/ConfirmModal";
 import CategoriesManager from "../categories/CategoriesManager";
 import LookupManager from "../lookup/LookupManager";
+import ExternalPartsLookup from "./ExternalPartsLookup";
 import LookupManagerMobile from "../lookup/LookupManagerMobile";
 import {
   useInventoryTxRepo,
@@ -69,6 +70,7 @@ import BarcodeScannerModal from "../common/BarcodeScannerModal";
 import { PurchaseOrdersList } from "../purchase-orders/PurchaseOrdersList";
 import CreatePOModal from "../purchase-orders/CreatePOModal";
 import { PODetailView } from "../purchase-orders/PODetailView";
+import { ExternalDataImport } from "./ExternalDataImport";
 import type { PurchaseOrder } from "../../types";
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -727,8 +729,7 @@ const GoodsReceiptModal: React.FC<{
           ) {
             if (draft.receiptItems?.length > 0 || draft.selectedSupplier) {
               const shouldRestore = window.confirm(
-                `Phát hiện phiếu nhập chưa hoàn tất (${
-                  draft.receiptItems?.length || 0
+                `Phát hiện phiếu nhập chưa hoàn tất (${draft.receiptItems?.length || 0
                 } sản phẩm).\n\nBạn có muốn khôi phục không?`
               );
               if (shouldRestore) {
@@ -980,8 +981,8 @@ const GoodsReceiptModal: React.FC<{
       effectivePaymentType === "full"
         ? totalAmount
         : effectivePaymentType === "partial"
-        ? partialAmount
-        : 0;
+          ? partialAmount
+          : 0;
 
     onSave(receiptItems, selectedSupplier, totalAmount, "", {
       paymentMethod: paymentMethod || "cash",
@@ -1319,13 +1320,11 @@ const GoodsReceiptModal: React.FC<{
                               {part.sku}
                             </span>
                             <span
-                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${
-                                part.category
-                                  ? `${getCategoryColor(part.category).bg} ${
-                                      getCategoryColor(part.category).text
-                                    }`
-                                  : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
-                              }`}
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${part.category
+                                ? `${getCategoryColor(part.category).bg} ${getCategoryColor(part.category).text
+                                }`
+                                : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                                }`}
                             >
                               {part.category || "Chưa phân loại"}
                             </span>
@@ -1604,11 +1603,9 @@ const GoodsReceiptModal: React.FC<{
                               </span>
                               {originalPart?.category && (
                                 <span
-                                  className={`inline-flex items-center px-1 py-0 rounded text-[8px] font-medium ${
-                                    getCategoryColor(originalPart.category).bg
-                                  } ${
-                                    getCategoryColor(originalPart.category).text
-                                  }`}
+                                  className={`inline-flex items-center px-1 py-0 rounded text-[8px] font-medium ${getCategoryColor(originalPart.category).bg
+                                    } ${getCategoryColor(originalPart.category).text
+                                    }`}
                                 >
                                   {originalPart.category}
                                 </span>
@@ -1682,17 +1679,17 @@ const GoodsReceiptModal: React.FC<{
                                 items.map((it) =>
                                   it.partId === item.partId
                                     ? {
-                                        ...it,
-                                        importPrice: newImport,
-                                        sellingPrice:
-                                          it.sellingPrice === 0 ||
+                                      ...it,
+                                      importPrice: newImport,
+                                      sellingPrice:
+                                        it.sellingPrice === 0 ||
                                           it.sellingPrice ===
-                                            Math.round(
-                                              (it.importPrice || 0) * 1.5
-                                            )
-                                            ? autoPrice
-                                            : it.sellingPrice,
-                                      }
+                                          Math.round(
+                                            (it.importPrice || 0) * 1.5
+                                          )
+                                          ? autoPrice
+                                          : it.sellingPrice,
+                                    }
                                     : it
                                 )
                               );
@@ -1756,21 +1753,19 @@ const GoodsReceiptModal: React.FC<{
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setPaymentMethod("cash")}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-2 border-2 rounded-lg text-xs font-bold transition-all ${
-                      paymentMethod === "cash"
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                        : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
-                    }`}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2 border-2 rounded-lg text-xs font-bold transition-all ${paymentMethod === "cash"
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                      : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
+                      }`}
                   >
                     💵 Tiền mặt
                   </button>
                   <button
                     onClick={() => setPaymentMethod("bank")}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-2 border-2 rounded-lg text-xs font-bold transition-all ${
-                      paymentMethod === "bank"
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                        : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
-                    }`}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2 border-2 rounded-lg text-xs font-bold transition-all ${paymentMethod === "bank"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                      : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
+                      }`}
                   >
                     🏦 Chuyển khoản
                   </button>
@@ -1791,21 +1786,19 @@ const GoodsReceiptModal: React.FC<{
                           setPaymentType("full");
                           setPartialAmount(0);
                         }}
-                        className={`px-2 py-1.5 border-2 rounded-lg text-[10px] font-bold transition-all ${
-                          paymentType === "full"
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                            : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
-                        }`}
+                        className={`px-2 py-1.5 border-2 rounded-lg text-[10px] font-bold transition-all ${paymentType === "full"
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                          : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
+                          }`}
                       >
                         Đủ
                       </button>
                       <button
                         onClick={() => setPaymentType("partial")}
-                        className={`px-2 py-1.5 border-2 rounded-lg text-[10px] font-bold transition-all ${
-                          paymentType === "partial"
-                            ? "border-orange-500 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
-                            : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
-                        }`}
+                        className={`px-2 py-1.5 border-2 rounded-lg text-[10px] font-bold transition-all ${paymentType === "partial"
+                          ? "border-orange-500 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
+                          : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
+                          }`}
                       >
                         1 phần
                       </button>
@@ -1814,11 +1807,10 @@ const GoodsReceiptModal: React.FC<{
                           setPaymentType("note");
                           setPartialAmount(0);
                         }}
-                        className={`px-2 py-1.5 border-2 rounded-lg text-[10px] font-bold transition-all ${
-                          paymentType === "note"
-                            ? "border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
-                            : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
-                        }`}
+                        className={`px-2 py-1.5 border-2 rounded-lg text-[10px] font-bold transition-all ${paymentType === "note"
+                          ? "border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+                          : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300"
+                          }`}
                       >
                         Công nợ
                       </button>
@@ -2399,9 +2391,8 @@ const EditReceiptModal: React.FC<{
             }),
             date: txDate,
             payer: tx.description || "--",
-            cashier: `${tx.profiles?.full_name || "--"} (${
-              tx.payment_method === "cash" ? "Tiền mặt" : "Chuyển khoản"
-            })`,
+            cashier: `${tx.profiles?.full_name || "--"} (${tx.payment_method === "cash" ? "Tiền mặt" : "Chuyển khoản"
+              })`,
             amount: Math.abs(tx.amount),
           };
         })
@@ -2799,11 +2790,10 @@ const EditReceiptModal: React.FC<{
                     {items.map((item, index) => (
                       <tr
                         key={item.id}
-                        className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${
-                          editingItemIndex === index
-                            ? "bg-blue-50 dark:bg-blue-900/20"
-                            : ""
-                        }`}
+                        className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${editingItemIndex === index
+                          ? "bg-blue-50 dark:bg-blue-900/20"
+                          : ""
+                          }`}
                       >
                         <td className="px-3 py-3 text-sm text-slate-900 dark:text-slate-100">
                           {index + 1}
@@ -3448,11 +3438,10 @@ const InventoryHistorySection: React.FC<{
             <button
               key={filter.key}
               onClick={() => setActiveTimeFilter(filter.key)}
-              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-colors ${
-                activeTimeFilter === filter.key
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-              }`}
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-colors ${activeTimeFilter === filter.key
+                ? "bg-blue-600 text-white"
+                : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                }`}
             >
               {filter.label}
             </button>
@@ -4058,19 +4047,17 @@ const InventoryHistorySection: React.FC<{
                     quantity: item.quantity,
                     unitPrice: item.unitPrice,
                     totalPrice: item.totalPrice,
-                    notes: `NV:${
-                      updatedData.items[0].notes
-                        ?.split("NV:")[1]
-                        ?.split("NCC:")[0]
-                        ?.trim() ||
+                    notes: `NV:${updatedData.items[0].notes
+                      ?.split("NV:")[1]
+                      ?.split("NCC:")[0]
+                      ?.trim() ||
                       profile?.name ||
                       profile?.full_name ||
                       "Nhân viên"
-                    } NCC:${updatedData.supplier}${
-                      updatedData.supplierPhone
+                      } NCC:${updatedData.supplier}${updatedData.supplierPhone
                         ? ` Phone:${updatedData.supplierPhone}`
                         : ""
-                    }`,
+                      }`,
                   })
                   .eq("id", item.id);
 
@@ -4176,19 +4163,17 @@ const InventoryHistorySection: React.FC<{
                     unitPrice: newItem.unitPrice,
                     totalPrice: newItem.totalPrice,
                     branchId: currentBranchId,
-                    notes: `NV:${
-                      updatedData.items[0].notes
-                        ?.split("NV:")[1]
-                        ?.split("NCC:")[0]
-                        ?.trim() ||
+                    notes: `NV:${updatedData.items[0].notes
+                      ?.split("NV:")[1]
+                      ?.split("NCC:")[0]
+                      ?.trim() ||
                       profile?.name ||
                       profile?.full_name ||
                       "Nhân viên"
-                    } NCC:${updatedData.supplier}${
-                      updatedData.supplierPhone
+                      } NCC:${updatedData.supplier}${updatedData.supplierPhone
                         ? ` Phone:${updatedData.supplierPhone}`
                         : ""
-                    }`,
+                      }`,
                   });
 
                 if (insertError) {
@@ -4337,11 +4322,10 @@ const InventoryHistoryModal: React.FC<{
               <button
                 key={filter.key}
                 onClick={() => setActiveTimeFilter(filter.key)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeTimeFilter === filter.key
-                    ? "bg-blue-600 text-white"
-                    : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-                }`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTimeFilter === filter.key
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                  }`}
               >
                 {filter.label}
               </button>
@@ -4461,7 +4445,7 @@ const InventoryHistoryModal: React.FC<{
                       <div className="text-sm text-slate-900 dark:text-slate-100">
                         {transaction.notes && transaction.notes.includes("NCC:")
                           ? transaction.notes.split("NCC:")[1]?.trim() ||
-                            "Chưa rõ"
+                          "Chưa rõ"
                           : "Chưa rõ"}
                       </div>
                     </td>
@@ -4595,6 +4579,7 @@ const InventoryManager: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [editingPart, setEditingPart] = useState<Part | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showExternalImport, setShowExternalImport] = useState(false);
   const [showBatchPrintModal, setShowBatchPrintModal] = useState(false);
   const [mobileMenuOpenIndex, setMobileMenuOpenIndex] = useState<number | null>(
     null
@@ -4833,9 +4818,8 @@ const InventoryManager: React.FC = () => {
       const keywords = search.trim().toLowerCase().split(/\s+/);
       if (keywords.length > 1) {
         baseList = baseList.filter((part: any) => {
-          const searchText = `${part.name || ""} ${part.sku || ""} ${
-            part.category || ""
-          } ${part.description || ""}`.toLowerCase();
+          const searchText = `${part.name || ""} ${part.sku || ""} ${part.category || ""
+            } ${part.description || ""}`.toLowerCase();
           return keywords.every((keyword) => searchText.includes(keyword));
         });
       }
@@ -5110,9 +5094,8 @@ const InventoryManager: React.FC = () => {
           supplierId,
           branchId: currentBranchId,
           userId: profile?.id || "unknown",
-          notes: `${receiptCode} | NV:${
-            profile?.name || profile?.full_name || "Nhân viên"
-          } NCC:${supplierName}${note ? " | " + note : ""}`,
+          notes: `${receiptCode} | NV:${profile?.name || profile?.full_name || "Nhân viên"
+            } NCC:${supplierName}${note ? " | " + note : ""}`,
         });
 
         // 💰 Ghi chi tiền vào sổ quỹ nếu có thanh toán (paidAmount > 0)
@@ -5374,9 +5357,8 @@ const InventoryManager: React.FC = () => {
   const handleExportExcel = () => {
     try {
       const now = new Date();
-      const filename = `ton-kho-${now.getDate()}-${
-        now.getMonth() + 1
-      }-${now.getFullYear()}.xlsx`;
+      const filename = `ton-kho-${now.getDate()}-${now.getMonth() + 1
+        }-${now.getFullYear()}.xlsx`;
       exportPartsToExcel(repoParts, currentBranchId, filename);
       showToast.success("Xuất file Excel thành công!");
     } catch (error) {
@@ -5438,15 +5420,19 @@ const InventoryManager: React.FC = () => {
                 label: "Lịch sử",
                 icon: <FileText className="w-3.5 h-3.5" />,
               },
+              {
+                key: "external-lookup",
+                label: "Tra cứu ngoài",
+                icon: <Search className="w-3.5 h-3.5" />,
+              },
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  activeTab === tab.key
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-700"
-                }`}
+                className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${activeTab === tab.key
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-700"
+                  }`}
               >
                 <span className="inline-flex items-center gap-1">
                   {tab.icon}
@@ -5514,6 +5500,13 @@ const InventoryManager: React.FC = () => {
                     title="Nhập CSV"
                   >
                     <DownloadCloud className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setShowExternalImport(true)}
+                    className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-white dark:bg-slate-800 transition"
+                    title="Nhập dữ liệu từ bên ngoài"
+                  >
+                    <UploadCloud className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={handleDownloadTemplate}
@@ -5629,11 +5622,10 @@ const InventoryManager: React.FC = () => {
               {/* Filter button */}
               <button
                 onClick={() => setShowAdvancedFilters((prev) => !prev)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition flex-shrink-0 ${
-                  showAdvancedFilters
-                    ? "border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                    : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
-                }`}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition flex-shrink-0 ${showAdvancedFilters
+                  ? "border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                  : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
+                  }`}
               >
                 <Filter className="w-3.5 h-3.5" />
                 Bộ lọc nâng cao
@@ -5662,17 +5654,15 @@ const InventoryManager: React.FC = () => {
                   <button
                     key={filter.id}
                     onClick={() => handleStockFilterChange(filter.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition ${
-                      colorMap[filter.variant || "neutral"]
-                    }`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition ${colorMap[filter.variant || "neutral"]
+                      }`}
                   >
                     <span>{filter.label}</span>
                     <span
-                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        isActive
-                          ? "bg-white/20"
-                          : "bg-black/10 dark:bg-white/10"
-                      }`}
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive
+                        ? "bg-white/20"
+                        : "bg-black/10 dark:bg-white/10"
+                        }`}
                     >
                       {filter.count}
                     </span>
@@ -5736,11 +5726,10 @@ const InventoryManager: React.FC = () => {
                   </label>
                   <button
                     onClick={() => setShowDuplicatesOnly((prev) => !prev)}
-                    className={`mt-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
-                      showDuplicatesOnly
-                        ? "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-900/20"
-                        : "border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
-                    }`}
+                    className={`mt-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${showDuplicatesOnly
+                      ? "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-900/20"
+                      : "border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
+                      }`}
                   >
                     {showDuplicatesOnly ? "Đang lọc trùng mã" : "Lọc trùng mã"}
                   </button>
@@ -5766,11 +5755,10 @@ const InventoryManager: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
-                    showDuplicatesOnly
-                      ? "bg-orange-600 text-white"
-                      : "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300"
-                  }`}
+                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${showDuplicatesOnly
+                    ? "bg-orange-600 text-white"
+                    : "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300"
+                    }`}
                 >
                   {showDuplicatesOnly ? "✓ Đang lọc" : "🔍 Lọc"}
                 </button>
@@ -5832,9 +5820,8 @@ const InventoryManager: React.FC = () => {
                     return (
                       <div
                         key={part.id}
-                        className={`p-3 rounded-xl bg-[#2d3748] border border-slate-600 transition ${
-                          isDuplicate ? "border-l-4 border-l-orange-500" : ""
-                        }`}
+                        className={`p-3 rounded-xl bg-[#2d3748] border border-slate-600 transition ${isDuplicate ? "border-l-4 border-l-orange-500" : ""
+                          }`}
                         role="listitem"
                       >
                         <div className="flex-1 min-w-0">
@@ -5850,9 +5837,8 @@ const InventoryManager: React.FC = () => {
                               {/* Danh mục với màu sắc */}
                               {part.category && (
                                 <span
-                                  className={`inline-flex items-center px-2 py-0.5 mt-1.5 rounded-full text-[10px] font-medium ${
-                                    getCategoryColor(part.category).bg
-                                  } ${getCategoryColor(part.category).text}`}
+                                  className={`inline-flex items-center px-2 py-0.5 mt-1.5 rounded-full text-[10px] font-medium ${getCategoryColor(part.category).bg
+                                    } ${getCategoryColor(part.category).text}`}
                                 >
                                   {part.category}
                                 </span>
@@ -5868,13 +5854,12 @@ const InventoryManager: React.FC = () => {
                           <div className="mt-2 flex items-center justify-between">
                             {/* Badge số lượng tồn kho */}
                             <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 text-sm font-bold rounded-lg ${
-                                stock === 0
-                                  ? "text-red-300 bg-red-900/40 border border-red-700/50"
-                                  : stock < LOW_STOCK_THRESHOLD
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 text-sm font-bold rounded-lg ${stock === 0
+                                ? "text-red-300 bg-red-900/40 border border-red-700/50"
+                                : stock < LOW_STOCK_THRESHOLD
                                   ? "text-yellow-300 bg-yellow-900/40 border border-yellow-700/50"
                                   : "text-emerald-300 bg-emerald-900/40 border border-emerald-700/50"
-                              }`}
+                                }`}
                             >
                               <span className="text-xs opacity-80">SL:</span>
                               {stock}
@@ -6058,27 +6043,27 @@ const InventoryManager: React.FC = () => {
                           stock === 0
                             ? "border-red-300 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-950/50 dark:text-red-300"
                             : stock <= LOW_STOCK_THRESHOLD
-                            ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-950/50 dark:text-amber-300"
-                            : "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300";
+                              ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-950/50 dark:text-amber-300"
+                              : "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300";
                         const stockStatusLabel =
                           stock === 0
                             ? "Hết hàng"
                             : stock <= LOW_STOCK_THRESHOLD
-                            ? "Sắp hết"
-                            : "Ổn định";
+                              ? "Sắp hết"
+                              : "Ổn định";
                         const stockQtyClass =
                           stock === 0
                             ? "text-red-600 dark:text-red-400"
                             : stock <= LOW_STOCK_THRESHOLD
-                            ? "text-amber-600 dark:text-amber-400"
-                            : "text-emerald-700 dark:text-emerald-400";
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-emerald-700 dark:text-emerald-400";
                         const productInitial =
                           part.name?.charAt(0)?.toUpperCase() || "?";
                         const rowHighlight = isSelected
                           ? "bg-blue-900/20 dark:bg-blue-900/20"
                           : isDuplicate
-                          ? "bg-orange-500/10 border-l-4 border-l-orange-500"
-                          : "";
+                            ? "bg-orange-500/10 border-l-4 border-l-orange-500"
+                            : "";
 
                         return (
                           <tr
@@ -6103,10 +6088,10 @@ const InventoryManager: React.FC = () => {
                                     part.imageUrl
                                       ? undefined
                                       : {
-                                          backgroundColor: getAvatarColor(
-                                            part.category
-                                          ),
-                                        }
+                                        backgroundColor: getAvatarColor(
+                                          part.category
+                                        ),
+                                      }
                                   }
                                 >
                                   {part.imageUrl ? (
@@ -6144,11 +6129,9 @@ const InventoryManager: React.FC = () => {
                                   </div>
                                   {part.category && (
                                     <span
-                                      className={`inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-medium ${
-                                        getCategoryColor(part.category).bg
-                                      } ${
-                                        getCategoryColor(part.category).text
-                                      }`}
+                                      className={`inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-medium ${getCategoryColor(part.category).bg
+                                        } ${getCategoryColor(part.category).text
+                                        }`}
                                     >
                                       {part.category}
                                     </span>
@@ -6167,13 +6150,12 @@ const InventoryManager: React.FC = () => {
                                   className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0 text-[9px] font-semibold ${stockStatusClass}`}
                                 >
                                   <span
-                                    className={`h-1 w-1 rounded-full ${
-                                      stock === 0
-                                        ? "bg-red-500"
-                                        : stock <= LOW_STOCK_THRESHOLD
+                                    className={`h-1 w-1 rounded-full ${stock === 0
+                                      ? "bg-red-500"
+                                      : stock <= LOW_STOCK_THRESHOLD
                                         ? "bg-amber-500"
                                         : "bg-emerald-500"
-                                    }`}
+                                      }`}
                                   ></span>
                                   {stockStatusLabel}
                                 </span>
@@ -6355,6 +6337,12 @@ const InventoryManager: React.FC = () => {
             <div className="sm:hidden">
               <LookupManagerMobile />
             </div>
+          </div>
+        )}
+
+        {activeTab === "external-lookup" && (
+          <div className="bg-white dark:bg-slate-800 -m-3 sm:-m-6 h-full">
+            <ExternalPartsLookup />
           </div>
         )}
       </div>
@@ -6667,7 +6655,7 @@ const InventoryManager: React.FC = () => {
                     at: importDate,
                   },
                 });
-              } catch {}
+              } catch { }
 
               setShowImportModal(false);
 
@@ -6725,84 +6713,72 @@ const InventoryManager: React.FC = () => {
         <div className="grid grid-cols-4 gap-1 px-2 py-2">
           <button
             onClick={() => setActiveTab("stock")}
-            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${
-              activeTab === "stock"
-                ? "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 scale-105"
-                : "text-slate-500 dark:text-slate-400 active:scale-95"
-            }`}
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${activeTab === "stock"
+              ? "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 scale-105"
+              : "text-slate-500 dark:text-slate-400 active:scale-95"
+              }`}
           >
             <Boxes
-              className={`w-5 h-5 ${
-                activeTab === "stock" ? "scale-110" : ""
-              } transition-transform`}
+              className={`w-5 h-5 ${activeTab === "stock" ? "scale-110" : ""
+                } transition-transform`}
             />
             <span
-              className={`text-[10px] font-medium ${
-                activeTab === "stock" ? "font-semibold" : ""
-              }`}
+              className={`text-[10px] font-medium ${activeTab === "stock" ? "font-semibold" : ""
+                }`}
             >
               Tồn kho
             </span>
           </button>
           <button
             onClick={() => setActiveTab("categories")}
-            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${
-              activeTab === "categories"
-                ? "bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 scale-105"
-                : "text-slate-500 dark:text-slate-400 active:scale-95"
-            }`}
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${activeTab === "categories"
+              ? "bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 scale-105"
+              : "text-slate-500 dark:text-slate-400 active:scale-95"
+              }`}
           >
             <Package
-              className={`w-5 h-5 ${
-                activeTab === "categories" ? "scale-110" : ""
-              } transition-transform`}
+              className={`w-5 h-5 ${activeTab === "categories" ? "scale-110" : ""
+                } transition-transform`}
             />
             <span
-              className={`text-[10px] font-medium ${
-                activeTab === "categories" ? "font-semibold" : ""
-              }`}
+              className={`text-[10px] font-medium ${activeTab === "categories" ? "font-semibold" : ""
+                }`}
             >
               Danh mục
             </span>
           </button>
           <button
             onClick={() => setActiveTab("lookup")}
-            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${
-              activeTab === "lookup"
-                ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 scale-105"
-                : "text-slate-500 dark:text-slate-400 active:scale-95"
-            }`}
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${activeTab === "lookup"
+              ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 scale-105"
+              : "text-slate-500 dark:text-slate-400 active:scale-95"
+              }`}
           >
             <Search
-              className={`w-5 h-5 ${
-                activeTab === "lookup" ? "scale-110" : ""
-              } transition-transform`}
+              className={`w-5 h-5 ${activeTab === "lookup" ? "scale-110" : ""
+                } transition-transform`}
             />
             <span
-              className={`text-[10px] font-medium ${
-                activeTab === "lookup" ? "font-semibold" : ""
-              }`}
+              className={`text-[10px] font-medium ${activeTab === "lookup" ? "font-semibold" : ""
+                }`}
             >
               Tra cứu
             </span>
           </button>
           <button
             onClick={() => setActiveTab("history")}
-            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${
-              activeTab === "history"
-                ? "bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 scale-105"
-                : "text-slate-500 dark:text-slate-400 active:scale-95"
-            }`}
+            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-200 ${activeTab === "history"
+              ? "bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 scale-105"
+              : "text-slate-500 dark:text-slate-400 active:scale-95"
+              }`}
           >
             <FileText
-              className={`w-5 h-5 ${
-                activeTab === "history" ? "scale-110" : ""
-              } transition-transform`}
+              className={`w-5 h-5 ${activeTab === "history" ? "scale-110" : ""
+                } transition-transform`}
             />
             <span
-              className={`text-[10px] font-medium ${
-                activeTab === "history" ? "font-semibold" : ""
-              }`}
+              className={`text-[10px] font-medium ${activeTab === "history" ? "font-semibold" : ""
+                }`}
             >
               Lịch sử
             </span>
@@ -6828,6 +6804,17 @@ const InventoryManager: React.FC = () => {
             prefilledPartIds={selectedItems}
           />
         </>
+      )}
+
+      {/* External Import Modal */}
+      {showExternalImport && (
+        <ExternalDataImport
+          onClose={() => setShowExternalImport(false)}
+          onImported={() => {
+            // Optional: refresh parts if we implement sync later
+            // partsRepo.refetch();
+          }}
+        />
       )}
     </div>
   );

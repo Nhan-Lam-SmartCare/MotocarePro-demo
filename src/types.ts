@@ -450,6 +450,7 @@ export interface PurchaseOrder {
   received_date?: string; // ISO timestamp
   total_amount: number;
   discount_amount: number;
+  shipping_fee: number;
   final_amount: number;
   notes?: string;
   cancellation_reason?: string;
@@ -499,8 +500,20 @@ export interface UpdatePurchaseOrderInput {
   expected_date?: string;
   received_date?: string;
   discount_amount?: number;
+  shipping_fee?: number;
   notes?: string;
   cancellation_reason?: string;
+}
+
+export interface ExternalPart {
+  id: string;
+  name: string;
+  sku?: string;
+  price: number;
+  category?: string;
+  image_url?: string;
+  source_url?: string;
+  created_at: string;
 }
 
 // High-level app state snapshot (not strictly used by context but handy)
@@ -518,4 +531,5 @@ export interface AppState {
   loans: Loan[];
   loanPayments: LoanPayment[];
   purchaseOrders: PurchaseOrder[];
+  externalParts: ExternalPart[];
 }

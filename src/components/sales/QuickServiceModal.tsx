@@ -376,47 +376,46 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                   <h3 className="text-xs md:text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2 md:mb-3">
                     {categoryLabels[category] || category}
                   </h3>
-                  {/* Mobile: 2 columns, compact cards. Desktop: 3-4 columns */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                  {/* Mobile: 3 columns, compact cards. Desktop: 4-5 columns */}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
                     {items.map((service) => (
                       <div
                         key={service.id}
-                        className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-2 md:p-4 border border-slate-200 dark:border-slate-600 hover:shadow-lg transition-all"
+                        className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-1.5 border border-slate-200 dark:border-slate-600 hover:shadow-md transition-all"
                       >
                         {/* Service button - More compact on mobile */}
                         <button
                           onClick={() => handleSelectService(service)}
-                          className={`w-full ${
-                            colorMap[service.color] || colorMap.blue
-                          } text-white rounded-lg p-2.5 md:p-4 mb-2 md:mb-3 transition-all hover:scale-105 active:scale-95`}
+                          className={`w-full ${colorMap[service.color] || colorMap.blue
+                            } text-white rounded-md p-2 mb-1.5 transition-all hover:scale-105 active:scale-95`}
                         >
-                          <div className="flex flex-col items-center gap-1 md:gap-2">
+                          <div className="flex flex-col items-center gap-0.5">
                             {iconMap[service.icon] || (
-                              <Wrench className="w-5 h-5 md:w-6 md:h-6" />
+                              <Wrench className="w-4 h-4" />
                             )}
-                            <span className="font-semibold text-xs md:text-sm line-clamp-1">
+                            <span className="font-semibold text-[10px] md:text-xs line-clamp-1">
                               {service.name}
                             </span>
-                            <span className="text-sm md:text-lg font-bold">
+                            <span className="text-xs md:text-sm font-bold">
                               {formatCurrency(service.price)}
                             </span>
                           </div>
                         </button>
 
-                        {/* Quantity controls - Smaller on mobile */}
-                        <div className="flex items-center justify-center gap-1 md:gap-2">
+                        {/* Quantity controls - Compact */}
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => updateQuantity(service.id, -1)}
-                            className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500 flex items-center justify-center font-bold text-sm"
+                            className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500 flex items-center justify-center font-bold text-xs"
                           >
                             -
                           </button>
-                          <span className="w-6 md:w-8 text-center font-semibold text-slate-700 dark:text-slate-200 text-sm">
+                          <span className="w-4 text-center font-semibold text-slate-700 dark:text-slate-200 text-xs">
                             {quantities[service.id] || 1}
                           </span>
                           <button
                             onClick={() => updateQuantity(service.id, 1)}
-                            className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500 flex items-center justify-center font-bold text-sm"
+                            className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500 flex items-center justify-center font-bold text-xs"
                           >
                             +
                           </button>
@@ -457,7 +456,7 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                     <span className="font-bold">
                       {formatCurrency(
                         getCurrentPrice() *
-                          (quantities[selectedService.id] || 1)
+                        (quantities[selectedService.id] || 1)
                       )}
                     </span>
                   </p>
@@ -584,22 +583,20 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setPaymentMethod("cash")}
-                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                      paymentMethod === "cash"
+                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === "cash"
                         ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
                         : "border-slate-200 dark:border-slate-600 hover:border-emerald-300 text-slate-600 dark:text-slate-400"
-                    }`}
+                      }`}
                   >
                     <Banknote className="w-8 h-8" />
                     <span className="font-semibold text-sm">Tiền mặt</span>
                   </button>
                   <button
                     onClick={() => setPaymentMethod("bank")}
-                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                      paymentMethod === "bank"
+                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === "bank"
                         ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                         : "border-slate-200 dark:border-slate-600 hover:border-blue-300 text-slate-600 dark:text-slate-400"
-                    }`}
+                      }`}
                   >
                     <CreditCard className="w-8 h-8" />
                     <span className="font-semibold text-sm">Chuyển khoản</span>
@@ -630,8 +627,8 @@ const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                 {foundCustomer
                   ? `Khách: ${foundCustomer.name}`
                   : licensePlate
-                  ? `Biển số: ${licensePlate}`
-                  : "Khách vãng lai"}
+                    ? `Biển số: ${licensePlate}`
+                    : "Khách vãng lai"}
               </p>
             </div>
           </div>
@@ -942,17 +939,15 @@ const ServiceManagement: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           {services.map((service) => (
             <div
               key={service.id}
-              className={`flex items-center justify-between p-2 md:p-3 rounded-lg border ${
-                service.is_active
+              className={`flex items-center justify-between p-2 md:p-3 rounded-lg border ${service.is_active
                   ? "bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600"
                   : "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 opacity-60"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
                 <div
-                  className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0 ${
-                    colorMap[service.color] || colorMap.blue
-                  }`}
+                  className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0 ${colorMap[service.color] || colorMap.blue
+                    }`}
                 >
                   {iconMap[service.icon] || (
                     <Wrench className="w-4 h-4 md:w-5 md:h-5" />
@@ -970,11 +965,10 @@ const ServiceManagement: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button
                   onClick={() => handleToggle(service)}
-                  className={`p-1.5 md:p-2 rounded-lg ${
-                    service.is_active
+                  className={`p-1.5 md:p-2 rounded-lg ${service.is_active
                       ? "text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30"
                       : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                  }`}
+                    }`}
                   title={service.is_active ? "Ẩn" : "Hiện"}
                 >
                   {service.is_active ? (

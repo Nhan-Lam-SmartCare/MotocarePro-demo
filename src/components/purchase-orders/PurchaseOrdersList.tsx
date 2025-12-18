@@ -72,11 +72,17 @@ export const PurchaseOrdersList: React.FC<PurchaseOrdersListProps> = ({
   );
 
   const handleDelete = async (po: PurchaseOrder) => {
+    if (po.status === "received") {
+      showToast.error("Không thể xóa đơn hàng đã nhập kho");
+      return;
+    }
+
     const confirmed = await confirm({
       title: "Xóa đơn đặt hàng",
       message: `Bạn có chắc muốn xóa đơn ${po.po_number}?`,
       confirmText: "Xóa",
       cancelText: "Hủy",
+      confirmColor: "red",
     });
 
     if (confirmed) {
@@ -93,190 +99,185 @@ export const PurchaseOrdersList: React.FC<PurchaseOrdersListProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-500">Đang tải...</div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Đơn đặt hàng
-          </h2>
+    <div className="space-y-6">
+      {/* Header & Filters */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Filters */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+          <button
+            onClick={() => setStatusFilter("all")}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${statusFilter === "all"
+              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md"
+              : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+          >
+            Tất cả ({purchaseOrders.length})
+          </button>
+          {Object.entries(STATUS_CONFIG).map(([status, config]) => {
+            const count = purchaseOrders.filter(
+              (po) => po.status === status
+            ).length;
+            return (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${statusFilter === status
+                  ? `${config.bgColor} ${config.color} ring-2 ring-inset ring-current shadow-sm`
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  }`}
+              >
+                {config.icon}
+                {config.label}
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-xs">
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
+
+        {/* Action Button */}
         <button
-          onClick={() => {
-            console.log("PurchaseOrdersList: Tạo đơn mới button clicked");
-            onCreateNew();
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          onClick={onCreateNew}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-lg shadow-blue-500/20 transition-all active:scale-95 whitespace-nowrap"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-5 h-5" />
           Tạo đơn mới
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        <button
-          onClick={() => setStatusFilter("all")}
-          className={`px-3 py-1.5 rounded-lg border text-sm whitespace-nowrap transition-all ${
-            statusFilter === "all"
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300"
-              : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-300"
-          }`}
-        >
-          Tất cả ({purchaseOrders.length})
-        </button>
-        {Object.entries(STATUS_CONFIG).map(([status, config]) => {
-          const count = purchaseOrders.filter(
-            (po) => po.status === status
-          ).length;
-          return (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm whitespace-nowrap transition-all ${
-                statusFilter === status
-                  ? `${config.bgColor} ${config.color} border-current`
-                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600"
-              }`}
-            >
-              {config.icon}
-              {config.label} ({count})
-            </button>
-          );
-        })}
-      </div>
-
       {/* List */}
       {filteredOrders.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-          <Package className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-          <p className="text-slate-500 dark:text-slate-400">
+        <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+          <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+            <Package className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+          </div>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
             {statusFilter === "all"
               ? "Chưa có đơn đặt hàng nào"
               : `Không có đơn ${STATUS_CONFIG[
-                  statusFilter
-                ]?.label.toLowerCase()}`}
+                statusFilter
+              ]?.label.toLowerCase()}`}
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-4">
           {filteredOrders.map((po) => {
             const statusConfig =
               STATUS_CONFIG[po.status] || STATUS_CONFIG.draft;
             return (
               <div
                 key={po.id}
-                className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-colors cursor-pointer"
+                className="group bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 cursor-pointer relative overflow-hidden"
                 onClick={() => onViewDetail(po)}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    {/* PO Number & Status */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {/* Status Stripe */}
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-1.5 ${statusConfig.bgColor.replace(
+                    "bg-",
+                    "bg-"
+                  )}`}
+                />
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pl-2">
+                  {/* Left Section: Info */}
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {po.po_number}
-                      </span>
+                      </h3>
                       <span
-                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${statusConfig.bgColor} ${statusConfig.color}`}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${statusConfig.bgColor} ${statusConfig.color}`}
                       >
                         {statusConfig.icon}
                         {statusConfig.label}
                       </span>
                     </div>
 
-                    {/* Supplier */}
-                    <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-                      Nhà cung cấp:{" "}
-                      <span className="font-medium">
-                        {po.supplier?.name || "—"}
-                      </span>
-                    </div>
-
-                    {/* Item count */}
-                    <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-                      Số mặt hàng:{" "}
-                      <span className="font-medium text-blue-600 dark:text-blue-400">
-                        {po.items?.length || 0} sản phẩm
-                      </span>
-                    </div>
-
-                    {/* Created by */}
-                    {(po.creator?.name || po.creator?.email) && (
-                      <div className="text-xs text-slate-500 dark:text-slate-500 mb-1">
-                        Người tạo:{" "}
-                        <span className="font-medium">
-                          {po.creator.name || po.creator.email}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <span className="w-24 text-slate-500">Nhà cung cấp:</span>
+                        <span className="font-semibold text-slate-900 dark:text-slate-200">
+                          {po.supplier?.name || "—"}
                         </span>
                       </div>
-                    )}
-
-                    {/* Dates */}
-                    <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-500">
-                      {po.order_date && (
-                        <span>Ngày đặt: {formatDate(po.order_date)}</span>
-                      )}
-                      {po.expected_date && (
-                        <span>Dự kiến: {formatDate(po.expected_date)}</span>
-                      )}
-                      {po.received_date && (
-                        <span className="text-green-600 dark:text-green-400">
-                          Đã nhận: {formatDate(po.received_date)}
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <span className="w-24 text-slate-500">Người tạo:</span>
+                        <span className="font-medium">
+                          {po.creator?.name || po.creator?.email || "—"}
                         </span>
-                      )}
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <span className="w-24 text-slate-500">Ngày đặt:</span>
+                        <span>
+                          {po.order_date ? formatDate(po.order_date) : "—"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <span className="w-24 text-slate-500">Dự kiến:</span>
+                        <span>
+                          {po.expected_date ? formatDate(po.expected_date) : "—"}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Amount & Actions */}
-                  <div className="flex flex-col items-end gap-2">
+                  {/* Right Section: Amount & Actions */}
+                  <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 border-slate-100 dark:border-slate-700 pt-4 md:pt-0">
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {formatCurrency(po.final_amount || 0)}
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                        Tổng tiền ({po.items?.length || 0} món)
+                      </p>
+                      <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                        {formatCurrency(po.final_amount || (po.total_amount - (po.discount_amount || 0)))}
                       </div>
                       {po.discount_amount > 0 && (
-                        <div className="text-xs text-slate-500 dark:text-slate-500 line-through">
+                        <div className="text-xs text-slate-400 line-through">
                           {formatCurrency(po.total_amount || 0)}
                         </div>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onViewDetail(po);
                         }}
-                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                        className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-colors"
                         title="Xem chi tiết"
                       >
-                        <Eye className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                        <Eye className="w-5 h-5" />
                       </button>
-                      {po.status === "draft" && (
+                      {po.status !== "received" && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDelete(po);
                           }}
-                          className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/50 rounded transition-colors"
-                          title="Xóa"
+                          className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors"
+                          title="Xóa đơn hàng"
                         >
-                          <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Notes */}
+                {/* Notes Footer */}
                 {po.notes && (
-                  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-500">
-                    {po.notes}
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-start gap-2">
+                    <FileText className="w-4 h-4 text-slate-400 mt-0.5" />
+                    <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                      "{po.notes}"
+                    </p>
                   </div>
                 )}
               </div>
