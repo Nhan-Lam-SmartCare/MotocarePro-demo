@@ -94,8 +94,12 @@ const DebtManager: React.FC = () => {
       }
     };
 
+    // Sales table doesn't have remainingamount column yet, so we skip this
+    // fetchUnpaidSales();
+    setUnpaidSales([]);
+    setLoadingSales(false);
+
     fetchUnpaidWorkOrders();
-    fetchUnpaidSales();
 
     // 🔹 Realtime subscription for work_orders changes
     const workOrdersChannel = supabase
@@ -397,21 +401,19 @@ const DebtManager: React.FC = () => {
           <div className="flex items-center w-full md:w-auto">
             <button
               onClick={() => setActiveTab("customer")}
-              className={`flex-1 md:flex-none px-4 py-2 font-medium text-sm transition-all text-center ${
-                activeTab === "customer"
+              className={`flex-1 md:flex-none px-4 py-2 font-medium text-sm transition-all text-center ${activeTab === "customer"
                   ? "text-cyan-600 dark:text-cyan-400 border-b-2 border-cyan-600 dark:border-cyan-400"
                   : "text-secondary-text hover:text-primary-text"
-              }`}
+                }`}
             >
               Công nợ khách hàng
             </button>
             <button
               onClick={() => setActiveTab("supplier")}
-              className={`flex-1 md:flex-none px-4 py-2 font-medium text-sm transition-all text-center ${
-                activeTab === "supplier"
+              className={`flex-1 md:flex-none px-4 py-2 font-medium text-sm transition-all text-center ${activeTab === "supplier"
                   ? "text-cyan-600 dark:text-cyan-400 border-b-2 border-cyan-600 dark:border-cyan-400"
                   : "text-secondary-text hover:text-primary-text"
-              }`}
+                }`}
             >
               Công nợ nhà cung cấp
             </button>
@@ -553,15 +555,13 @@ const DebtManager: React.FC = () => {
                   return (
                     <div
                       key={debt.id}
-                      className={`grid grid-cols-1 md:grid-cols-12 gap-4 items-start bg-primary-bg border rounded-lg p-4 transition-all ${
-                        isPaid
+                      className={`grid grid-cols-1 md:grid-cols-12 gap-4 items-start bg-primary-bg border rounded-lg p-4 transition-all ${isPaid
                           ? "opacity-60 cursor-not-allowed border-gray-300 dark:border-gray-600"
                           : "hover:border-cyan-500 hover:shadow-md cursor-pointer"
-                      } ${
-                        debt.isFromWorkOrder
+                        } ${debt.isFromWorkOrder
                           ? "border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10"
                           : "border-primary-border"
-                      }`}
+                        }`}
                       onClick={() => {
                         if (!isPaid) {
                           setSelectedDebt(debt);
@@ -625,9 +625,8 @@ const DebtManager: React.FC = () => {
                             );
                           }}
                           onClick={(e) => e.stopPropagation()} // Prevent opening modal
-                          className={`mt-1 w-4 h-4 rounded border-secondary-border text-cyan-600 focus:ring-cyan-500 ${
-                            isPaid ? "cursor-not-allowed opacity-50" : ""
-                          }`}
+                          className={`mt-1 w-4 h-4 rounded border-secondary-border text-cyan-600 focus:ring-cyan-500 ${isPaid ? "cursor-not-allowed opacity-50" : ""
+                            }`}
                         />
                         <div className="flex-1 min-w-0">
                           <h3 className="text-primary-text font-semibold text-base mb-1 truncate">
@@ -740,16 +739,16 @@ const DebtManager: React.FC = () => {
                             );
                             const partsLines = partsSection
                               ? lines
-                                  .slice(
-                                    lines.indexOf(partsSection) + 1,
-                                    lines.findIndex(
-                                      (l, i) =>
-                                        i > lines.indexOf(partsSection) &&
-                                        (l.includes("Dịch vụ:") ||
-                                          l.includes("Công lao động:"))
-                                    ) || lines.length
-                                  )
-                                  .filter((l) => l.trim().startsWith("•"))
+                                .slice(
+                                  lines.indexOf(partsSection) + 1,
+                                  lines.findIndex(
+                                    (l, i) =>
+                                      i > lines.indexOf(partsSection) &&
+                                      (l.includes("Dịch vụ:") ||
+                                        l.includes("Công lao động:"))
+                                  ) || lines.length
+                                )
+                                .filter((l) => l.trim().startsWith("•"))
                               : [];
 
                             // Lấy dịch vụ (nếu có)
@@ -758,15 +757,15 @@ const DebtManager: React.FC = () => {
                             );
                             const serviceLines = serviceSection
                               ? lines
-                                  .slice(
-                                    lines.indexOf(serviceSection) + 1,
-                                    lines.findIndex(
-                                      (l, i) =>
-                                        i > lines.indexOf(serviceSection) &&
-                                        l.includes("Công lao động:")
-                                    ) || lines.length
-                                  )
-                                  .filter((l) => l.trim().startsWith("•"))
+                                .slice(
+                                  lines.indexOf(serviceSection) + 1,
+                                  lines.findIndex(
+                                    (l, i) =>
+                                      i > lines.indexOf(serviceSection) &&
+                                      l.includes("Công lao động:")
+                                  ) || lines.length
+                                )
+                                .filter((l) => l.trim().startsWith("•"))
                               : [];
 
                             // Lấy công lao động
@@ -1173,44 +1172,44 @@ const DebtManager: React.FC = () => {
       {/* Fixed Bottom Button - Pay All Selected */}
       {((activeTab === "customer" && selectedCustomerIds.length > 0) ||
         (activeTab === "supplier" && selectedSupplierIds.length > 0)) && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-          <button
-            onClick={handlePaySelectedDebts}
-            className="flex items-center gap-3 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold shadow-2xl transition-all hover:scale-105"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+            <button
+              onClick={handlePaySelectedDebts}
+              className="flex items-center gap-3 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold shadow-2xl transition-all hover:scale-105"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span>
-              Đã chọn{" "}
-              {activeTab === "customer"
-                ? selectedCustomerIds.length
-                : selectedSupplierIds.length}{" "}
-              đơn
-            </span>
-            <span className="mx-2">|</span>
-            <span className="text-xl font-bold">
-              Trả hết nợ (
-              {formatCurrency(
-                activeTab === "customer"
-                  ? selectedCustomerTotal
-                  : selectedSupplierTotal
-              )}
-              )
-            </span>
-          </button>
-        </div>
-      )}
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>
+                Đã chọn{" "}
+                {activeTab === "customer"
+                  ? selectedCustomerIds.length
+                  : selectedSupplierIds.length}{" "}
+                đơn
+              </span>
+              <span className="mx-2">|</span>
+              <span className="text-xl font-bold">
+                Trả hết nợ (
+                {formatCurrency(
+                  activeTab === "customer"
+                    ? selectedCustomerTotal
+                    : selectedSupplierTotal
+                )}
+                )
+              </span>
+            </button>
+          </div>
+        )}
 
       {/* Modals */}
       {showCollectModal && (
@@ -1256,11 +1255,11 @@ const DebtManager: React.FC = () => {
           selectedDebts={
             activeTab === "customer"
               ? branchCustomerDebts.filter((d) =>
-                  selectedCustomerIds.includes(d.customerId)
-                )
+                selectedCustomerIds.includes(d.customerId)
+              )
               : branchSupplierDebts.filter((d) =>
-                  selectedSupplierIds.includes(d.supplierId)
-                )
+                selectedSupplierIds.includes(d.supplierId)
+              )
           }
           totalAmount={
             activeTab === "customer"
@@ -1371,8 +1370,7 @@ const DebtManager: React.FC = () => {
 
               // Show success message
               showToast.success(
-                `Đã thanh toán thành công ${formatCurrency(totalAmount)} qua ${
-                  paymentMethod === "cash" ? "Tiền mặt" : "Chuyển khoản"
+                `Đã thanh toán thành công ${formatCurrency(totalAmount)} qua ${paymentMethod === "cash" ? "Tiền mặt" : "Chuyển khoản"
                 }`
               );
             } catch (error: any) {
@@ -2170,202 +2168,202 @@ const AddDebtModal: React.FC<{
   onClose,
   onSave,
 }) => {
-  const [formData, setFormData] = useState({
-    customerId: "",
-    supplierId: "",
-    description: "",
-    totalAmount: 0,
-    phone: "",
-    licensePlate: "",
-  });
+    const [formData, setFormData] = useState({
+      customerId: "",
+      supplierId: "",
+      description: "",
+      totalAmount: 0,
+      phone: "",
+      licensePlate: "",
+    });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
 
-    if (activeTab === "customer") {
-      const customer = customers.find((c) => c.id === formData.customerId);
-      if (!customer) {
-        showToast.error("Vui lòng chọn khách hàng");
-        return;
+      if (activeTab === "customer") {
+        const customer = customers.find((c) => c.id === formData.customerId);
+        if (!customer) {
+          showToast.error("Vui lòng chọn khách hàng");
+          return;
+        }
+
+        onSave({
+          customerId: formData.customerId,
+          customerName: customer.name,
+          phone: formData.phone || customer.phone,
+          licensePlate: formData.licensePlate || customer.licensePlate,
+          description: formData.description,
+          totalAmount: formData.totalAmount,
+          paidAmount: 0,
+          remainingAmount: formData.totalAmount,
+          createdDate: new Date().toISOString(),
+          branchId: currentBranchId,
+        });
+      } else {
+        const supplier = suppliers.find((s) => s.id === formData.supplierId);
+        if (!supplier) {
+          showToast.error("Vui lòng chọn nhà cung cấp");
+          return;
+        }
+
+        onSave({
+          supplierId: formData.supplierId,
+          supplierName: supplier.name,
+          description: formData.description,
+          totalAmount: formData.totalAmount,
+          paidAmount: 0,
+          remainingAmount: formData.totalAmount,
+          createdDate: new Date().toISOString(),
+          branchId: currentBranchId,
+        });
       }
+    };
 
-      onSave({
-        customerId: formData.customerId,
-        customerName: customer.name,
-        phone: formData.phone || customer.phone,
-        licensePlate: formData.licensePlate || customer.licensePlate,
-        description: formData.description,
-        totalAmount: formData.totalAmount,
-        paidAmount: 0,
-        remainingAmount: formData.totalAmount,
-        createdDate: new Date().toISOString(),
-        branchId: currentBranchId,
-      });
-    } else {
-      const supplier = suppliers.find((s) => s.id === formData.supplierId);
-      if (!supplier) {
-        showToast.error("Vui lòng chọn nhà cung cấp");
-        return;
-      }
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-lg w-full border border-slate-200 dark:border-slate-700">
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+              Thêm công nợ{" "}
+              {activeTab === "customer" ? "khách hàng" : "nhà cung cấp"}
+            </h2>
+          </div>
 
-      onSave({
-        supplierId: formData.supplierId,
-        supplierName: supplier.name,
-        description: formData.description,
-        totalAmount: formData.totalAmount,
-        paidAmount: 0,
-        remainingAmount: formData.totalAmount,
-        createdDate: new Date().toISOString(),
-        branchId: currentBranchId,
-      });
-    }
-  };
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {activeTab === "customer" ? (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Khách hàng <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.customerId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, customerId: e.target.value })
+                  }
+                  required
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+                >
+                  <option value="">Chọn khách hàng...</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} - {c.phone}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Nhà cung cấp <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.supplierId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, supplierId: e.target.value })
+                  }
+                  required
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+                >
+                  <option value="">Chọn nhà cung cấp...</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-lg w-full border border-slate-200 dark:border-slate-700">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-            Thêm công nợ{" "}
-            {activeTab === "customer" ? "khách hàng" : "nhà cung cấp"}
-          </h2>
+            {activeTab === "customer" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Số điện thoại
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Biển số xe
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.licensePlate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, licensePlate: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+                  />
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Nội dung công nợ <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                required
+                rows={3}
+                className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+                placeholder="Mô tả chi tiết công nợ..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Số tiền <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                value={formData.totalAmount || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    totalAmount: Number(e.target.value),
+                  })
+                }
+                required
+                min="0"
+                className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+                placeholder="0"
+              />
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {formatCurrency(formData.totalAmount || 0)}
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-3 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium"
+              >
+                Thêm công nợ
+              </button>
+            </div>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {activeTab === "customer" ? (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Khách hàng <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.customerId}
-                onChange={(e) =>
-                  setFormData({ ...formData, customerId: e.target.value })
-                }
-                required
-                className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
-              >
-                <option value="">Chọn khách hàng...</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} - {c.phone}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Nhà cung cấp <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.supplierId}
-                onChange={(e) =>
-                  setFormData({ ...formData, supplierId: e.target.value })
-                }
-                required
-                className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
-              >
-                <option value="">Chọn nhà cung cấp...</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {activeTab === "customer" && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Số điện thoại
-                </label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Biển số xe
-                </label>
-                <input
-                  type="text"
-                  value={formData.licensePlate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, licensePlate: e.target.value })
-                  }
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
-                />
-              </div>
-            </>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Nội dung công nợ <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              required
-              rows={3}
-              className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
-              placeholder="Mô tả chi tiết công nợ..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Số tiền <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              value={formData.totalAmount || ""}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  totalAmount: Number(e.target.value),
-                })
-              }
-              required
-              min="0"
-              className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
-              placeholder="0"
-            />
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {formatCurrency(formData.totalAmount || 0)}
-            </p>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium"
-            >
-              Thêm công nợ
-            </button>
-          </div>
-        </form>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 // Edit Debt Modal
 const EditDebtModal: React.FC<{
@@ -2684,11 +2682,10 @@ const DetailDebtModal: React.FC<{
                   printWindow.document.write(`
                     <html>
                       <head>
-                        <title>Phiếu Công Nợ - ${
-                          isCustomerDebt
-                            ? (debt as CustomerDebt).customerName
-                            : (debt as SupplierDebt).supplierName
-                        }</title>
+                        <title>Phiếu Công Nợ - ${isCustomerDebt
+                      ? (debt as CustomerDebt).customerName
+                      : (debt as SupplierDebt).supplierName
+                    }</title>
                         <style>
                           body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
                           .store-header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #ddd; }
@@ -2715,62 +2712,53 @@ const DetailDebtModal: React.FC<{
                         </style>
                       </head>
                       <body>
-                        ${
-                          storeSettings
-                            ? `
+                        ${storeSettings
+                      ? `
                         <div class="store-header">
                           <h2>${storeSettings.store_name || "MOTOCARE"}</h2>
-                          ${
-                            storeSettings.address
-                              ? `<p><svg style="width:12px;height:12px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="#ef4444"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${storeSettings.address}</p>`
-                              : ""
-                          }
-                          ${
-                            storeSettings.phone
-                              ? `<p><svg style="width:12px;height:12px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="#16a34a"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>${storeSettings.phone}</p>`
-                              : ""
-                          }
+                          ${storeSettings.address
+                        ? `<p><svg style="width:12px;height:12px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="#ef4444"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${storeSettings.address}</p>`
+                        : ""
+                      }
+                          ${storeSettings.phone
+                        ? `<p><svg style="width:12px;height:12px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="#16a34a"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>${storeSettings.phone}</p>`
+                        : ""
+                      }
                         </div>
                         `
-                            : ""
-                        }
+                      : ""
+                    }
                         ${printContent.innerHTML}
-                        ${
-                          storeSettings &&
-                          (storeSettings.bank_name ||
-                            storeSettings.bank_account_number)
-                            ? `
+                        ${storeSettings &&
+                      (storeSettings.bank_name ||
+                        storeSettings.bank_account_number)
+                      ? `
                         <div class="bank-info">
                           <h3><svg style="width:14px;height:14px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="#0891b2"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM4 0h16v2H4zm0 22h16v2H4zm8-10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-4 4h8v-1c0-1.33-2.67-2-4-2s-4 .67-4 2v1z"/></svg>THÔNG TIN CHUYỂN KHOẢN</h3>
-                          ${
-                            storeSettings.bank_name
-                              ? `<p><strong>Ngân hàng:</strong> ${storeSettings.bank_name}</p>`
-                              : ""
-                          }
-                          ${
-                            storeSettings.bank_account_number
-                              ? `<p><strong>Số tài khoản:</strong> ${storeSettings.bank_account_number}</p>`
-                              : ""
-                          }
-                          ${
-                            storeSettings.bank_account_holder
-                              ? `<p><strong>Chủ tài khoản:</strong> ${storeSettings.bank_account_holder}</p>`
-                              : ""
-                          }
-                          ${
-                            storeSettings.bank_branch
-                              ? `<p><strong>Chi nhánh:</strong> ${storeSettings.bank_branch}</p>`
-                              : ""
-                          }
-                          ${
-                            storeSettings.bank_qr_url
-                              ? `<div class="bank-qr"><img src="${storeSettings.bank_qr_url}" alt="QR Code" /></div>`
-                              : ""
-                          }
+                          ${storeSettings.bank_name
+                        ? `<p><strong>Ngân hàng:</strong> ${storeSettings.bank_name}</p>`
+                        : ""
+                      }
+                          ${storeSettings.bank_account_number
+                        ? `<p><strong>Số tài khoản:</strong> ${storeSettings.bank_account_number}</p>`
+                        : ""
+                      }
+                          ${storeSettings.bank_account_holder
+                        ? `<p><strong>Chủ tài khoản:</strong> ${storeSettings.bank_account_holder}</p>`
+                        : ""
+                      }
+                          ${storeSettings.bank_branch
+                        ? `<p><strong>Chi nhánh:</strong> ${storeSettings.bank_branch}</p>`
+                        : ""
+                      }
+                          ${storeSettings.bank_qr_url
+                        ? `<div class="bank-qr"><img src="${storeSettings.bank_qr_url}" alt="QR Code" /></div>`
+                        : ""
+                      }
                         </div>
                         `
-                            : ""
-                        }
+                      : ""
+                    }
                         <div style="margin-top: 30px; text-align: center;">
                           <button onclick="window.print()" style="padding: 10px 20px; background: #0ea5e9; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">In Phiếu</button>
                         </div>
