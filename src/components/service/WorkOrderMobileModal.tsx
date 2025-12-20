@@ -26,7 +26,9 @@ import {
   Banknote,
   MessageSquare,
   Package,
+  ScanBarcode,
 } from "lucide-react";
+import { BarcodeScanner } from "../common/BarcodeScanner";
 import { formatCurrency, formatWorkOrderId } from "../../utils/format";
 import { getCategoryColor } from "../../utils/categoryColors";
 import type { WorkOrder, Part, Customer, Vehicle, Employee } from "../../types";
@@ -403,6 +405,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [showPartSearch, setShowPartSearch] = useState(false);
   const [partSearchTerm, setPartSearchTerm] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
 
   // Ref for part search results scrolling
   const partResultsRef = useRef<HTMLDivElement>(null);
@@ -818,10 +821,26 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
       "final:",
       workOrderData.currentKm
     );
-    onSave(workOrderData);
-  };
 
-  // Status colors
+    // Execute save callback with offline fallback
+    try {
+      onSave(workOrderData);
+    } catch (error) {
+      console.error("Error saving work order:", error);
+
+      // Fallback: Save to Local Storage as draft
+      const drafts = JSON.parse(localStorage.getItem("offline_drafts") || "[]");
+      drafts.push({
+        ...workOrderData,
+        tempId: `draft-${Date.now()}`,
+        timestamp: new Date().toISOString()
+      });
+      localStorage.setItem("offline_drafts", JSON.stringify(drafts));
+
+      alert("Mất kết nối! Phiếu đã được lưu nháp trên thiết bị. Vui lòng đồng bộ khi có mạng.");
+      onClose();
+    }
+  };
   const getStatusColor = (s: WorkOrderStatus) => {
     switch (s) {
       case WORK_ORDER_STATUS.RECEIVED:
@@ -1520,6 +1539,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       value={currentKm}
                       onChange={(e) => setCurrentKm(e.target.value)}
                       placeholder="Nhập số KM..."
+                      inputMode="numeric"
                       className="w-full pl-11 pr-4 py-3 bg-[#1e1e2d] border border-slate-700/50 rounded-xl text-white text-sm focus:border-blue-500 transition-all"
                     />
                   </div>
@@ -1625,6 +1645,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                                     )
                                   );
                                 }}
+                                inputMode="numeric"
                                 className="w-24 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-blue-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
                               />
                             </div>
@@ -1632,25 +1653,25 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                           <div className="flex flex-col items-end gap-3">
                             <button
                               onClick={() => handleRemovePart(part.partId)}
-                              className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-red-400 active:scale-95 transition-all"
+                              className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-red-400 active:scale-95 transition-all"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-5 h-5" />
                             </button>
                             <div className="flex items-center bg-slate-800 rounded-xl p-1 border border-slate-700/50">
                               <button
                                 onClick={() => handleUpdatePartQuantity(part.partId, -1)}
-                                className="w-7 h-7 flex items-center justify-center text-slate-400 active:bg-slate-700 rounded-lg transition-all"
+                                className="w-9 h-9 flex items-center justify-center text-slate-400 active:bg-slate-700 rounded-lg transition-all"
                               >
-                                <Minus className="w-3.5 h-3.5" />
+                                <Minus className="w-4 h-4" />
                               </button>
-                              <span className="w-8 text-center text-xs font-bold text-white">
+                              <span className="w-8 text-center text-sm font-bold text-white">
                                 {part.quantity}
                               </span>
                               <button
                                 onClick={() => handleUpdatePartQuantity(part.partId, 1)}
-                                className="w-7 h-7 flex items-center justify-center text-blue-400 active:bg-slate-700 rounded-lg transition-all"
+                                className="w-9 h-9 flex items-center justify-center text-blue-400 active:bg-slate-700 rounded-lg transition-all"
                               >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Plus className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
@@ -1717,6 +1738,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                                     )
                                   );
                                 }}
+                                inputMode="numeric"
                                 className="w-24 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-orange-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
                               />
                             </div>
@@ -1772,6 +1794,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     setLaborCost(parseFormattedNumber(e.target.value))
                   }
                   placeholder="0"
+                  inputMode="numeric"
                   className="w-full px-2.5 py-1.5 bg-[#2b2b40] rounded-lg text-white text-xs"
                 />
               </div>
@@ -1822,6 +1845,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                         )
                       }
                       placeholder="0"
+                      inputMode="numeric"
                       className="w-full px-3 py-2.5 bg-[#2b2b40] border border-slate-600 rounded-lg text-white text-sm focus:border-[#009ef7] focus:outline-none transition-colors"
                     />
                   </div>
@@ -1972,6 +1996,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                             )
                           }
                           placeholder="0"
+                          inputMode="numeric"
                           className="w-full px-3 py-2.5 bg-[#2b2b40] border border-slate-600 rounded-lg text-white text-sm focus:border-emerald-500 focus:outline-none transition-colors mb-2"
                         />
                         {/* Quick amount buttons */}
@@ -2276,17 +2301,38 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
               {/* Search Input - Always visible at top */}
               <div className="flex-shrink-0 p-3 bg-[#151521]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={partSearchTerm}
-                    onChange={(e) => setPartSearchTerm(e.target.value)}
-                    placeholder="Nhập tên hoặc SKU phụ tùng..."
-                    className="w-full pl-10 pr-3 py-3 bg-[#2b2b40] border border-slate-600 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
-                    autoFocus
-                  />
+                {/* Part Search Input */}
+                <div className="flex gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      value={partSearchTerm}
+                      onChange={(e) => setPartSearchTerm(e.target.value)}
+                      placeholder="Tìm tên hoặc mã phụ tùng..."
+                      className="w-full pl-10 pr-4 py-3 bg-[#2b2b40] border border-slate-700/50 rounded-xl text-white text-sm focus:border-blue-500 transition-all"
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    onClick={() => setIsScanning(true)}
+                    className="p-3 bg-blue-600 rounded-xl text-white flex items-center justify-center"
+                  >
+                    <ScanBarcode className="w-5 h-5" />
+                  </button>
                 </div>
+
+                {/* Barcode Scanner Overlay */}
+                <BarcodeScanner
+                  isScanning={isScanning}
+                  onClose={() => setIsScanning(false)}
+                  onResult={(result) => {
+                    setIsScanning(false);
+                    setPartSearchTerm(result);
+                    // Optional: Auto-add if exact SKU match found?
+                    // For now just fill search term
+                  }}
+                />
               </div>
 
               {/* Results Count & List - Scrollable */}

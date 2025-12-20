@@ -33,7 +33,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { canDo } from "../../utils/permissions";
 import { ServiceHistory } from "./ServiceHistory";
 import { useRepairTemplates, type RepairTemplate } from "../../hooks/useRepairTemplatesRepository";
+
 import { RepairTemplatesModal } from "./components/RepairTemplatesModal";
+import { PullToRefresh } from "../common/PullToRefresh";
+import Skeleton, { CardSkeleton } from "../common/Skeleton";
 
 interface ServiceManagerMobileProps {
   workOrders: WorkOrder[];
@@ -48,6 +51,8 @@ interface ServiceManagerMobileProps {
   dateFilter: string;
   setDateFilter: (filter: string) => void;
   setDateRangeDays: (days: number) => void;
+  isLoading?: boolean;
+  onRefresh?: () => Promise<void>;
 }
 
 type StatusFilter =
@@ -266,7 +271,10 @@ export function ServiceManagerMobile({
   currentBranchId,
   dateFilter,
   setDateFilter,
+
   setDateRangeDays,
+  isLoading = false,
+  onRefresh,
 }: ServiceManagerMobileProps) {
   const { profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -563,55 +571,86 @@ export function ServiceManagerMobile({
             </div>
 
             {/* DANH SÁCH PHIẾU SỬA CHỮA */}
-            {/* DANH SÁCH PHIẾU SỬA CHỮA */}
-            <div className="space-y-2 px-2 pb-4">
-              {filteredWorkOrders.length === 0 ? (
-                /* Empty State */
-                <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                  <div className="w-32 h-32 mb-6 flex items-center justify-center">
-                    <svg
-                      className="w-full h-full text-gray-600"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+            <PullToRefresh onRefresh={onRefresh || (async () => { })}>
+              <div className="space-y-2 px-2 pb-4 min-h-[50vh]">
+                {isLoading ? (
+                  // Loading Skeletons using shared Skeleton component
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="bg-[#1e1e2d] rounded-lg border border-gray-800 p-4 space-y-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex gap-2">
+                          <Skeleton width={60} height={20} className="bg-slate-700/50" />
+                          <Skeleton width={80} height={20} className="bg-slate-700/50" />
+                        </div>
+                        <Skeleton width={70} height={24} className="rounded-full bg-slate-700/50" />
+                      </div>
+                      <div className="space-y-2 mb-3">
+                        <div className="flex items-center gap-2">
+                          <Skeleton variant="circle" width={16} height={16} className="bg-slate-700/50" />
+                          <Skeleton width="60%" height={16} className="bg-slate-700/50" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Skeleton variant="circle" width={16} height={16} className="bg-slate-700/50" />
+                          <Skeleton width="40%" height={16} className="bg-slate-700/50" />
+                        </div>
+                      </div>
+                      <div className="flex justify-between pt-3 border-t border-gray-800 items-end">
+                        <div className="flex gap-2">
+                          <Skeleton width={24} height={24} className="rounded-md bg-slate-700/50" />
+                          <Skeleton width={24} height={24} className="rounded-md bg-slate-700/50" />
+                        </div>
+                        <Skeleton width={90} height={20} className="bg-slate-700/50" />
+                      </div>
+                    </div>
+                  ))
+                ) : filteredWorkOrders.length === 0 ? (
+                  /* Empty State */
+                  <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
+                    <div className="w-32 h-32 mb-6 flex items-center justify-center">
+                      <svg
+                        className="w-full h-full text-gray-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-300 mb-2">
+                      Chưa có phiếu sửa chữa nào!
+                    </h3>
+                    <p className="text-gray-500 mb-6">
+                      Hãy tạo phiếu đầu tiên để quản lý dịch vụ sửa chữa
+                    </p>
+                    <button
+                      onClick={handleCreateWorkOrder}
+                      disabled={isCreating}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
+                      + Tạo phiếu mới
+                    </button>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-300 mb-2">
-                    Chưa có phiếu sửa chữa nào!
-                  </h3>
-                  <p className="text-gray-500 mb-6">
-                    Hãy tạo phiếu đầu tiên để quản lý dịch vụ sửa chữa
-                  </p>
-                  <button
-                    onClick={handleCreateWorkOrder}
-                    disabled={isCreating}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    + Tạo phiếu mới
-                  </button>
-                </div>
-              ) : (
-                /* Work Order Cards - Compact for Mobile */
-                filteredWorkOrders.map((workOrder) => (
-                  <WorkOrderCard
-                    key={workOrder.id}
-                    workOrder={workOrder}
-                    onEdit={onEditWorkOrder}
-                    onCall={onCallCustomer}
-                    onPrint={onPrintWorkOrder}
-                    onDelete={onDeleteWorkOrder}
-                    canDelete={canDeleteWorkOrder}
-                  />
-                ))
-              )}
-            </div>
+                ) : (
+                  /* Work Order Cards - Compact for Mobile */
+                  filteredWorkOrders.map((workOrder) => (
+                    <WorkOrderCard
+                      key={workOrder.id}
+                      workOrder={workOrder}
+                      onEdit={onEditWorkOrder}
+                      onCall={onCallCustomer}
+                      onPrint={onPrintWorkOrder}
+                      onDelete={onDeleteWorkOrder}
+                      canDelete={canDeleteWorkOrder}
+                    />
+                  ))
+                )}
+              </div>
+            </PullToRefresh>
 
             {/* FAB (Floating Action Button) */}
             <button

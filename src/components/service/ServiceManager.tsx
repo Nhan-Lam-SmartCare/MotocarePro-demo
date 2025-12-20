@@ -1595,6 +1595,8 @@ export default function ServiceManager() {
       <>
         <ServiceManagerMobile
           workOrders={displayWorkOrders || []}
+          isLoading={workOrdersLoading || workOrdersFetching}
+          onRefresh={async () => { await refetchWorkOrders(); }}
           onCreateWorkOrder={() => {
             setEditingOrder(undefined);
             setMobileModalViewMode(false); // Tạo mới = edit mode
