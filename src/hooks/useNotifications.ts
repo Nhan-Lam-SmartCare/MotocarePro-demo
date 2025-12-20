@@ -7,12 +7,12 @@ import { showToast } from "../utils/toast";
 export interface Notification {
   id: string;
   type:
-    | "work_order"
-    | "sale"
-    | "inventory"
-    | "inventory_warning"
-    | "debt"
-    | "cash";
+  | "work_order"
+  | "sale"
+  | "inventory"
+  | "inventory_warning"
+  | "debt"
+  | "cash";
   title: string;
   message: string;
   data: Record<string, any>;
@@ -175,6 +175,9 @@ export function useNotifications() {
             showToast.info(
               `${newNotification.title}: ${newNotification.message}`
             );
+
+            // Show system notification
+            showSystemNotification(newNotification.title, newNotification.message);
           }
         }
       )
@@ -184,11 +187,35 @@ export function useNotifications() {
         }
       });
 
+    // Request permission for system notifications
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
     return () => {
       supabase.removeChannel(channel);
       setRealtimeEnabled(false);
     };
   }, [user, profile?.role, queryClient, realtimeEnabled]);
+
+  // Helper to show system notification
+  const showSystemNotification = (title: string, body: string) => {
+    if (!("Notification" in window)) return;
+
+    if (Notification.permission === "granted") {
+      try {
+        new Notification(title, {
+          body,
+          icon: "/logo-smartcare.png",
+          // @ts-ignore
+          vibrate: [200, 100, 200]
+        });
+      } catch (e) {
+        console.error("Error showing system notification:", e);
+      }
+    }
+  };
+
 
   // Helper functions
   const markAsRead = useCallback(
