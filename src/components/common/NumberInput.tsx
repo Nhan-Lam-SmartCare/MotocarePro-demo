@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { formatNumberWithDots, parseFormattedNumber } from "../../utils/format";
 
 interface NumberInputProps
@@ -32,10 +32,16 @@ export const NumberInput: React.FC<NumberInputProps> = ({
   ...props
 }) => {
   const [displayValue, setDisplayValue] = useState<string>("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Sync display value when external value changes
   useEffect(() => {
-    // 🔹 FIX: Don't overwrite if user is in the middle of typing a minus sign
+    // 🔹 FIX 2: Only sync if input is NOT focused to prevent cursor jump/focus loss during typing
+    if (document.activeElement === inputRef.current) {
+      return;
+    }
+
+    // 🔹 FIX 1: Don't overwrite if user is in the middle of typing a minus sign
     if (displayValue === "-" && (value === 0 || value === "" || value === null)) {
       return;
     }
@@ -43,8 +49,6 @@ export const NumberInput: React.FC<NumberInputProps> = ({
     const numValue =
       typeof value === "string" ? parseFormattedNumber(value) : value ?? 0;
 
-    // 🔹 FIX: Only update if the numeric value has actually changed
-    // This prevents focus jumps and unnecessary resets when parent re-renders
     const currentNumInDisplay = parseFormattedNumber(displayValue);
     if (numValue !== currentNumInDisplay || (displayValue === "" && numValue !== 0)) {
       setDisplayValue(numValue ? formatNumberWithDots(numValue) : "");
@@ -66,12 +70,14 @@ export const NumberInput: React.FC<NumberInputProps> = ({
       const isNegative = allowNegative && inputValue.startsWith("-");
 
       // 🔹 Cho phép nhập chỉ dấu "-" mà chưa có số
-      if (allowNegative && inputValue === "-") {
-        setDisplayValue("-");
-        return; // Không gọi onChange cho đến khi có số
+      if (allowNegative && (inputValue === "-" || inputValue === "")) {
+        if (inputValue === "-") {
+          setDisplayValue("-");
+          return; // Không gọi onChange cho đến khi có số
+        }
       }
 
-      // Remove all non-numeric characters except dots and commas (and minus if allowed)
+      // Remove all non-numeric characters except dots and commas
       let cleaned = inputValue.replace(/[^\d.,]/g, "");
 
       // For decimal, replace comma with dot for parsing
@@ -92,6 +98,10 @@ export const NumberInput: React.FC<NumberInputProps> = ({
       let numValue = parseFloat(cleaned);
 
       if (isNaN(numValue)) {
+        if (isNegative) {
+          setDisplayValue("-");
+          return;
+        }
         setDisplayValue("");
         onChange(0);
         return;
@@ -122,8 +132,13 @@ export const NumberInput: React.FC<NumberInputProps> = ({
 
   const handleFocus = useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
-      // Select all on focus for easy replacement
-      e.target.select();
+      // 🔹 FIX: avoid full selection on iOS if it causes jumps, 
+      // but keeping it for now as it's standard. 
+      // Added check for mobile to be safe.
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (!isMobile) {
+        e.target.select();
+      }
       props.onFocus?.(e);
     },
     [props]
@@ -133,14 +148,20 @@ export const NumberInput: React.FC<NumberInputProps> = ({
     <div className="relative">
       <input
         {...props}
+        ref={inputRef}
         type="text"
-        /* 🔹 FIX: use "text" inputMode for negative numbers on iOS to ensure minus sign is available 
-           and to prevent browser "corrections" that shift focus. */
+        /* 🔹 FIX: use "text" inputMode for negative numbers on iOS 
+           to ensure minus sign is available. If user still sees numeric keyboard,
+           then hot reload might be failing. */
         inputMode={allowNegative ? "text" : "numeric"}
         value={displayValue}
         onChange={handleChange}
         onFocus={handleFocus}
         className={className}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck="false"
       />
       {suffix && displayValue && (
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
