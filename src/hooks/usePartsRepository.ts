@@ -58,6 +58,7 @@ export const useCreatePartRepo = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] });
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] });
+      qc.invalidateQueries({ queryKey: ["allPartsForTotals"] });
       // Toast is handled by component to avoid spam during bulk operations
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
@@ -72,6 +73,7 @@ export const useUpdatePartRepo = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] });
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] });
+      qc.invalidateQueries({ queryKey: ["allPartsForTotals"] });
       // Toast is handled by component
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
@@ -85,6 +87,7 @@ export const useDeletePartRepo = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] });
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] });
+      qc.invalidateQueries({ queryKey: ["allPartsForTotals"] });
       // Toast is handled by component
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),

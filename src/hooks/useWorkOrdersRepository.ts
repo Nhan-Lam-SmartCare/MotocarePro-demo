@@ -55,6 +55,8 @@ export const useCreateWorkOrderAtomicRepo = () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Refresh parts for stock update
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Refresh parts for stock update
       qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
+      qc.invalidateQueries({ queryKey: ["cashTransactions"] });
+      qc.invalidateQueries({ queryKey: ["paymentSources"] });
       showToast.success("Đã tạo phiếu sửa chữa (atomic)");
       if (data?.inventoryTxCount) {
         showToast.info(`Xuất kho: ${data.inventoryTxCount} phụ tùng`);
@@ -78,6 +80,8 @@ export const useUpdateWorkOrderAtomicRepo = () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Refresh parts for stock update
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Refresh parts for stock update
       qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
+      qc.invalidateQueries({ queryKey: ["cashTransactions"] });
+      qc.invalidateQueries({ queryKey: ["paymentSources"] });
       showToast.success("Đã cập nhật lệnh sửa chữa");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
@@ -115,6 +119,8 @@ export const useDeleteWorkOrderRepo = () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Update stock if needed
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Update stock if needed
       qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
+      qc.invalidateQueries({ queryKey: ["cashTransactions"] });
+      qc.invalidateQueries({ queryKey: ["paymentSources"] });
       showToast.success("Đã hủy lệnh sửa chữa");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
@@ -137,6 +143,8 @@ export const useRefundWorkOrderRepo = () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Refresh for restored stock
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Refresh for restored stock
       qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
+      qc.invalidateQueries({ queryKey: ["cashTransactions"] });
+      qc.invalidateQueries({ queryKey: ["paymentSources"] });
       showToast.success("Đã hoàn tiền phiếu sửa chữa");
       if (result.ok && (result.data as any).refundAmount) {
         showToast.info(

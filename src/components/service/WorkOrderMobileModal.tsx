@@ -2499,14 +2499,9 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                         Giá nhập (Vốn):
                       </label>
                       <div className="relative">
-                        <input
-                          type="text"
-                          value={formatNumberWithDots(newServiceCost)}
-                          onChange={(e) =>
-                            setNewServiceCost(
-                              parseFormattedNumber(e.target.value)
-                            )
-                          }
+                        <NumberInput
+                          value={newServiceCost}
+                          onChange={(val: number) => setNewServiceCost(val)}
                           placeholder="0"
                           className="w-full px-3 py-3 pr-8 bg-[#151521] border border-slate-700 rounded-lg text-slate-400 text-sm focus:border-slate-600 focus:outline-none transition-colors"
                         />

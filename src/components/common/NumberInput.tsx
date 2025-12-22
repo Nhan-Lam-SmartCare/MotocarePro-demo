@@ -21,16 +21,6 @@ interface NumberInputProps
  *
  * Displays numbers with dots (e.g., 1.500.000) while editing,
  * and returns clean numeric values on change.
- *
- * @example
- * ```tsx
- * <NumberInput
- *   value={laborCost}
- *   onChange={(val) => setLaborCost(val)}
- *   placeholder="0"
- *   className="w-full px-3 py-2 ..."
- * />
- * ```
  */
 export const NumberInput: React.FC<NumberInputProps> = ({
   value,
@@ -45,9 +35,20 @@ export const NumberInput: React.FC<NumberInputProps> = ({
 
   // Sync display value when external value changes
   useEffect(() => {
+    // 🔹 FIX: Don't overwrite if user is in the middle of typing a minus sign
+    if (displayValue === "-" && (value === 0 || value === "" || value === null)) {
+      return;
+    }
+
     const numValue =
-      typeof value === "string" ? parseFormattedNumber(value) : value || 0;
-    setDisplayValue(numValue ? formatNumberWithDots(numValue) : "");
+      typeof value === "string" ? parseFormattedNumber(value) : value ?? 0;
+
+    // 🔹 FIX: Only update if the numeric value has actually changed
+    // This prevents focus jumps and unnecessary resets when parent re-renders
+    const currentNumInDisplay = parseFormattedNumber(displayValue);
+    if (numValue !== currentNumInDisplay || (displayValue === "" && numValue !== 0)) {
+      setDisplayValue(numValue ? formatNumberWithDots(numValue) : "");
+    }
   }, [value]);
 
   const handleChange = useCallback(
@@ -133,7 +134,9 @@ export const NumberInput: React.FC<NumberInputProps> = ({
       <input
         {...props}
         type="text"
-        inputMode="numeric"
+        /* 🔹 FIX: use "text" inputMode for negative numbers on iOS to ensure minus sign is available 
+           and to prevent browser "corrections" that shift focus. */
+        inputMode={allowNegative ? "text" : "numeric"}
         value={displayValue}
         onChange={handleChange}
         onFocus={handleFocus}

@@ -117,7 +117,7 @@ export async function createInventoryTransaction(
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch { }
     await safeAudit(userId, {
       action:
         input.type === "Nhập kho" ? "inventory.receipt" : "inventory.adjust",
@@ -202,6 +202,7 @@ export function useCreateReceiptAtomicRepo() {
       queryClient.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
       queryClient.invalidateQueries({ queryKey: ["partsRepo"] }); // Update stock display
       queryClient.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Update stock display
+      queryClient.invalidateQueries({ queryKey: ["allPartsForTotals"] }); // Refresh inventory health
     },
   });
 }

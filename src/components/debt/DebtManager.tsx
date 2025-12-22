@@ -1679,6 +1679,8 @@ const DebtManager: React.FC = () => {
                 queryClient.invalidateQueries({ queryKey: ["workOrdersRepo"] });
                 queryClient.invalidateQueries({ queryKey: ["workOrdersFiltered"] });
                 queryClient.invalidateQueries({ queryKey: ["salesRepo"] });
+                queryClient.invalidateQueries({ queryKey: ["cashTransactions"] });
+                queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
               } else {
                 // Trả nợ hàng loạt cho nhà cung cấp
                 for (const debtId of selectedSupplierIds) {
@@ -1791,6 +1793,8 @@ const DebtManager: React.FC = () => {
 
               if (cashTxResult.ok) {
                 console.log("✅ Đã ghi sổ quỹ trả nợ NCC:", cashTxResult.data);
+                queryClient.invalidateQueries({ queryKey: ["cashTransactions"] });
+                queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
               } else {
                 console.error("❌ Lỗi ghi sổ quỹ:", cashTxResult.error);
               }
@@ -1926,6 +1930,9 @@ const DebtManager: React.FC = () => {
             }
             setShowDeleteConfirm(false);
             setSelectedDebt(null);
+            // Invalidate to ensure other components (like dashboard) stay in sync
+            queryClient.invalidateQueries({ queryKey: ["customer_debts"] });
+            queryClient.invalidateQueries({ queryKey: ["supplier_debts"] });
           }}
         />
       )}

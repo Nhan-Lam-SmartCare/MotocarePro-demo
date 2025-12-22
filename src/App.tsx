@@ -31,6 +31,10 @@ const InventoryManager = lazyImport(
 const ServiceManager = lazyImport(
   () => import("./components/service/ServiceManager")
 );
+// 🧪 TEST: Lazy import ServiceManagerNew for testing refactored version
+const ServiceManagerNew = lazyImport(
+  () => import("./components/service/ServiceManagerNew")
+);
 const ServiceHistory = lazyImport(() =>
   import("./components/service/ServiceHistory").then((m) => ({
     default: m.ServiceHistory,
@@ -228,6 +232,12 @@ const MainLayout: React.FC = () => {
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/lookup" element={<LookupPage />} />
           <Route path="/service" element={<Service />} />
+          {/* 🧪 TEST ROUTE: Testing refactored ServiceManagerNew - remove when stable */}
+          <Route path="/service-test" element={
+            <Suspense fallback={<PageLoader />}>
+              <ServiceManagerNew />
+            </Suspense>
+          } />
           <Route path="/service-history" element={<ServiceHistoryPage />} />
           <Route path="/customers" element={<Customers />} />
           <Route

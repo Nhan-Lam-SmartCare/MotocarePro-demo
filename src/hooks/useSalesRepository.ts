@@ -110,6 +110,8 @@ export const useCreateSaleRepo = () => {
     mutationFn: (input: Partial<Sale>) => createSaleAtomic(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["salesRepo"] });
+      qc.invalidateQueries({ queryKey: ["salesRepoPaged"] });
+      qc.invalidateQueries({ queryKey: ["salesRepoKeyset"] });
       showToast.success("Đã tạo hóa đơn");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
@@ -128,6 +130,8 @@ export const useCreateSaleAtomicRepo = () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Update stock display
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Update stock display
       qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Show inventory transactions
+      qc.invalidateQueries({ queryKey: ["cashTransactions"] });
+      qc.invalidateQueries({ queryKey: ["paymentSources"] });
       showToast.success("Đã tạo hóa đơn (atomic)");
       if ((res as any)?.data?.inventoryTxCount) {
         showToast.info(`Xuất kho: ${(res as any).data.inventoryTxCount} dòng`);
@@ -148,6 +152,8 @@ export const useDeleteSaleRepo = () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Restore stock
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Restore stock
       qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
+      qc.invalidateQueries({ queryKey: ["cashTransactions"] });
+      qc.invalidateQueries({ queryKey: ["paymentSources"] });
       showToast.success("Đã xóa hóa đơn");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),
@@ -166,6 +172,8 @@ export const useRefundSaleRepo = () => {
       qc.invalidateQueries({ queryKey: ["partsRepo"] }); // Restore stock
       qc.invalidateQueries({ queryKey: ["partsRepoPaged"] }); // Restore stock
       qc.invalidateQueries({ queryKey: ["inventoryTxRepo"] }); // Update inventory history
+      qc.invalidateQueries({ queryKey: ["cashTransactions"] });
+      qc.invalidateQueries({ queryKey: ["paymentSources"] });
       showToast.success("Đã hoàn tiền hóa đơn");
     },
     onError: (err: any) => showToast.error(mapRepoErrorForUser(err)),

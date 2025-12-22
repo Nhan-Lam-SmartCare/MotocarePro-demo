@@ -29,9 +29,9 @@ import {
 import { useAppContext } from "../../contexts/AppContext";
 import { usePartsRepo } from "../../hooks/usePartsRepository";
 import {
-  useSalesRepo,
   useSalesPagedRepo,
   useCreateSaleAtomicRepo,
+  useDeleteSaleRepo,
   UseSalesPagedParams,
 } from "../../hooks/useSalesRepository";
 import { useLowStock } from "../../hooks/useLowStock";
@@ -168,6 +168,7 @@ const SalesManager: React.FC = () => {
     }
   }, [useKeysetMode, pagedSalesData]);
   const { mutateAsync: createSaleAtomicAsync } = useCreateSaleAtomicRepo();
+  const { mutateAsync: deleteSaleAsync } = useDeleteSaleRepo();
   const createCustomerDebt = useCreateCustomerDebtRepo();
 
   // Pagination handlers
@@ -238,6 +239,8 @@ const SalesManager: React.FC = () => {
   const [showOrderNote, setShowOrderNote] = useState(false);
   const [customSaleTime, setCustomSaleTime] = useState("");
   const [orderNote, setOrderNote] = useState("");
+  const [selectedSaleDetail, setSelectedSaleDetail] = useState<Sale | null>(null);
+  const [showSaleDetailModal, setShowSaleDetailModal] = useState(false);
 
   useEffect(() => {
     if (showBarcodeInput) {
@@ -871,7 +874,7 @@ const SalesManager: React.FC = () => {
           return true;
         if (
           customer.vehicles?.some(
-            (v) =>
+            (v: any) =>
               v.licensePlate?.toLowerCase().includes(searchLower) ||
               v.model?.toLowerCase().includes(searchLower)
           )
@@ -1052,18 +1055,12 @@ const SalesManager: React.FC = () => {
 
     try {
       // Import deleteSaleById directly
-      const { deleteSaleById } = await import(
-        "../../lib/repository/salesRepository"
-      );
-      const result = await deleteSaleById(saleId);
+      const result = await deleteSaleAsync({ id: saleId });
 
-      if (!result.ok) {
-        showToast.error(result.error?.message || "Xóa hóa đơn thất bại!");
-        return;
-      }
-
-      // Invalidate and refetch sales query
-      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      // Hook handled invalidation, but we add extra insurance if needed
+      queryClient.invalidateQueries({ queryKey: ["salesRepo"] });
+      queryClient.invalidateQueries({ queryKey: ["salesRepoPaged"] });
+      queryClient.invalidateQueries({ queryKey: ["salesRepoKeyset"] });
       showToast.success("Đã xóa hóa đơn thành công!");
 
       // Best-effort audit log (non-blocking)
@@ -1337,7 +1334,7 @@ const SalesManager: React.FC = () => {
             loyaltyPoints: 0,
             totalSpent: 0,
             visitCount: 0, // Bắt đầu từ 0, sẽ được tăng lên 1 sau khi tạo đơn
-            lastVisit: null,
+            lastVisit: undefined,
             created_at: new Date().toISOString(),
           });
         } else {
@@ -1360,8 +1357,8 @@ const SalesManager: React.FC = () => {
       if ((rpcRes as any)?.error) throw (rpcRes as any).error;
 
       // Cập nhật visitCount và totalSpent cho khách hàng nếu có phone
-      const customerPhone = selectedCustomer?.phone || customerObj.phone;
-      if (customerPhone) {
+      const phoneToUpd = selectedCustomer?.phone || customerObj.phone;
+      if (phoneToUpd) {
         try {
           // Chờ một chút để đảm bảo khách hàng đã được tạo trong DB
           await new Promise((resolve) => setTimeout(resolve, 500));
@@ -1370,7 +1367,7 @@ const SalesManager: React.FC = () => {
           const { data: currentCustomer } = await supabase
             .from("customers")
             .select("id, totalSpent, visitCount")
-            .eq("phone", customerPhone)
+            .eq("phone", phoneToUpd)
             .single();
 
           if (currentCustomer) {
@@ -2102,7 +2099,7 @@ const SalesManager: React.FC = () => {
                       {filteredCustomers.length > 0 ? (
                         filteredCustomers.map((customer) => {
                           const primaryVehicle =
-                            customer.vehicles?.find((v) => v.isPrimary) ||
+                            customer.vehicles?.find((v: any) => v.isPrimary) ||
                             customer.vehicles?.[0];
                           const vehicleInfo =
                             primaryVehicle ||
@@ -2846,7 +2843,24 @@ const SalesManager: React.FC = () => {
           setKeysetCursor(null);
         }}
         customerDebts={customerDebts}
+        onViewDetail={(sale) => {
+          setSelectedSaleDetail(sale);
+          setShowSaleDetailModal(true);
+        }}
       />
+
+      {/* Sale Detail Modal */}
+      {showSaleDetailModal && selectedSaleDetail && (
+        <SaleDetailModal
+          isOpen={showSaleDetailModal}
+          sale={selectedSaleDetail}
+          onClose={() => {
+            setShowSaleDetailModal(false);
+            setSelectedSaleDetail(null);
+          }}
+          onPrint={handlePrintReceipt}
+        />
+      )}
 
       {/* Receipt Print Section (Hidden) - A5 Format */}
       {receiptId && (

@@ -57,12 +57,10 @@ import {
 import { showToast } from "../../utils/toast";
 import { printElementById } from "../../utils/print";
 import { supabase } from "../../supabaseClient";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { WorkOrderMobileModal } from "./WorkOrderMobileModal";
 import WorkOrderModal from "./components/WorkOrderModal";
 import { ServiceManagerMobile } from "./ServiceManagerMobile";
-import StatusBadge from "./components/StatusBadge";
-import { getQuickStatusFilters } from "./components/QuickStatusFilters";
-import { getStatusSnapshotCards } from "./components/StatusSnapshotCards";
 import {
   validatePhoneNumber,
   validateDepositAmount,
@@ -75,31 +73,23 @@ import {
 import { RepairTemplatesModal } from "./components/RepairTemplatesModal";
 import { USER_ROLES } from "../../constants";
 
-// Import custom hooks and types
-import { useServiceStats } from "./hooks/useServiceStats";
-import {
-  StoreSettings,
-  WorkOrderStatus,
-  ServiceTabKey,
-  FilterColor,
-  FILTER_BADGE_CLASSES,
-  getDateFilterLabel,
-} from "./types/service.types";
-import { useDebouncedValue } from "../../hooks/useDebouncedValue";
-import {
-  POPULAR_MOTORCYCLES,
-  PAGE_SIZE,
-  DEFAULT_FETCH_LIMIT,
-  DEFAULT_DATE_RANGE_DAYS,
-  FILTER_INPUT_CLASS,
-} from "./constants/service.constants";
-import {
-  downloadImage,
-  formatMaskedPhone,
-  handleCallCustomer as callCustomer,
-} from "./utils/service.utils";
+interface StoreSettings {
+  store_name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  logo_url?: string;
+  bank_qr_url?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_account_holder?: string;
+  bank_branch?: string;
+  work_order_prefix?: string;
+}
 
-// Local types removed - now imported from ./types/service.types
+type WorkOrderStatus = "Tiếp nhận" | "Đang sửa" | "Đã sửa xong" | "Trả máy";
+type ServiceTabKey = "all" | "pending" | "inProgress" | "done" | "delivered";
+type FilterColor = "slate" | "blue" | "orange" | "green" | "purple";
 
 export default function ServiceManager() {
   const queryClient = useQueryClient();
@@ -120,7 +110,65 @@ export default function ServiceManager() {
     setWorkOrders,
   } = useAppContext();
 
-  // POPULAR_MOTORCYCLES moved to constants/service.constants.ts
+  // Popular motorcycle models in Vietnam
+  const POPULAR_MOTORCYCLES = [
+    // Honda
+    "Honda Wave RSX",
+    "Honda Wave Alpha",
+    "Honda Blade",
+    "Honda Future",
+    "Honda Winner X",
+    "Honda Vision",
+    "Honda Air Blade",
+    "Honda SH Mode",
+    "Honda SH 125i",
+    "Honda SH 150i",
+    "Honda SH 160i",
+    "Honda SH 350i",
+    "Honda Vario",
+    "Honda Lead",
+    "Honda PCX",
+    "Honda ADV",
+    // Yamaha
+    "Yamaha Exciter",
+    "Yamaha Sirius",
+    "Yamaha Jupiter",
+    "Yamaha Grande",
+    "Yamaha Janus",
+    "Yamaha FreeGo",
+    "Yamaha Latte",
+    "Yamaha NVX",
+    "Yamaha XSR",
+    // Suzuki
+    "Suzuki Raider",
+    "Suzuki Axelo",
+    "Suzuki Satria",
+    "Suzuki GD110",
+    "Suzuki Impulse",
+    "Suzuki Address",
+    "Suzuki Revo",
+    // SYM
+    "SYM Elite",
+    "SYM Galaxy",
+    "SYM Star",
+    "SYM Attila",
+    "SYM Angela",
+    "SYM Passing",
+    // Piaggio & Vespa
+    "Piaggio Liberty",
+    "Piaggio Medley",
+    "Vespa Sprint",
+    "Vespa Primavera",
+    "Vespa GTS",
+    // VinFast
+    "VinFast Klara",
+    "VinFast Evo200",
+    "VinFast Ludo",
+    "VinFast Impes",
+    "VinFast Theon",
+    // Khác
+    "Khác",
+  ];
 
   // Fetch parts from Supabase
   const { data: fetchedParts, isLoading: partsLoading } = usePartsRepo();
@@ -212,7 +260,7 @@ export default function ServiceManager() {
     right: 0,
   });
 
-  // PAGE_SIZE imported from constants
+  const PAGE_SIZE = 20;
   const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
 
   // Sync dateFilter with dateRangeDays for API query
@@ -332,7 +380,17 @@ export default function ServiceManager() {
     }
   };
 
-  // downloadImage moved to ./utils/service.utils.ts
+  const downloadImage = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast.success("Đã tải phiếu xuống!");
+  };
 
   // Open modal automatically if navigated from elsewhere with editOrder state
 
@@ -458,33 +516,222 @@ export default function ServiceManager() {
     return () => observer.disconnect();
   }, [hasMoreOrders, workOrdersFetching]);
 
-  // ========================================
-  // USE CUSTOM HOOK FOR STATS (Refactored!)
-  // ========================================
-  // Replaced 80+ lines of inline stats calculation with single hook call
-  const {
-    stats,
-    dateFilteredOrders,
-    totalOpenTickets,
-    urgentTickets,
-    urgentRatio,
-    completionRate,
-    profitMargin,
-  } = useServiceStats({
-    workOrders: displayWorkOrders,
-    dateFilter: dateFilter as "all" | "today" | "week" | "month",
-  });
+  // Tạo danh sách chỉ lọc theo ngày để tính stats (không bị ảnh hưởng bởi filter thanh toán/KTV)
+  const dateFilteredOrders = useMemo(() => {
+    let filtered = [...displayWorkOrders];
 
-  // Filter input class (kept inline for now)
+    // Date filter only
+    if (dateFilter !== "all") {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      filtered = filtered.filter((o) => {
+        const orderDate = new Date(o.creationDate || (o as any).creationdate);
+
+        if (dateFilter === "today") {
+          return orderDate >= today;
+        } else if (dateFilter === "week") {
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return orderDate >= weekAgo;
+        } else if (dateFilter === "month") {
+          const monthAgo = new Date(today);
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          return orderDate >= monthAgo;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  }, [displayWorkOrders, dateFilter]);
+
+  const stats = useMemo(() => {
+    // Sử dụng dateFilteredOrders để tính stats theo bộ lọc ngày (không bị ảnh hưởng bởi filter khác)
+    const pending = dateFilteredOrders.filter(
+      (o) => o.status === "Tiếp nhận"
+    ).length;
+    const inProgress = dateFilteredOrders.filter(
+      (o) => o.status === "Đang sửa"
+    ).length;
+    const done = dateFilteredOrders.filter(
+      (o) => o.status === "Đã sửa xong"
+    ).length;
+    const delivered = dateFilteredOrders.filter(
+      (o) => o.status === "Trả máy"
+    ).length;
+
+    // Tính doanh thu theo bộ lọc ngày đã chọn
+    const filteredRevenue = dateFilteredOrders
+      .filter((o) => o.paymentStatus === "paid")
+      .reduce((sum, o) => sum + o.total, 0);
+
+    // Profit = Revenue - Cost (parts costPrice + services costPrice)
+    const filteredProfit = dateFilteredOrders
+      .filter((o) => o.paymentStatus === "paid")
+      .reduce((sum, o) => {
+        // Calculate parts cost (costPrice * quantity)
+        const partsCost =
+          o.partsUsed?.reduce(
+            (s: number, p: WorkOrderPart) =>
+              s + (p.costPrice || 0) * (p.quantity || 1),
+            0
+          ) || 0;
+        // Calculate additional services cost
+        const servicesCost =
+          o.additionalServices?.reduce(
+            (s: number, svc: { costPrice?: number; quantity?: number }) =>
+              s + (svc.costPrice || 0) * (svc.quantity || 1),
+            0
+          ) || 0;
+        // Profit = total - costs
+        return sum + (o.total - partsCost - servicesCost);
+      }, 0);
+
+    return {
+      pending,
+      inProgress,
+      done,
+      delivered,
+      filteredRevenue,
+      filteredProfit,
+    };
+  }, [dateFilteredOrders]);
+
+  const totalOpenTickets = stats.pending + stats.inProgress + stats.done;
+  const urgentTickets = stats.pending + stats.inProgress;
+  const urgentRatio = totalOpenTickets
+    ? Math.round((urgentTickets / totalOpenTickets) * 100)
+    : 0;
+  const completionRate = totalOpenTickets
+    ? Math.round((stats.done / totalOpenTickets) * 100)
+    : 0;
+  const profitMargin = stats.filteredRevenue
+    ? Math.round((stats.filteredProfit / stats.filteredRevenue) * 100)
+    : 0;
+
+  // Label cho doanh thu/lợi nhuận theo bộ lọc ngày
+  const getDateFilterLabel = () => {
+    switch (dateFilter) {
+      case "today":
+        return "hôm nay";
+      case "week":
+        return "7 ngày qua";
+      case "month":
+        return "tháng này";
+      default:
+        return "tất cả";
+    }
+  };
+
+  const FILTER_BADGE_CLASSES: Record<FilterColor, string> = {
+    slate:
+      "bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-200",
+    blue: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300",
+    orange:
+      "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-300",
+    green:
+      "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300",
+    purple:
+      "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300",
+  };
   const filterInputClass =
     "px-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-200";
 
-  // quickStatusFilters and statusSnapshotCards moved to components
-  const quickStatusFilters = getQuickStatusFilters(
-    stats,
-    dateFilteredOrders.filter((o) => o.status !== "Trả máy" && !o.refunded).length
+  const quickStatusFilters = useMemo(
+    (): Array<{
+      key: ServiceTabKey;
+      label: string;
+      color: FilterColor;
+      count: number;
+    }> => [
+        {
+          key: "all",
+          label: "Tất cả",
+          color: "slate",
+          count: dateFilteredOrders.filter(
+            (o) => o.status !== "Trả máy" && !o.refunded
+          ).length,
+        },
+        {
+          key: "pending",
+          label: "Tiếp nhận",
+          color: "blue",
+          count: stats.pending,
+        },
+        {
+          key: "inProgress",
+          label: "Đang sửa",
+          color: "orange",
+          count: stats.inProgress,
+        },
+        {
+          key: "done",
+          label: "Đã sửa xong",
+          color: "green",
+          count: stats.done,
+        },
+        {
+          key: "delivered",
+          label: "Đã trả máy",
+          color: "purple",
+          count: stats.delivered,
+        },
+      ],
+    [
+      dateFilteredOrders,
+      stats.delivered,
+      stats.done,
+      stats.inProgress,
+      stats.pending,
+    ]
   );
-  const statusSnapshotCards = getStatusSnapshotCards(stats);
+
+  const statusSnapshotCards: Array<{
+    key: ServiceTabKey;
+    label: string;
+    value: number;
+    subtitle: string;
+    accent: string;
+    dot: string;
+  }> = [
+      {
+        key: "pending",
+        label: "Tiếp nhận",
+        value: stats.pending,
+        subtitle: "Chờ phân công",
+        accent:
+          "from-sky-50 via-sky-50 to-white dark:from-sky-900/30 dark:via-sky-900/10",
+        dot: "bg-sky-500",
+      },
+      {
+        key: "inProgress",
+        label: "Đang sửa",
+        value: stats.inProgress,
+        subtitle: "Đang thi công",
+        accent:
+          "from-amber-50 via-amber-50 to-white dark:from-amber-900/30 dark:via-amber-900/10",
+        dot: "bg-amber-500",
+      },
+      {
+        key: "done",
+        label: "Đã sửa xong",
+        value: stats.done,
+        subtitle: "Chờ giao khách",
+        accent:
+          "from-emerald-50 via-emerald-50 to-white dark:from-emerald-900/30 dark:via-emerald-900/10",
+        dot: "bg-emerald-500",
+      },
+      {
+        key: "delivered",
+        label: "Trả máy",
+        value: stats.delivered,
+        subtitle: "Hoàn tất",
+        accent:
+          "from-purple-50 via-purple-50 to-white dark:from-purple-900/30 dark:via-purple-900/10",
+        dot: "bg-purple-500",
+      },
+    ];
 
   const handleOpenModal = (order?: WorkOrder) => {
     if (order) {
@@ -1268,10 +1515,19 @@ export default function ServiceManager() {
     }
   };
 
-  // handleCallCustomer moved to ./utils/service.utils.ts
-  const handleCallCustomerWrapper = (phone: string) => callCustomer(phone);
+  // Handle call customer
+  const handleCallCustomer = (phone: string) => {
+    if (phone) {
+      window.location.href = `tel:${phone}`;
+    }
+  };
 
-  // formatMaskedPhone moved to ./utils/service.utils.ts
+  const formatMaskedPhone = (phone?: string) => {
+    if (!phone) return "N/A";
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 4) return phone;
+    return `*** *** ${digits.slice(-4)}`;
+  };
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -4753,4 +5009,23 @@ export default function ServiceManager() {
   );
 }
 
-// StatusBadge component moved to ./components/StatusBadge.tsx
+const StatusBadge: React.FC<{ status: WorkOrderStatus }> = ({ status }) => {
+  const styles = {
+    "Tiếp nhận":
+      "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+    "Đang sửa":
+      "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400",
+    "Đã sửa xong":
+      "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+    "Trả máy":
+      "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400",
+  };
+
+  return (
+    <span
+      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}
+    >
+      {status}
+    </span>
+  );
+};
