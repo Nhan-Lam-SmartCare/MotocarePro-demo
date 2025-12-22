@@ -1359,7 +1359,7 @@ export default function ServiceManager() {
             setShowMobileModal(true);
           }}
           onDeleteWorkOrder={handleDelete}
-          onCallCustomer={handleCallCustomer}
+          onCallCustomer={callCustomer}
           onPrintWorkOrder={handlePrintOrder}
           onOpenTemplates={() => setShowTemplateModal(true)}
           onApplyTemplate={handleApplyRepairTemplate}
