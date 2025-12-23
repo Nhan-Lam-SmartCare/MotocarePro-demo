@@ -1800,7 +1800,6 @@ export default function ServiceManager() {
                             width: "auto",
                             objectFit: "contain",
                           }}
-                          crossOrigin="anonymous"
                         />
                       </div>
                     )}
@@ -2245,7 +2244,6 @@ export default function ServiceManager() {
                                 width: "25mm",
                                 objectFit: "contain",
                               }}
-                              crossOrigin="anonymous"
                             />
                           </div>
                         )}
@@ -3368,7 +3366,6 @@ export default function ServiceManager() {
                       <img
                         src={storeSettings.logo_url}
                         alt="Logo"
-                        crossOrigin="anonymous"
                         style={{
                           height: "18mm",
                           width: "18mm",
@@ -3527,7 +3524,6 @@ export default function ServiceManager() {
                               <img
                                 src={storeSettings.bank_qr_url}
                                 alt="QR Banking"
-                                crossOrigin="anonymous"
                                 style={{
                                   height: "25mm",
                                   width: "25mm",
@@ -4185,7 +4181,6 @@ export default function ServiceManager() {
               <img
                 src={storeSettings.logo_url}
                 alt="Logo"
-                crossOrigin="anonymous"
                 style={{
                   height: "18mm",
                   width: "18mm",
@@ -4326,7 +4321,6 @@ export default function ServiceManager() {
                       <img
                         src={storeSettings.bank_qr_url}
                         alt="QR Banking"
-                        crossOrigin="anonymous"
                         style={{
                           height: "25mm",
                           width: "25mm",

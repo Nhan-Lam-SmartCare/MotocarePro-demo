@@ -120,6 +120,20 @@ export interface Sale {
   userName: string;
   branchId: string;
   cashTransactionId?: string; // link to recorded cash transaction
+
+  // Delivery & COD fields
+  delivery_method?: "pickup" | "delivery"; // Tự lấy hoặc giao hàng
+  delivery_status?: "pending" | "preparing" | "shipping" | "delivered" | "cancelled"; // Trạng thái giao hàng
+  delivery_address?: string; // Địa chỉ giao hàng
+  delivery_phone?: string; // SĐT nhận hàng
+  delivery_note?: string; // Ghi chú giao hàng
+  shipper_id?: string; // ID nhân viên giao hàng
+  shipper_name?: string; // Tên nhân viên (joined)
+  cod_amount?: number; // Số tiền thu hộ COD
+  shipping_fee?: number; // Phí vận chuyển
+  estimated_delivery_date?: string; // Ngày giao dự kiến (ISO)
+  actual_delivery_date?: string; // Ngày giao thực tế (ISO)
+  tracking_number?: string; // Mã vận đơn (GHN, GHTK, etc.)
 }
 
 export interface WorkOrderPart {

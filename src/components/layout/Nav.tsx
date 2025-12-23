@@ -27,6 +27,7 @@ import {
   Menu,
   Home,
   DollarSign,
+  Truck,
 } from "lucide-react";
 
 export function Nav() {
@@ -237,6 +238,12 @@ export function Nav() {
               icon={<Cart className="w-4 h-4" />}
               label="Bán hàng"
             />
+            <NavLink
+              to="/delivery"
+              colorKey="violet"
+              icon={<Truck className="w-4 h-4" />}
+              label="Giao hàng"
+            />
             {can.viewInventory && (
               <NavLink
                 to="/inventory"
@@ -300,7 +307,7 @@ export function Nav() {
 
             {/* Home Button - Only visible on mobile */}
             <Link
-              to={role === USER_ROLES.STAFF ? "/service" : "/dashboard"}
+              to={role === USER_ROLES.STAFF ? "/staff-dashboard" : "/dashboard"}
               className="md:hidden p-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
               title="Trang chủ"
             >

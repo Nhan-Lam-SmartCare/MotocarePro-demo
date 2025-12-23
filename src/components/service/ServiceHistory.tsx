@@ -1348,7 +1348,6 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                         <img
                           src={storeSettings.logo_url}
                           alt="Logo"
-                          crossOrigin="anonymous"
                           style={{
                             height: "15mm",
                             width: "auto",
@@ -1421,7 +1420,6 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                               <img
                                 src={storeSettings.bank_qr_url}
                                 alt="QR Banking"
-                                crossOrigin="anonymous"
                                 style={{
                                   height: "25mm",
                                   width: "25mm",

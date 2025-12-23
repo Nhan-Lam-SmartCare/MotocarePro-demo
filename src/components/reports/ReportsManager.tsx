@@ -283,7 +283,12 @@ const ReportsManager: React.FC = () => {
         const cost = getPartCost(partId, sku, p.costPrice || p.costprice || 0);
         return c + cost * (p.quantity || 0);
       }, 0);
-      return sum + partsCost;
+      // Thêm giá vốn dịch vụ gia công bên ngoài
+      const services = wo.additionalServices || wo.additionalservices || [];
+      const servicesCost = services.reduce((c: number, s: any) => {
+        return c + (s.costPrice || s.costprice || 0) * (s.quantity || 0);
+      }, 0);
+      return sum + partsCost + servicesCost;
     }, 0);
 
     const totalRevenue = salesRevenue + woRevenue;
@@ -299,6 +304,8 @@ const ReportsManager: React.FC = () => {
         workOrders: any[];
         totalRevenue: number;
         totalCost: number;
+        partsCost: number;
+        servicesCost: number;
         totalProfit: number;
         orderCount: number;
       }
@@ -314,6 +321,8 @@ const ReportsManager: React.FC = () => {
           workOrders: [],
           totalRevenue: 0,
           totalCost: 0,
+          partsCost: 0,
+          servicesCost: 0,
           totalProfit: 0,
           orderCount: 0,
         });
@@ -330,6 +339,7 @@ const ReportsManager: React.FC = () => {
       dayData.sales.push(sale);
       dayData.totalRevenue += sale.total;
       dayData.totalCost += saleCost;
+      dayData.partsCost += saleCost;
       dayData.totalProfit += sale.total - saleCost;
       dayData.orderCount += 1;
     });
@@ -346,22 +356,52 @@ const ReportsManager: React.FC = () => {
           workOrders: [],
           totalRevenue: 0,
           totalCost: 0,
+          partsCost: 0,
+          servicesCost: 0,
           totalProfit: 0,
           orderCount: 0,
         });
       }
       const dayData = dataByDate.get(dateKey)!;
       const parts = wo.partsUsed || wo.partsused || [];
-      const woCost = parts.reduce((c: number, p: any) => {
+      const partsCost = parts.reduce((c: number, p: any) => {
         const partId = p.partId || p.partid;
         const sku = p.sku;
         const cost = getPartCost(partId, sku, p.costPrice || p.costprice || 0);
         return c + cost * (p.quantity || 0);
       }, 0);
+      // Thêm giá vốn dịch vụ gia công bên ngoài
+      const services = wo.additionalServices || wo.additionalservices || [];
+      const servicesCost = services.reduce((c: number, s: any) => {
+        // Thử nhiều tên field có thể: costPrice, costprice, giaNhap, cost, purchasePrice
+        const cost = s.costPrice || s.costprice || s.giaNhap || s.cost || s.purchasePrice || 0;
+        return c + cost * (s.quantity || 0);
+      }, 0);
+      
+      // Debug log cho ngày 23/12/2025
+      if (dateKey === '2025-12-23' && (partsCost > 0 || servicesCost > 0)) {
+        console.log(`[Debug 23/12] WO:`, wo.id, {
+          partsCost,
+          servicesCost,
+          totalCost: partsCost + servicesCost,
+          services: services.map((s: any) => ({
+            name: s.description || s.name,
+            costPrice: s.costPrice,
+            costprice: s.costprice,
+            giaNhap: s.giaNhap,
+            finalCost: s.costPrice || s.costprice || s.giaNhap || s.cost || s.purchasePrice || 0,
+            quantity: s.quantity
+          }))
+        });
+      }
+      
+      const woCost = partsCost + servicesCost;
       const woTotal = wo.totalPaid || wo.totalpaid || wo.total || 0;
       dayData.workOrders.push(wo);
       dayData.totalRevenue += woTotal;
       dayData.totalCost += woCost;
+      dayData.partsCost += partsCost;
+      dayData.servicesCost += servicesCost;
       dayData.totalProfit += woTotal - woCost;
       dayData.orderCount += 1;
     });
@@ -1141,10 +1181,10 @@ const ReportsManager: React.FC = () => {
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                     {sortedDailyReport.map((day, index) => {
                       // Tính toán từ dữ liệu thực
-                      const vonNhapKho = day.totalCost; // Giá vốn phụ tùng
+                      const vonNhapKho = day.partsCost || 0; // Giá vốn phụ tùng
                       const tienHang = day.totalRevenue; // Doanh thu từ bán hàng + sửa chữa
-                      const vonSuaChua = 0; // Đã tính trong vonNhapKho
-                      const congSuaChua = 0; // Công thợ (nếu cần tách riêng)
+                      const vonSuaChua = day.servicesCost || 0; // Giá vốn dịch vụ gia công
+                      const congSuaChua = 0; // Công thợ (nếu cần tách riêng trong tương lai)
                       const doanhThu = tienHang;
                       const loiNhuan = day.totalProfit; // Doanh thu - Giá vốn
 

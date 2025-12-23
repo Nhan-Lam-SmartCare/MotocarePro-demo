@@ -25,6 +25,8 @@ import { lazyImport } from "./utils/lazyImport";
 
 // Lazy load large components for code splitting
 const SalesManager = lazyImport(() => import("./components/sales/SalesManager"));
+// TEST ROUTE: New refactored SalesManager for testing
+const SalesManagerRefactored = lazyImport(() => import("./components/sales/SalesManagerRefactored"));
 const InventoryManager = lazyImport(
   () => import("./components/inventory/InventoryManager")
 );
@@ -79,7 +81,7 @@ const SettingsManager = lazyImport(() =>
     default: m.SettingsManager,
   }))
 );
-const StaffDashboard = lazyImport(() => 
+const StaffDashboard = lazyImport(() =>
   import("./components/dashboard/StaffDashboard").then((m) => ({
     default: m.StaffDashboard,
   }))
@@ -95,6 +97,12 @@ const PageLoader = () => (
 const Sales = () => (
   <Suspense fallback={<PageLoader />}>
     <SalesManager />
+  </Suspense>
+);
+// TEST WRAPPER: Refactored version for testing
+const SalesNew = () => (
+  <Suspense fallback={<PageLoader />}>
+    <SalesManagerRefactored />
   </Suspense>
 );
 const Inventory = () => (
@@ -231,6 +239,8 @@ const MainLayout: React.FC = () => {
             }
           />
           <Route path="/sales" element={<Sales />} />
+          {/* TEST ROUTE: New refactored version - Remove after testing */}
+          <Route path="/sales-new" element={<SalesNew />} />
           <Route path="/delivery" element={<DeliveryManager />} />
           <Route path="/delivery-test" element={<DeliveryTest />} />
           <Route

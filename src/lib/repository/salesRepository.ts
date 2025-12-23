@@ -227,7 +227,7 @@ export async function createSale(
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch { }
     await safeAudit(userId, {
       action: "sale.create",
       tableName: SALES_TABLE,
@@ -268,9 +268,9 @@ export async function createSaleAtomic(
     // Validate userId is a valid UUID or null
     const validUserId =
       input.userId &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        input.userId
-      )
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          input.userId
+        )
         ? input.userId
         : null;
 
@@ -298,17 +298,16 @@ export async function createSaleAtomic(
           const jsonStr = rawDetails.slice(colon + 1).trim();
           try {
             items = JSON.parse(jsonStr);
-          } catch {}
+          } catch { }
         }
         const list = Array.isArray(items)
           ? items
-              .map(
-                (d: any) =>
-                  `${d.partName || d.partId || "?"} (còn ${d.available}, cần ${
-                    d.requested
-                  })`
-              )
-              .join(", ")
+            .map(
+              (d: any) =>
+                `${d.partName || d.partId || "?"} (còn ${d.available}, cần ${d.requested
+                })`
+            )
+            .join(", ")
           : "";
         return failure({
           code: "validation",
@@ -376,7 +375,7 @@ export async function createSaleAtomic(
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch { }
     await safeAudit(userId, {
       action: "sale.create",
       tableName: SALES_TABLE,
@@ -430,7 +429,7 @@ export async function deleteSaleById(
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch { }
 
     await safeAudit(userId, {
       action: "sale.delete",
@@ -498,7 +497,7 @@ export async function refundSale(
           reference: id,
         },
       ] as any);
-    } catch {}
+    } catch { }
     // Restock all items (nhập trả) - best effort
     try {
       const branchId = (saleRow as Sale).branchId || "CN1";
@@ -523,13 +522,13 @@ export async function refundSale(
           });
         }
       }
-    } catch {}
+    } catch { }
     // Audit
     let userId: string | null = null;
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch { }
     await safeAudit(userId, {
       action: "sale.refund",
       tableName: SALES_TABLE,
@@ -635,13 +634,13 @@ export async function returnSaleItem(params: {
           notes: `Trả hàng SKU ${params.itemSku} từ hóa đơn ${params.saleId}`,
         });
       }
-    } catch {}
+    } catch { }
     // Audit
     let userId: string | null = null;
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch { }
     await safeAudit(userId, {
       action: "sale.return_item",
       tableName: SALES_TABLE,
@@ -665,6 +664,244 @@ export async function returnSaleItem(params: {
     return failure({
       code: "network",
       message: "Lỗi kết nối khi trả hàng cho hóa đơn",
+      cause: e,
+    });
+  }
+}
+
+// =====================================================
+// Delivery Management Functions
+// =====================================================
+
+/**
+ * Update delivery status and optionally assign shipper
+ */
+export async function updateDeliveryStatus(
+  saleId: string,
+  status: "pending" | "preparing" | "shipping" | "delivered" | "cancelled",
+  shipperId?: string
+): Promise<RepoResult<void>> {
+  try {
+    const updates: any = { delivery_status: status };
+
+    // Assign shipper when moving to shipping status
+    if (shipperId) {
+      updates.shipper_id = shipperId;
+    }
+
+    // Set actual delivery date when completed
+    if (status === "delivered") {
+      updates.actual_delivery_date = new Date().toISOString();
+    }
+
+    const { error } = await supabase
+      .from(SALES_TABLE)
+      .update(updates)
+      .eq("id", saleId);
+
+    if (error) {
+      return failure({
+        code: "supabase",
+        message: "Không thể cập nhật trạng thái giao hàng",
+        cause: error,
+      });
+    }
+
+    // Audit log
+    await safeAudit({
+      action: "update_delivery_status",
+      tableName: SALES_TABLE,
+      recordId: saleId,
+      oldData: null,
+      newData: { delivery_status: status, shipper_id: shipperId },
+    });
+
+    return success(null as any);
+  } catch (e: any) {
+    return failure({
+      code: "network",
+      message: "Lỗi kết nối khi cập nhật trạng thái giao hàng",
+      cause: e,
+    });
+  }
+}
+
+/**
+ * Complete delivery - mark as delivered and update payment status for COD
+ */
+export async function completeDelivery(
+  saleId: string,
+  branchId: string
+): Promise<RepoResult<void>> {
+  try {
+    // Get sale info first
+    const { data: sale, error: fetchError } = await supabase
+      .from(SALES_TABLE)
+      .select("*")
+      .eq("id", saleId)
+      .single();
+
+    if (fetchError || !sale) {
+      return failure({
+        code: "supabase",
+        message: "Không tìm thấy đơn hàng",
+        cause: fetchError,
+      });
+    }
+
+    // Update delivery status to delivered
+    const { error: updateError } = await supabase
+      .from(SALES_TABLE)
+      .update({
+        delivery_status: "delivered",
+        actual_delivery_date: new Date().toISOString(),
+      })
+      .eq("id", saleId);
+
+    if (updateError) {
+      return failure({
+        code: "supabase",
+        message: "Không thể cập nhật trạng thái giao hàng",
+        cause: updateError,
+      });
+    }
+
+    // If COD payment, create cash transaction
+    if (sale.cod_amount && sale.cod_amount > 0) {
+      const { error: cashError } = await supabase
+        .from("cash_transactions")
+        .insert({
+          type: "income",
+          date: new Date().toISOString(),
+          amount: sale.cod_amount,
+          recipient: sale.customer?.name || "Khách hàng",
+          notes: `Thu tiền COD - ${sale.sale_code || saleId}`,
+          paymentsourceid: sale.paymentmethod === "bank" ? "bank" : "cash",
+          branchid: branchId,
+          category: "sale_income",
+          saleid: saleId,
+        });
+
+      if (cashError) {
+        console.error("Failed to create COD cash transaction:", cashError);
+        // Don't fail the whole operation, just log
+      }
+    }
+
+    // Audit log
+    await safeAudit({
+      action: "complete_delivery",
+      tableName: SALES_TABLE,
+      recordId: saleId,
+      oldData: { delivery_status: sale.delivery_status },
+      newData: {
+        delivery_status: "delivered",
+        actual_delivery_date: new Date().toISOString(),
+        cod_collected: sale.cod_amount,
+      },
+    });
+
+    return success(null as any);
+  } catch (e: any) {
+    return failure({
+      code: "network",
+      message: "Lỗi kết nối khi hoàn thành giao hàng",
+      cause: e,
+    });
+  }
+}
+
+/**
+ * Cancel delivered order and create refund transaction
+ */
+export async function cancelDeliveredOrder(
+  saleId: string,
+  branchId: string,
+  refundReason: string
+): Promise<RepoResult<void>> {
+  try {
+    // Get sale info first
+    const { data: sale, error: fetchError } = await supabase
+      .from(SALES_TABLE)
+      .select("*")
+      .eq("id", saleId)
+      .single();
+
+    if (fetchError || !sale) {
+      return failure({
+        code: "supabase",
+        message: "Không tìm thấy đơn hàng",
+        cause: fetchError,
+      });
+    }
+
+    // Check if already delivered
+    if (sale.delivery_status !== "delivered") {
+      return failure({
+        code: "validation",
+        message: "Chỉ có thể hoàn trả đơn hàng đã giao",
+      });
+    }
+
+    // Update delivery status to cancelled
+    const { error: updateError } = await supabase
+      .from(SALES_TABLE)
+      .update({
+        delivery_status: "cancelled",
+        delivery_note: refundReason
+          ? `[HOÀN TRẢ] ${refundReason}`
+          : "[HOÀN TRẢ] Khách hàng trả hàng",
+      })
+      .eq("id", saleId);
+
+    if (updateError) {
+      return failure({
+        code: "supabase",
+        message: "Không thể cập nhật trạng thái đơn hàng",
+        cause: updateError,
+      });
+    }
+
+    // Create refund cash transaction (expense)
+    if (sale.cod_amount && sale.cod_amount > 0) {
+      const { error: cashError } = await supabase
+        .from("cash_transactions")
+        .insert({
+          type: "expense",
+          date: new Date().toISOString(),
+          amount: sale.cod_amount,
+          recipient: sale.customer?.name || "Khách hàng",
+          notes: `Hoàn tiền COD - ${sale.sale_code || saleId}${refundReason ? ` - Lý do: ${refundReason}` : ""}`,
+          paymentsourceid: sale.paymentmethod === "bank" ? "bank" : "cash",
+          branchid: branchId,
+          category: "sale_refund",
+          saleid: saleId,
+        });
+
+      if (cashError) {
+        console.error("Failed to create refund cash transaction:", cashError);
+        // Don't fail the whole operation, just log
+      }
+    }
+
+    // Audit log
+    await safeAudit({
+      action: "cancel_delivered_order",
+      tableName: SALES_TABLE,
+      recordId: saleId,
+      oldData: { delivery_status: "delivered" },
+      newData: {
+        delivery_status: "cancelled",
+        refund_amount: sale.cod_amount,
+        refund_reason: refundReason,
+      },
+    });
+
+    return success(null as any);
+  } catch (e: any) {
+    return failure({
+      code: "network",
+      message: "Lỗi kết nối khi hoàn trả đơn hàng",
       cause: e,
     });
   }

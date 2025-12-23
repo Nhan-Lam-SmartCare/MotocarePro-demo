@@ -425,8 +425,16 @@ const Dashboard: React.FC = () => {
         },
         0
       );
+      // Thêm giá vốn dịch vụ gia công bên ngoài
+      const servicesCost = (wo.additionalServices || wo.additionalservices || []).reduce(
+        (c: number, s: any) => {
+          return c + (s.costPrice || s.costprice || 0) * (s.quantity || 0);
+        },
+        0
+      );
+      const totalCost = partsCost + servicesCost;
       return (
-        sum + ((wo.totalPaid || wo.totalpaid || wo.total || 0) - partsCost)
+        sum + ((wo.totalPaid || wo.totalpaid || wo.total || 0) - totalCost)
       );
     }, 0);
 
@@ -592,8 +600,16 @@ const Dashboard: React.FC = () => {
         },
         0
       );
+      // Thêm giá vốn dịch vụ gia công bên ngoài
+      const servicesCost = (wo.additionalServices || wo.additionalservices || []).reduce(
+        (c: number, s: any) => {
+          return c + (s.costPrice || s.costprice || 0) * (s.quantity || 0);
+        },
+        0
+      );
+      const totalCost = partsCost + servicesCost;
       return (
-        sum + ((wo.totalPaid || wo.totalpaid || wo.total || 0) - partsCost)
+        sum + ((wo.totalPaid || wo.totalpaid || wo.total || 0) - totalCost)
       );
     }, 0);
 
