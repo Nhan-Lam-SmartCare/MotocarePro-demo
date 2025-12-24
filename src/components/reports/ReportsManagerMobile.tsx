@@ -35,10 +35,24 @@ import type { Sale } from "../../types";
 
 // Helper functions for cash flow filtering
 const excludedIncomeCategories = [
-    "service", "dịch vụ", "sale_income", "bán hàng", "service_income", "service_deposit",
+    "service",
+    "dịch vụ",
+    "sale_income", // Thu từ bán hàng
+    "bán hàng",
+    "service_income", // Thu từ phiếu sửa chữa
+    "service_deposit", // Đặt cọc dịch vụ
 ];
+
+// Các category phiếu chi KHÔNG tính vào lợi nhuận (vì đã tính trong giá vốn)
 const excludedExpenseCategories = [
-    "supplier_payment", "nhập kho", "nhập hàng", "goods_receipt", "import", "outsourcing", "service_cost", "refund",
+    "supplier_payment", // Chi trả NCC (nhập kho) - đã tính trong giá vốn hàng bán
+    "nhập kho",
+    "nhập hàng",
+    "goods_receipt",
+    "import",
+    "outsourcing",      // Chi gia công bên ngoài - đã tính trong lợi nhuận phiếu SC
+    "service_cost",     // Chi phí dịch vụ - đã tính trong lợi nhuận phiếu SC
+    "refund",           // Hoàn trả - không phải chi phí thực tế
 ];
 
 const isExcludedIncomeCategory = (category: string | undefined | null) => {

@@ -36,8 +36,8 @@ import {
   exportProductProfitReport,
   exportDetailedInventoryReport,
 } from "../../utils/excelExport";
-import { DailyDetailModal } from "../reports/DailyDetailModal";
-import { ReportsManagerMobile } from "../reports/ReportsManagerMobile";
+import { DailyDetailModal } from "./DailyDetailModal";
+import { ReportsManagerMobile } from "./ReportsManagerMobile";
 
 
 type ReportTab =

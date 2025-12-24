@@ -19,6 +19,7 @@ import type { WorkOrder } from "../../types";
 import { useNavigate } from "react-router-dom";
 import { WORK_ORDER_STATUS, PAYMENT_STATUS } from "../../constants";
 import { useWorkOrdersRepo } from "../../hooks/useWorkOrdersRepository";
+import PrintOrderPreviewModal from "../service-new/modals/PrintOrderPreviewModal";
 
 interface StoreSettings {
   store_name?: string;
@@ -599,8 +600,8 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                       setQuickDateFilter("today");
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilterType === "quick" && quickDateFilter === "today"
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      ? "bg-blue-500 text-white"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                       }`}
                   >
                     Hôm nay
@@ -611,9 +612,9 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                       setQuickDateFilter("yesterday");
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilterType === "quick" &&
-                        quickDateFilter === "yesterday"
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      quickDateFilter === "yesterday"
+                      ? "bg-blue-500 text-white"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                       }`}
                   >
                     Hôm qua
@@ -624,8 +625,8 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                       setQuickDateFilter("3days");
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilterType === "quick" && quickDateFilter === "3days"
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      ? "bg-blue-500 text-white"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                       }`}
                   >
                     3 ngày qua
@@ -636,9 +637,9 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                       setQuickDateFilter("thisWeek");
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilterType === "quick" &&
-                        quickDateFilter === "thisWeek"
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      quickDateFilter === "thisWeek"
+                      ? "bg-blue-500 text-white"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                       }`}
                   >
                     Tuần này
@@ -649,9 +650,9 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                       setQuickDateFilter("lastWeek");
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilterType === "quick" &&
-                        quickDateFilter === "lastWeek"
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      quickDateFilter === "lastWeek"
+                      ? "bg-blue-500 text-white"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                       }`}
                   >
                     Tuần trước
@@ -662,8 +663,8 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                       setQuickDateFilter("7days");
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilterType === "quick" && quickDateFilter === "7days"
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      ? "bg-blue-500 text-white"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                       }`}
                   >
                     ✓ 7 ngày qua
@@ -693,8 +694,8 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                           setMonthFilter(value);
                         }}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilterType === "month" && monthFilter === value
-                            ? "bg-slate-600 text-white"
-                            : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                          ? "bg-slate-600 text-white"
+                          : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                           }`}
                       >
                         {display}
@@ -1009,8 +1010,8 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                               <span>Còn phải thu:</span>
                               <span
                                 className={`font-bold ${order.remainingAmount > 0
-                                    ? "text-red-500"
-                                    : "text-green-500"
+                                  ? "text-red-500"
+                                  : "text-green-500"
                                   }`}
                               >
                                 {formatCurrency(order.remainingAmount)}
@@ -1157,11 +1158,11 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
                       {formatCurrency(order.total)}
                     </span>
                   </div>
-                  {order.remainingAmount > 0 && (
+                  {(order.remainingAmount || 0) > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-400">Còn phải thu:</span>
                       <span className="text-red-400 font-bold">
-                        {formatCurrency(order.remainingAmount)}
+                        {formatCurrency(order.remainingAmount || 0)}
                       </span>
                     </div>
                   )}
@@ -1200,682 +1201,16 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
       </div>
 
       {/* Print Preview Modal - Mobile optimized */}
-      {showPrintPreview && printOrder && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 md:p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-4xl max-h-[95vh] md:max-h-[90vh] flex flex-col">
-            {/* Modal Header - Mobile optimized */}
-            <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-3 md:px-6 py-3 md:py-4 flex items-center justify-between rounded-t-xl flex-shrink-0">
-              <h2 className="text-base md:text-xl font-bold text-slate-900 dark:text-slate-100">
-                Xem trước phiếu in
-              </h2>
-              <div className="flex items-center gap-2 md:gap-3">
-                <button
-                  onClick={handleDoPrint}
-                  className="px-3 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-1.5 md:gap-2 transition text-sm md:text-base"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span className="hidden md:inline">In phiếu</span>
-                  <span className="md:hidden">In</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowPrintPreview(false);
-                    setPrintOrder(null);
-                  }}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
-                  aria-label="Đóng"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="w-5 h-5"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Print Preview Content - Responsive for mobile */}
-            <div className="flex-1 overflow-auto p-2 md:p-6 bg-slate-100 dark:bg-slate-900">
-              <div
-                className="bg-white shadow-lg mx-auto overflow-x-auto"
-                style={{ maxWidth: "148mm", minWidth: "320px", color: "#000" }}
-              >
-                <div style={{ padding: "10mm" }}>
-                  {/* Store Info Header */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto 1fr",
-                      gap: "3mm",
-                      marginBottom: "4mm",
-                      alignItems: "start",
-                      borderBottom: "2px solid #3b82f6",
-                      paddingBottom: "3mm",
-                    }}
-                  >
-                    <div style={{ fontSize: "8.5pt", lineHeight: "1.4" }}>
-                      <div
-                        style={{
-                          fontWeight: "bold",
-                          fontSize: "11pt",
-                          marginBottom: "1mm",
-                          color: "#1e40af",
-                        }}
-                      >
-                        {storeSettings?.store_name || "Nhạn Lâm SmartCare"}
-                      </div>
-                      <div
-                        style={{
-                          color: "#000",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "1mm",
-                        }}
-                      >
-                        <svg
-                          style={{
-                            width: "10px",
-                            height: "10px",
-                            flexShrink: 0,
-                          }}
-                          viewBox="0 0 24 24"
-                          fill="#ef4444"
-                        >
-                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                        </svg>
-                        <span>
-                          {storeSettings?.address ||
-                            "Ấp Phú Lợi B, Xã Long Phú Thuận, Đông Tháp"}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          color: "#000",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "1mm",
-                        }}
-                      >
-                        <svg
-                          style={{
-                            width: "10px",
-                            height: "10px",
-                            flexShrink: 0,
-                          }}
-                          viewBox="0 0 24 24"
-                          fill="#16a34a"
-                        >
-                          <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
-                        </svg>
-                        <span>{storeSettings?.phone || "0947.747.907"}</span>
-                      </div>
-                      {storeSettings?.email && (
-                        <div
-                          style={{
-                            color: "#000",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "1mm",
-                          }}
-                        >
-                          <svg
-                            style={{
-                              width: "10px",
-                              height: "10px",
-                              flexShrink: 0,
-                            }}
-                            viewBox="0 0 24 24"
-                            fill="#3b82f6"
-                          >
-                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-                          </svg>
-                          <span>{storeSettings.email}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {storeSettings?.logo_url && (
-                      <div style={{ textAlign: "center" }}>
-                        <img
-                          src={storeSettings.logo_url}
-                          alt="Logo"
-                          style={{
-                            height: "15mm",
-                            width: "auto",
-                            objectFit: "contain",
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <div
-                      style={{
-                        fontSize: "8pt",
-                        lineHeight: "1.4",
-                        textAlign: "right",
-                      }}
-                    >
-                      {storeSettings?.bank_name && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "flex-end",
-                            gap: "3mm",
-                            border: "1px solid #3b82f6",
-                            borderRadius: "2mm",
-                            padding: "2mm",
-                            backgroundColor: "#eff6ff",
-                          }}
-                        >
-                          {/* Bank Info */}
-                          <div style={{ textAlign: "right", flex: 1 }}>
-                            <div
-                              style={{
-                                fontWeight: "bold",
-                                marginBottom: "1mm",
-                                color: "#000",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "flex-end",
-                                gap: "1mm",
-                              }}
-                            >
-                              <svg
-                                style={{
-                                  width: "10px",
-                                  height: "10px",
-                                  flexShrink: 0,
-                                }}
-                                viewBox="0 0 24 24"
-                                fill="#0891b2"
-                              >
-                                <path d="M4 10h3v7H4zm6.5 0h3v7h-3zM2 19h20v3H2zm15-9h3v7h-3zm-5-9L2 6v2h20V6z" />
-                              </svg>
-                              <span>{storeSettings.bank_name}</span>
-                            </div>
-                            {storeSettings.bank_account_number && (
-                              <div style={{ color: "#000" }}>
-                                STK: {storeSettings.bank_account_number}
-                              </div>
-                            )}
-                            {storeSettings.bank_account_holder && (
-                              <div style={{ color: "#000", fontSize: "7.5pt" }}>
-                                {storeSettings.bank_account_holder}
-                              </div>
-                            )}
-                          </div>
-                          {/* QR Code - Larger */}
-                          {storeSettings.bank_qr_url && (
-                            <div style={{ flexShrink: 0 }}>
-                              <img
-                                src={storeSettings.bank_qr_url}
-                                alt="QR Banking"
-                                style={{
-                                  height: "25mm",
-                                  width: "25mm",
-                                  objectFit: "contain",
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Title */}
-                  <div style={{ marginBottom: "4mm" }}>
-                    <div style={{ textAlign: "center", marginBottom: "2mm" }}>
-                      <h1
-                        style={{
-                          fontSize: "16pt",
-                          fontWeight: "bold",
-                          margin: "0",
-                          textTransform: "uppercase",
-                          color: "#1e40af",
-                        }}
-                      >
-                        PHIẾU DỊCH VỤ SỬA CHỮA
-                      </h1>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: "9pt",
-                        color: "#666",
-                      }}
-                    >
-                      <div>
-                        {new Date(printOrder.creationDate).toLocaleString(
-                          "vi-VN",
-                          {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}
-                      </div>
-                      <div style={{ fontWeight: "bold" }}>
-                        Mã:{" "}
-                        {formatWorkOrderId(
-                          printOrder.id,
-                          storeSettings?.work_order_prefix
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Customer Info */}
-                  <div
-                    style={{
-                      border: "1px solid #ddd",
-                      padding: "3mm",
-                      marginBottom: "3mm",
-                      borderRadius: "2mm",
-                      backgroundColor: "#f8fafc",
-                      color: "#000",
-                      fontSize: "9pt",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "4mm",
-                        marginBottom: "1.5mm",
-                      }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontWeight: "bold" }}>Khách hàng:</span>{" "}
-                        {printOrder.customerName}
-                      </div>
-                      <div style={{ flex: "0 0 auto" }}>
-                        <span style={{ fontWeight: "bold" }}>SĐT:</span>{" "}
-                        {printOrder.customerPhone}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "4mm" }}>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontWeight: "bold" }}>Loại xe:</span>{" "}
-                        {printOrder.vehicleModel}
-                      </div>
-                      <div style={{ flex: "0 0 auto" }}>
-                        <span style={{ fontWeight: "bold" }}>Biển số:</span>{" "}
-                        {printOrder.licensePlate}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Issue Description */}
-                  <div
-                    style={{
-                      border: "1px solid #ddd",
-                      padding: "4mm",
-                      marginBottom: "4mm",
-                      borderRadius: "2mm",
-                      color: "#000",
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: "3mm" }}>
-                      <div
-                        style={{
-                          fontWeight: "bold",
-                          minWidth: "20%",
-                          flexShrink: 0,
-                        }}
-                      >
-                        Mô tả sự cố:
-                      </div>
-                      <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
-                        {printOrder.issueDescription || "Không có mô tả"}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Parts Table */}
-                  {printOrder.partsUsed && printOrder.partsUsed.length > 0 && (
-                    <div style={{ marginBottom: "4mm", color: "#000" }}>
-                      <p
-                        style={{
-                          fontWeight: "bold",
-                          margin: "0 0 2mm 0",
-                          fontSize: "11pt",
-                        }}
-                      >
-                        Phụ tùng sử dụng:
-                      </p>
-                      <table
-                        style={{
-                          width: "100%",
-                          borderCollapse: "collapse",
-                          border: "1px solid #ddd",
-                        }}
-                      >
-                        <thead>
-                          <tr style={{ backgroundColor: "#f5f5f5" }}>
-                            <th
-                              style={{
-                                border: "1px solid #ddd",
-                                padding: "2mm",
-                                textAlign: "left",
-                                fontSize: "10pt",
-                              }}
-                            >
-                              Tên phụ tùng
-                            </th>
-                            <th
-                              style={{
-                                border: "1px solid #ddd",
-                                padding: "2mm",
-                                textAlign: "center",
-                                fontSize: "10pt",
-                                width: "15%",
-                              }}
-                            >
-                              SL
-                            </th>
-                            <th
-                              style={{
-                                border: "1px solid #ddd",
-                                padding: "2mm",
-                                textAlign: "right",
-                                fontSize: "10pt",
-                                width: "25%",
-                              }}
-                            >
-                              Đơn giá
-                            </th>
-                            <th
-                              style={{
-                                border: "1px solid #ddd",
-                                padding: "2mm",
-                                textAlign: "right",
-                                fontSize: "10pt",
-                                width: "25%",
-                              }}
-                            >
-                              Thành tiền
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {printOrder.partsUsed.map(
-                            (part: any, idx: number) => (
-                              <tr key={idx}>
-                                <td
-                                  style={{
-                                    border: "1px solid #ddd",
-                                    padding: "2mm",
-                                    fontSize: "10pt",
-                                  }}
-                                >
-                                  {part.partName}
-                                </td>
-                                <td
-                                  style={{
-                                    border: "1px solid #ddd",
-                                    padding: "2mm",
-                                    textAlign: "center",
-                                    fontSize: "10pt",
-                                  }}
-                                >
-                                  {part.quantity}
-                                </td>
-                                <td
-                                  style={{
-                                    border: "1px solid #ddd",
-                                    padding: "2mm",
-                                    textAlign: "right",
-                                    fontSize: "10pt",
-                                  }}
-                                >
-                                  {formatCurrency(part.price)}
-                                </td>
-                                <td
-                                  style={{
-                                    border: "1px solid #ddd",
-                                    padding: "2mm",
-                                    textAlign: "right",
-                                    fontSize: "10pt",
-                                    fontWeight: "bold",
-                                  }}
-                                >
-                                  {formatCurrency(part.price * part.quantity)}
-                                </td>
-                              </tr>
-                            )
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {/* Cost Summary */}
-                  <div
-                    style={{
-                      border: "1px solid #ddd",
-                      padding: "4mm",
-                      marginBottom: "4mm",
-                      borderRadius: "2mm",
-                      backgroundColor: "#f9f9f9",
-                      color: "#000",
-                    }}
-                  >
-                    <table
-                      style={{
-                        width: "100%",
-                        borderSpacing: "0",
-                        color: "#000",
-                      }}
-                    >
-                      <tbody>
-                        <tr>
-                          <td
-                            style={{
-                              fontWeight: "bold",
-                              paddingBottom: "2mm",
-                              fontSize: "10pt",
-                            }}
-                          >
-                            Tiền phụ tùng:
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              paddingBottom: "2mm",
-                              fontSize: "10pt",
-                            }}
-                          >
-                            {formatCurrency(
-                              printOrder.partsUsed?.reduce(
-                                (sum: number, p: any) =>
-                                  sum + p.price * p.quantity,
-                                0
-                              ) || 0
-                            )}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td
-                            style={{
-                              fontWeight: "bold",
-                              paddingBottom: "2mm",
-                              fontSize: "10pt",
-                            }}
-                          >
-                            Phí dịch vụ:
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              paddingBottom: "2mm",
-                              fontSize: "10pt",
-                            }}
-                          >
-                            {formatCurrency(printOrder.laborCost || 0)}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td
-                            style={{
-                              fontWeight: "bold",
-                              paddingBottom: "2mm",
-                              fontSize: "10pt",
-                            }}
-                          >
-                            Giá công/Đặt hàng:
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              paddingBottom: "2mm",
-                              fontSize: "10pt",
-                            }}
-                          >
-                            {formatCurrency(
-                              printOrder.additionalServices?.reduce(
-                                (sum: number, s: any) =>
-                                  sum + (s.price || 0) * (s.quantity || 1),
-                                0
-                              ) || 0
-                            )}
-                          </td>
-                        </tr>
-                        <tr style={{ borderTop: "2px solid #333" }}>
-                          <td
-                            style={{
-                              fontWeight: "bold",
-                              paddingTop: "2mm",
-                              fontSize: "12pt",
-                            }}
-                          >
-                            TỔNG CỘNG:
-                          </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              paddingTop: "2mm",
-                              fontSize: "12pt",
-                              fontWeight: "bold",
-                              color: "#2563eb",
-                            }}
-                          >
-                            {formatCurrency(printOrder.total)} ₫
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Footer */}
-                  <div
-                    style={{
-                      marginTop: "8mm",
-                      paddingTop: "4mm",
-                      borderTop: "1px dashed #999",
-                      color: "#000",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: "10pt",
-                      }}
-                    >
-                      <div style={{ textAlign: "center", width: "45%" }}>
-                        <p
-                          style={{
-                            fontWeight: "bold",
-                            margin: "0 0 10mm 0",
-                            color: "#000",
-                          }}
-                        >
-                          Khách hàng
-                        </p>
-                        <p
-                          style={{
-                            margin: "0",
-                            fontSize: "9pt",
-                            color: "#666",
-                          }}
-                        >
-                          (Ký và ghi rõ họ tên)
-                        </p>
-                      </div>
-                      <div style={{ textAlign: "center", width: "45%" }}>
-                        <p
-                          style={{
-                            fontWeight: "bold",
-                            margin: "0 0 10mm 0",
-                            color: "#000",
-                          }}
-                        >
-                          Nhân viên
-                        </p>
-                        <p
-                          style={{
-                            margin: "0",
-                            fontSize: "9pt",
-                            color: "#666",
-                          }}
-                        >
-                          (Ký và ghi rõ họ tên)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Note */}
-                  <div
-                    style={{
-                      marginTop: "4mm",
-                      padding: "3mm",
-                      backgroundColor: "#fff9e6",
-                      border: "1px solid #ffd700",
-                      borderRadius: "2mm",
-                      fontSize: "9pt",
-                      textAlign: "center",
-                      color: "#000",
-                    }}
-                  >
-                    <p
-                      style={{
-                        margin: "0",
-                        fontStyle: "italic",
-                        color: "#000",
-                      }}
-                    >
-                      Cảm ơn quý khách đã sử dụng dịch vụ!
-                    </p>
-                    <p
-                      style={{
-                        margin: "1mm 0 0 0",
-                        fontStyle: "italic",
-                        color: "#000",
-                      }}
-                    >
-                      Vui lòng giữ phiếu này để đối chiếu khi nhận xe
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PrintOrderPreviewModal
+        isOpen={showPrintPreview}
+        onClose={() => {
+          setShowPrintPreview(false);
+          setPrintOrder(null);
+        }}
+        printOrder={printOrder}
+        storeSettings={storeSettings || undefined}
+        onPrint={handleDoPrint}
+      />
 
       {/* Hidden Print Template */}
       <div id="work-order-receipt" className="hidden" />

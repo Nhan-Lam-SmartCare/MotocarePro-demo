@@ -57,12 +57,12 @@ import {
 import { showToast } from "../../utils/toast";
 import { printElementById } from "../../utils/print";
 import { supabase } from "../../supabaseClient";
-import { WorkOrderMobileModal } from "../service/WorkOrderMobileModal";
-import WorkOrderModal from "../service/components/WorkOrderModal";
-import { ServiceManagerMobile } from "../service/ServiceManagerMobile";
-import StatusBadge from "../service/components/StatusBadge";
-import { getQuickStatusFilters } from "../service/components/QuickStatusFilters";
-import { getStatusSnapshotCards } from "../service/components/StatusSnapshotCards";
+import { WorkOrderMobileModal } from "./WorkOrderMobileModal";
+import WorkOrderModal from "./components/WorkOrderModal";
+import { ServiceManagerMobile } from "./ServiceManagerMobile";
+import StatusBadge from "./components/StatusBadge";
+import { getQuickStatusFilters } from "./components/QuickStatusFilters";
+import { getStatusSnapshotCards } from "./components/StatusSnapshotCards";
 import {
   validatePhoneNumber,
   validateDepositAmount,
@@ -72,11 +72,11 @@ import {
   detectMaintenancesFromWorkOrder,
   updateVehicleMaintenances,
 } from "../../utils/maintenanceReminder";
-import { RepairTemplatesModal } from "../service/components/RepairTemplatesModal";
+import { RepairTemplatesModal } from "./components/RepairTemplatesModal";
 import { USER_ROLES } from "../../constants";
 
 // Import custom hooks and types
-import { useServiceStats } from "../service/hooks/useServiceStats";
+import { useServiceStats } from "./hooks/useServiceStats";
 import {
   StoreSettings,
   WorkOrderStatus,
@@ -84,7 +84,7 @@ import {
   FilterColor,
   FILTER_BADGE_CLASSES,
   getDateFilterLabel,
-} from "../service/types/service.types";
+} from "./types/service.types";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import {
   POPULAR_MOTORCYCLES,
@@ -92,12 +92,12 @@ import {
   DEFAULT_FETCH_LIMIT,
   DEFAULT_DATE_RANGE_DAYS,
   FILTER_INPUT_CLASS,
-} from "../service/constants/service.constants";
+} from "./constants/service.constants";
 import {
   downloadImage,
   formatMaskedPhone,
   handleCallCustomer as callCustomer,
-} from "../service/utils/service.utils";
+} from "./utils/service.utils";
 
 // Local types removed - now imported from ./types/service.types
 
@@ -1391,18 +1391,7 @@ export default function ServiceManager() {
         )}
 
         {/* Mobile Print Preview Modal */}
-        <PrintOrderPreviewModal
-          isOpen={showPrintPreview}
-          onClose={() => {
-            setShowPrintPreview(false);
-            setPrintOrder(null);
-          }}
-          printOrder={printOrder}
-          storeSettings={storeSettings || undefined}
-          onPrint={handleDoPrint}
-        />
-        {/* Old inline modal disabled */}
-        {false && showPrintPreview && printOrder && (
+        {showPrintPreview && printOrder && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-2">
             <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-full max-h-[95vh] flex flex-col">
               {/* Modal Header */}

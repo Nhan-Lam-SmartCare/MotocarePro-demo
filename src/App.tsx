@@ -28,6 +28,9 @@ const SalesManager = lazyImport(() => import("./components/sales/SalesManager"))
 const InventoryManager = lazyImport(
   () => import("./components/inventory/InventoryManager")
 );
+const InventoryManagerNew = lazyImport(
+  () => import("./components/inventory-new/InventoryManagerNew")
+);
 
 // Delivery Manager - Standalone page for delivery orders
 const DeliveryManager = lazyImport(() => import("./components/sales/DeliveryManager").then(m => ({ default: m.DeliveryManager })));
@@ -37,6 +40,9 @@ const DeliveryTest = lazyImport(() => import("./pages/DeliveryTest").then(m => (
 const ServiceManager = lazyImport(
   () => import("./components/service/ServiceManager")
 );
+const ServiceManagerNew = lazyImport(
+  () => import("./components/service-new/ServiceManagerNew")
+);
 const ServiceHistory = lazyImport(() =>
   import("./components/service/ServiceHistory").then((m) => ({
     default: m.ServiceHistory,
@@ -45,7 +51,11 @@ const ServiceHistory = lazyImport(() =>
 const CustomerManager = lazyImport(
   () => import("./components/customer/CustomerManager")
 );
+const CustomerManagerNew = lazyImport(
+  () => import("./components/customer-new/CustomerManagerNew")
+);
 const DebtManager = lazyImport(() => import("./components/debt/DebtManager"));
+const DebtManagerNew = lazyImport(() => import("./components/debt-new/DebtManagerNew"));
 const CashBook = lazyImport(() => import("./components/finance/CashBook"));
 const LoansManager = lazyImport(() => import("./components/finance/LoansManager"));
 const FinanceManager = lazyImport(
@@ -56,6 +66,9 @@ const PayrollManager = lazyImport(
 );
 const ReportsManager = lazyImport(
   () => import("./components/reports/ReportsManager")
+);
+const ReportsManagerNew = lazyImport(
+  () => import("./components/reports-new/ReportsManagerNew")
 );
 const TaxReportExport = lazyImport(
   () => import("./components/reports/TaxReportExport")
@@ -102,9 +115,19 @@ const Inventory = () => (
     <InventoryManager />
   </Suspense>
 );
+const InventoryNew = () => (
+  <Suspense fallback={<PageLoader />}>
+    <InventoryManagerNew />
+  </Suspense>
+);
 const Service = () => (
   <Suspense fallback={<PageLoader />}>
     <ServiceManager />
+  </Suspense>
+);
+const ServiceNew = () => (
+  <Suspense fallback={<PageLoader />}>
+    <ServiceManagerNew />
   </Suspense>
 );
 const ServiceHistoryPage = () => {
@@ -120,9 +143,19 @@ const Customers = () => (
     <CustomerManager />
   </Suspense>
 );
+const CustomersNew = () => (
+  <Suspense fallback={<PageLoader />}>
+    <CustomerManagerNew />
+  </Suspense>
+);
 const Debt = () => (
   <Suspense fallback={<PageLoader />}>
     <DebtManager />
+  </Suspense>
+);
+const DebtNew = () => (
+  <Suspense fallback={<PageLoader />}>
+    <DebtManagerNew />
   </Suspense>
 );
 const CashBookPage = () => (
@@ -148,6 +181,11 @@ const PayrollPage = () => (
 const ReportsPage = () => (
   <Suspense fallback={<PageLoader />}>
     <ReportsManager />
+  </Suspense>
+);
+const ReportsPageNew = () => (
+  <Suspense fallback={<PageLoader />}>
+    <ReportsManagerNew />
   </Suspense>
 );
 const TaxReportPage = () => (
@@ -251,16 +289,34 @@ const MainLayout: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/inventory-new"
+            element={
+              <ProtectedRoute requiredRoles={["owner", "manager"]}>
+                <InventoryNew />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/lookup" element={<LookupPage />} />
           <Route path="/service" element={<Service />} />
+          <Route path="/service-new" element={<ServiceNew />} />
           <Route path="/service-history" element={<ServiceHistoryPage />} />
           <Route path="/customers" element={<Customers />} />
+          <Route path="/customers-new" element={<CustomersNew />} />
           <Route
             path="/debt"
             element={
               <ProtectedRoute requiredRoles={["owner", "manager"]}>
                 <Debt />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/debt-new"
+            element={
+              <ProtectedRoute requiredRoles={["owner", "manager"]}>
+                <DebtNew />
               </ProtectedRoute>
             }
           />
@@ -317,6 +373,14 @@ const MainLayout: React.FC = () => {
             element={
               <ProtectedRoute requiredRoles={["owner", "manager"]}>
                 <ReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports-new"
+            element={
+              <ProtectedRoute requiredRoles={["owner", "manager"]}>
+                <ReportsPageNew />
               </ProtectedRoute>
             }
           />
