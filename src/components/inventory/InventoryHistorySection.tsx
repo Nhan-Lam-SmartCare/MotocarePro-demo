@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import ConfirmModal from '../common/ConfirmModal';
 import InventoryHistoryModal from './modals/InventoryHistoryModal';
+import EditReceiptModal from './components/EditReceiptModal';
 import { InventoryTransaction, Part } from '../../types';
 import { canDo } from '../../utils/permissions';
 import { getCategoryColor } from '../../utils/categoryColors';
