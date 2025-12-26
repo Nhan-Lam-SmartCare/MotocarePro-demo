@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import ConfirmModal from '../common/ConfirmModal';
 import InventoryHistoryModal from './modals/InventoryHistoryModal';
+import BatchPrintBarcodeModal from '../inventory/BatchPrintBarcodeModal';
+import EditReceiptModal from '../inventory/components/EditReceiptModal';
 import { InventoryTransaction, Part } from '../../types';
 import { canDo } from '../../utils/permissions';
 import { getCategoryColor } from '../../utils/categoryColors';
@@ -177,6 +179,31 @@ const InventoryHistorySection: React.FC<{
   const [expandedReceipts, setExpandedReceipts] = useState<Set<string>>(
     new Set()
   );
+  const [showPrintBarcodeModal, setShowPrintBarcodeModal] = useState(false);
+
+  // Get parts to print from selected receipts
+  const partsForBarcodePrint = useMemo(() => {
+    if (selectedReceipts.size === 0) return [];
+
+    const selectedPartIds = new Set<string>();
+    const partsWithQuantity: Part[] = [];
+
+    groupedReceipts.forEach((receipt) => {
+      if (selectedReceipts.has(receipt.receiptCode)) {
+        receipt.items.forEach((item) => {
+          if (item.partId && !selectedPartIds.has(item.partId)) {
+            selectedPartIds.add(item.partId);
+            const part = parts.find((p) => p.id === item.partId);
+            if (part) {
+              partsWithQuantity.push(part);
+            }
+          }
+        });
+      }
+    });
+
+    return partsWithQuantity;
+  }, [selectedReceipts, groupedReceipts, parts]);
 
   const toggleExpand = (receiptCode: string) => {
     setExpandedReceipts((prev) => {
@@ -385,13 +412,22 @@ const InventoryHistorySection: React.FC<{
             </div>
             {/* Nút xóa phiếu đã chọn */}
             {selectedReceipts.size > 0 && (
-              <button
-                onClick={handleDeleteSelectedReceipts}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                Xóa {selectedReceipts.size} phiếu
-              </button>
+              <>
+                <button
+                  onClick={() => setShowPrintBarcodeModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
+                >
+                  <Printer className="w-4 h-4" />
+                  In mã vạch ({partsForBarcodePrint.length} SP)
+                </button>
+                <button
+                  onClick={handleDeleteSelectedReceipts}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Xóa {selectedReceipts.size} phiếu
+                </button>
+              </>
             )}
           </div>
           <div className="text-right">
@@ -1102,6 +1138,15 @@ const InventoryHistorySection: React.FC<{
         cancelText={confirmState.cancelText}
         confirmColor={confirmState.confirmColor}
       />
+
+      {/* Print Barcode Modal for selected receipts */}
+      {showPrintBarcodeModal && partsForBarcodePrint.length > 0 && (
+        <BatchPrintBarcodeModal
+          parts={partsForBarcodePrint}
+          currentBranchId={currentBranchId || ''}
+          onClose={() => setShowPrintBarcodeModal(false)}
+        />
+      )}
     </div>
   );
 };

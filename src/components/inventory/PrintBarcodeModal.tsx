@@ -145,100 +145,174 @@ const PrintBarcodeModal: React.FC<PrintBarcodeModalProps> = ({
       .fill(null)
       .map(
         () => `
-        <div class="label" style="
-          width: ${currentSize.width}mm;
-          height: ${currentSize.height}mm;
-          padding: 1mm;
-          display: inline-flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          page-break-inside: avoid;
-          box-sizing: border-box;
-          overflow: hidden;
-        ">
-          ${
-            showName
-              ? `<div style="font-size: ${
-                  currentSize.fontSize - 1
-                }px; font-weight: bold; text-align: center; line-height: 1.1; max-width: 100%; overflow: hidden; white-space: nowrap;">${displayName}</div>`
-              : ""
+        <div class="label">
+          ${showName
+            ? `<div class="product-name">${displayName}</div>`
+            : ""
           }
           ${barcodeRef.current?.outerHTML || ""}
-          ${
-            showPrice
-              ? `<div style="font-size: ${
-                  currentSize.fontSize
-                }px; font-weight: bold; line-height: 1;">${formatCurrency(
-                  part.retailPrice[currentBranchId] || 0
-                )}</div>`
-              : ""
+          ${showPrice
+            ? `<div class="product-price">${formatCurrency(
+              part.retailPrice[currentBranchId] || 0
+            )}</div>`
+            : ""
           }
         </div>
       `
       )
       .join("");
 
-    // CSS tối ưu cho máy in nhiệt XP-360B
+    // CSS tối ưu cho máy in nhiệt XP-360B - với hướng dẫn rõ ràng
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
           <title>In mã vạch - ${part.name}</title>
           <style>
+            /* === QUAN TRỌNG: Cài đặt @page cho máy in nhiệt === */
             @page {
               size: ${currentSize.width}mm ${currentSize.height}mm;
-              margin: 0;
+              margin: 0 !important;
+              padding: 0 !important;
             }
+            
             * {
               margin: 0;
               padding: 0;
               box-sizing: border-box;
             }
+            
+            html, body {
+              width: ${currentSize.width}mm;
+              height: ${currentSize.height * quantity}mm;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            
             body {
-              font-family: Arial, sans-serif;
-              margin: 0;
-              padding: 0;
-              width: ${currentSize.width * columns}mm;
+              font-family: Arial, Helvetica, sans-serif;
+              background: white;
             }
-            .labels-container {
-              display: flex;
-              flex-wrap: wrap;
-              width: 100%;
-            }
+            
             .label {
-              border: none;
+              width: ${currentSize.width}mm;
+              height: ${currentSize.height}mm;
+              padding: 1.5mm 2mm;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              page-break-after: always;
+              page-break-inside: avoid;
+              box-sizing: border-box;
+              background: white;
             }
+            
+            .label:last-child {
+              page-break-after: avoid;
+            }
+            
+            .product-name {
+              font-size: ${Math.max(8, currentSize.fontSize)}px;
+              font-weight: bold;
+              text-align: center;
+              line-height: 1.1;
+              max-width: 100%;
+              overflow: hidden;
+              white-space: nowrap;
+              text-overflow: ellipsis;
+              margin-bottom: 1mm;
+            }
+            
+            .product-price {
+              font-size: ${Math.max(10, currentSize.fontSize + 2)}px;
+              font-weight: bold;
+              line-height: 1;
+              margin-top: 1mm;
+            }
+            
             svg {
               max-width: ${currentSize.width - 4}mm !important;
-              height: auto !important;
+              height: ${currentSize.barcodeHeight}px !important;
             }
+            
+            /* Instructions - hidden when printing */
+            .instructions {
+              position: fixed;
+              top: 0;
+              left: ${currentSize.width + 10}mm;
+              width: 280px;
+              background: #fffbe6;
+              border: 2px solid #ffc107;
+              border-radius: 8px;
+              padding: 16px;
+              font-family: Arial, sans-serif;
+              font-size: 13px;
+              z-index: 1000;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+            
+            .instructions h3 {
+              color: #b8860b;
+              margin-bottom: 12px;
+              font-size: 15px;
+            }
+            
+            .instructions ol {
+              padding-left: 20px;
+              line-height: 1.8;
+            }
+            
+            .instructions li {
+              margin-bottom: 6px;
+            }
+            
+            .instructions code {
+              background: #fff3cd;
+              padding: 2px 6px;
+              border-radius: 4px;
+              font-weight: bold;
+            }
+            
             @media print {
+              .instructions {
+                display: none !important;
+              }
+              
               body { 
-                margin: 0; 
-                padding: 0;
+                margin: 0 !important; 
+                padding: 0 !important;
+                width: ${currentSize.width}mm !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-              }
-              .label { 
-                page-break-after: always;
-              }
-              .label:last-child {
-                page-break-after: avoid;
               }
             }
           </style>
         </head>
         <body>
-          <div class="labels-container">
-            ${labels}
+          <!-- Hướng dẫn cài đặt -->
+          <div class="instructions">
+            <h3>⚙️ Hướng dẫn in nhãn:</h3>
+            <ol>
+              <li>Bấm <code>More settings</code> trong hộp thoại in</li>
+              <li>Chọn <code>Paper size</code> → <strong>${currentSize.width}×${currentSize.height}mm</strong></li>
+              <li>Đặt <code>Margins</code> → <strong>None</strong></li>
+              <li>Tắt <code>Headers and footers</code></li>
+              <li>Bấm <strong>Print</strong></li>
+            </ol>
+            <p style="margin-top: 12px; color: #666; font-size: 11px;">
+              💡 Nếu không có size ${currentSize.width}×${currentSize.height}mm, vào Control Panel → Devices and Printers → Xprinter → Printing Preferences để thêm khổ giấy tùy chỉnh.
+            </p>
           </div>
+          
+          <!-- Labels -->
+          ${labels}
+          
           <script>
+            // Auto print after load
             window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                window.onafterprint = function() { window.close(); };
-              }, 200);
+              // Focus on print dialog
+              window.print();
             };
           </script>
         </body>
@@ -305,7 +379,7 @@ const PrintBarcodeModal: React.FC<PrintBarcodeModalProps> = ({
                 >
                   {part.name.length > Math.floor(currentSize.width / 3)
                     ? part.name.slice(0, Math.floor(currentSize.width / 3)) +
-                      "..."
+                    "..."
                     : part.name}
                 </p>
               )}
@@ -333,11 +407,10 @@ const PrintBarcodeModal: React.FC<PrintBarcodeModalProps> = ({
                   <button
                     key={preset}
                     onClick={() => setLabelPreset(preset)}
-                    className={`px-3 py-2 text-xs rounded-lg transition-colors text-left ${
-                      labelPreset === preset
+                    className={`px-3 py-2 text-xs rounded-lg transition-colors text-left ${labelPreset === preset
                         ? "bg-blue-600 text-white"
                         : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-                    }`}
+                      }`}
                   >
                     {LABEL_PRESETS[preset].name}
                   </button>

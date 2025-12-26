@@ -144,6 +144,7 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
   const [showName, setShowName] = useState(true);
   const [quantityMode, setQuantityMode] = useState<QuantityMode>("stock");
   const [fixedQuantity, setFixedQuantity] = useState(1);
+  const [rotateLabel, setRotateLabel] = useState(false); // Xoay 90° cho cuộn giấy nằm ngang
 
   // Preview pagination
   const [previewPage, setPreviewPage] = useState(0);
@@ -187,8 +188,8 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
         quantityMode === "stock"
           ? Math.max(1, getStock(part))
           : quantityMode === "fixed"
-          ? fixedQuantity
-          : 1;
+            ? fixedQuantity
+            : 1;
       newSelected.set(part.id, { part, quantity: qty });
     }
     setSelectedParts(newSelected);
@@ -203,8 +204,8 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
           quantityMode === "stock"
             ? Math.max(1, getStock(part))
             : quantityMode === "fixed"
-            ? fixedQuantity
-            : 1;
+              ? fixedQuantity
+              : 1;
         newSelected.set(part.id, { part, quantity: qty });
       }
     });
@@ -234,8 +235,8 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
         quantityMode === "stock"
           ? Math.max(1, getStock(item.part))
           : quantityMode === "fixed"
-          ? fixedQuantity
-          : item.quantity;
+            ? fixedQuantity
+            : item.quantity;
       newSelected.set(id, { ...item, quantity: qty });
     });
     setSelectedParts(newSelected);
@@ -272,7 +273,7 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
   const currentSize = LABEL_PRESETS[labelPreset];
 
   // Generate barcode SVG string
-  const generateBarcodeSVG = (value: string): string => {
+  const generateBarcodeSVG = (value: string, rotate: boolean = false): string => {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     try {
       JsBarcode(svg, value, {
@@ -295,6 +296,20 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
         margin: 2,
       });
     }
+
+    // Apply rotation directly to SVG if needed
+    if (rotate) {
+      const svgWidth = svg.getAttribute('width') || '100';
+      const svgHeight = svg.getAttribute('height') || '50';
+      // Wrap content in a group with rotation transform
+      const innerContent = svg.innerHTML;
+      svg.innerHTML = `<g transform="rotate(-90, ${parseFloat(svgWidth) / 2}, ${parseFloat(svgHeight) / 2})">${innerContent}</g>`;
+      // Swap width and height for rotated SVG
+      svg.setAttribute('width', svgHeight);
+      svg.setAttribute('height', svgWidth);
+      svg.setAttribute('viewBox', `0 0 ${svgHeight} ${svgWidth}`);
+    }
+
     return svg.outerHTML;
   };
 
@@ -305,6 +320,22 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
       return;
     }
 
+    // Show confirmation with printer settings reminder FIRST
+    const confirmed = confirm(
+      `⚠️ HƯỚNG DẪN IN MÁY IN NHIỆT XPRINTER\n\n` +
+      `📌 QUAN TRỌNG: Khi hộp thoại in xuất hiện:\n` +
+      `→ Nhấn Ctrl+Shift+P để mở System Dialog\n` +
+      `→ Hoặc bấm "Print using system dialog..."\n\n` +
+      `Kích thước nhãn: ${currentSize.width}×${currentSize.height}mm\n\n` +
+      `Cài đặt Xprinter (đã cấu hình):\n` +
+      `→ Stock: ${currentSize.width}mm × ${currentSize.height}mm\n` +
+      `→ Orientation: Portrait/Landscape tùy cuộn giấy\n\n` +
+      `Bấm OK để tiếp tục.`
+    );
+
+    if (!confirmed) return;
+
+    // Open print window AFTER confirmation
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
       alert("Vui lòng cho phép popup để in");
@@ -318,43 +349,25 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
       const barcodeSVG = generateBarcodeSVG(barcodeValue);
 
       for (let i = 0; i < quantity; i++) {
+        // When rotateLabel is true, we keep the content horizontal (no rotation)
+        // because the printer will handle the orientation
+        // The page size is already swapped (30x40 instead of 40x30)
+
         labelsHTML += `
-          <div class="label" style="
-            width: ${currentSize.width}mm;
-            height: ${currentSize.height}mm;
-            padding: 1mm;
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            page-break-inside: avoid;
-            box-sizing: border-box;
-            overflow: hidden;
-          ">
-            ${
-              showName
-                ? `<div style="font-size: ${Math.max(
-                    7,
-                    currentSize.fontSize - 1
-                  )}px; font-weight: bold; text-align: center; line-height: 1.2; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word;">${
-                    part.name
-                  }</div>`
-                : ""
-            }
-            ${barcodeSVG}
-            ${
-              showPrice
-                ? `<div style="font-size: ${
-                    currentSize.fontSize
-                  }px; font-weight: bold; line-height: 1;">${formatCurrency(
-                    part.retailPrice[currentBranchId] || 0
-                  )}</div>`
-                : ""
-            }
+          <div class="label">
+            <div class="label-content">
+              ${showName ? `<div class="label-name">${part.name}</div>` : ""}
+              ${barcodeSVG}
+              ${showPrice ? `<div class="label-price">${formatCurrency(part.retailPrice[currentBranchId] || 0)}</div>` : ""}
+            </div>
           </div>
         `;
       }
     });
+
+    // Calculate dimensions based on rotation
+    const pageWidth = rotateLabel ? currentSize.height : currentSize.width;
+    const pageHeight = rotateLabel ? currentSize.width : currentSize.height;
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -363,39 +376,129 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
           <title>In mã vạch hàng loạt - ${selectedParts.size} sản phẩm</title>
           <style>
             @page {
-              size: ${currentSize.width}mm ${currentSize.height}mm;
+              size: ${pageWidth}mm ${pageHeight}mm;
               margin: 0;
             }
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: Arial, sans-serif;
+            * { 
+              margin: 0; 
+              padding: 0; 
+              box-sizing: border-box; 
+            }
+            html, body {
+              width: ${pageWidth}mm;
+              height: ${pageHeight}mm;
               margin: 0;
               padding: 0;
             }
-            .labels-container {
-              display: flex;
-              flex-wrap: wrap;
-              width: 100%;
+            body {
+              font-family: Arial, sans-serif;
             }
-            .label { border: none; }
-            svg { max-width: ${
-              currentSize.width - 4
-            }mm !important; height: auto !important; }
+            .label {
+              width: ${pageWidth}mm;
+              height: ${pageHeight}mm;
+              padding: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-sizing: border-box;
+              overflow: hidden;
+              page-break-after: always;
+              page-break-inside: avoid;
+            }
+            .label:last-child {
+              page-break-after: avoid;
+            }
+            .label-content {
+              width: ${currentSize.width}mm;
+              height: ${currentSize.height}mm;
+              padding: 1mm;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              ${rotateLabel ? 'transform: rotate(-90deg); transform-origin: center center;' : ''}
+            }
+            .label-name {
+              font-size: ${Math.max(7, currentSize.fontSize - 1)}px;
+              font-weight: bold;
+              text-align: center;
+              line-height: 1.2;
+              max-width: 100%;
+              overflow: hidden;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              word-break: break-word;
+              margin-bottom: 1px;
+            }
+            .label-price {
+              font-size: ${currentSize.fontSize}px;
+              font-weight: bold;
+              line-height: 1;
+              margin-top: 1px;
+            }
+            svg { 
+              max-width: ${currentSize.width - 4}mm !important; 
+              height: auto !important; 
+            }
             @media print {
-              body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              .label { page-break-after: always; }
-              .label:last-child { page-break-after: avoid; }
+              html, body {
+                width: ${pageWidth}mm !important;
+                height: ${pageHeight}mm !important;
+              }
+              body { 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+              }
+              .label-content {
+                ${rotateLabel ? `
+                  transform: rotate(-90deg) !important;
+                  transform-origin: center center !important;
+                ` : ''}
+              }
+            }
+            /* Screen only: Show print instructions */
+            @media screen {
+              .print-info {
+                background: #fffbeb;
+                border: 2px solid #f59e0b;
+                padding: 16px;
+                margin: 16px;
+                border-radius: 8px;
+                font-size: 14px;
+                line-height: 1.6;
+              }
+              .print-info h3 {
+                color: #b45309;
+                margin-bottom: 8px;
+              }
+              .print-info code {
+                background: #fef3c7;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-weight: bold;
+              }
+            }
+            @media print {
+              .print-info { display: none; }
             }
           </style>
         </head>
         <body>
-          <div class="labels-container">${labelsHTML}</div>
+          <div class="print-info">
+            <h3>⚠️ Trước khi in, kiểm tra cài đặt:</h3>
+            <p><strong>Paper size:</strong> <code>${currentSize.width}×${currentSize.height}mm</code></p>
+            <p><strong>Margins:</strong> None</p>
+            <p><strong>Scale:</strong> 100%</p>
+            <p style="margin-top:8px">Phần này sẽ không được in ra.</p>
+          </div>
+          ${labelsHTML}
           <script>
             window.onload = function() {
               setTimeout(function() {
                 window.print();
                 window.onafterprint = function() { window.close(); };
-              }, 300);
+              }, 500);
             };
           </script>
         </body>
@@ -425,11 +528,10 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
             <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode("select")}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
-                  viewMode === "select"
-                    ? "bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                }`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${viewMode === "select"
+                  ? "bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 Chọn SP
@@ -440,11 +542,10 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
                   setPreviewPage(0);
                 }}
                 disabled={selectedParts.size === 0}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
-                  viewMode === "preview"
-                    ? "bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                }`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${viewMode === "preview"
+                  ? "bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  }`}
               >
                 <Eye className="w-3.5 h-3.5" />
                 Xem trước
@@ -520,18 +621,16 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
                         <div
                           key={part.id}
                           onClick={() => togglePart(part)}
-                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                            isSelected
-                              ? "bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700"
-                              : "bg-slate-50 dark:bg-slate-900/50 border border-transparent hover:bg-slate-100 dark:hover:bg-slate-700"
-                          }`}
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${isSelected
+                            ? "bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700"
+                            : "bg-slate-50 dark:bg-slate-900/50 border border-transparent hover:bg-slate-100 dark:hover:bg-slate-700"
+                            }`}
                         >
                           <div
-                            className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
-                              isSelected
-                                ? "bg-blue-600 text-white"
-                                : "border-2 border-slate-300 dark:border-slate-600"
-                            }`}
+                            className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${isSelected
+                              ? "bg-blue-600 text-white"
+                              : "border-2 border-slate-300 dark:border-slate-600"
+                              }`}
                           >
                             {isSelected && <Check className="w-3 h-3" />}
                           </div>
@@ -548,9 +647,8 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
                               Tồn kho
                             </p>
                             <p
-                              className={`text-sm font-bold ${
-                                stock > 0 ? "text-green-600" : "text-red-500"
-                              }`}
+                              className={`text-sm font-bold ${stock > 0 ? "text-green-600" : "text-red-500"
+                                }`}
                             >
                               {stock}
                             </p>
@@ -581,11 +679,10 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
                       onClick={() => {
                         setQuantityMode("stock");
                       }}
-                      className={`flex-1 px-2 py-1.5 text-xs rounded-lg ${
-                        quantityMode === "stock"
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
-                      }`}
+                      className={`flex-1 px-2 py-1.5 text-xs rounded-lg ${quantityMode === "stock"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                        }`}
                     >
                       = Tồn kho
                     </button>
@@ -593,11 +690,10 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
                       onClick={() => {
                         setQuantityMode("fixed");
                       }}
-                      className={`flex-1 px-2 py-1.5 text-xs rounded-lg ${
-                        quantityMode === "fixed"
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
-                      }`}
+                      className={`flex-1 px-2 py-1.5 text-xs rounded-lg ${quantityMode === "fixed"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                        }`}
                     >
                       Cố định
                     </button>
@@ -605,11 +701,10 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
                       onClick={() => {
                         setQuantityMode("custom");
                       }}
-                      className={`flex-1 px-2 py-1.5 text-xs rounded-lg ${
-                        quantityMode === "custom"
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
-                      }`}
+                      className={`flex-1 px-2 py-1.5 text-xs rounded-lg ${quantityMode === "custom"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                        }`}
                     >
                       Tùy chỉnh
                     </button>
@@ -662,7 +757,7 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
                 </div>
 
                 {/* Options */}
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-3">
                   <label className="flex items-center gap-1.5 cursor-pointer">
                     <input
                       type="checkbox"
@@ -683,6 +778,17 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
                     />
                     <span className="text-xs text-slate-700 dark:text-slate-300">
                       Giá
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer" title="Xoay 90° khi cuộn giấy nằm ngang">
+                    <input
+                      type="checkbox"
+                      checked={rotateLabel}
+                      onChange={(e) => setRotateLabel(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded accent-orange-500"
+                    />
+                    <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                      Xoay 90°
                     </span>
                   </label>
                 </div>
@@ -791,6 +897,17 @@ const BatchPrintBarcodeModal: React.FC<BatchPrintBarcodeModalProps> = ({
                   />
                   <span className="text-xs text-slate-700 dark:text-slate-300">
                     Giá
+                  </span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded" title="Xoay 90° cho cuộn giấy nằm ngang">
+                  <input
+                    type="checkbox"
+                    checked={rotateLabel}
+                    onChange={(e) => setRotateLabel(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded accent-orange-500"
+                  />
+                  <span className="text-xs text-orange-700 dark:text-orange-300 font-medium">
+                    🔄 Xoay 90°
                   </span>
                 </label>
               </div>
