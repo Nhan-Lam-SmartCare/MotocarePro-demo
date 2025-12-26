@@ -516,55 +516,55 @@ export function ServiceManagerMobile({
 
               {/* Doanh thu & Lợi nhuận */}
               <div className="grid grid-cols-2 gap-2 mt-2">
-                <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-900/30 to-emerald-800/20 border border-emerald-700">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 shadow-lg shadow-emerald-500/20 text-white">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-emerald-400 font-medium">
+                    <span className="text-[10px] font-bold text-emerald-50 opacity-90">
                       Doanh thu {getDateLabel()}
                     </span>
                     <div className="flex items-center gap-1">
                       {isOwner && (
                         <button
                           onClick={() => setShowFinancials(!showFinancials)}
-                          className="p-1 hover:bg-emerald-700/30 rounded transition-colors"
+                          className="p-1 hover:bg-white/20 rounded transition-colors"
                           aria-label="Toggle revenue visibility"
                         >
                           {showFinancials ? (
-                            <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                            <Eye className="w-3.5 h-3.5 text-white" />
                           ) : (
-                            <EyeOff className="w-3.5 h-3.5 text-emerald-400" />
+                            <EyeOff className="w-3.5 h-3.5 text-white" />
                           )}
                         </button>
                       )}
-                      <DollarSign className="w-4 h-4 text-emerald-400" />
+                      <DollarSign className="w-4 h-4 text-white" />
                     </div>
                   </div>
-                  <div className="text-base font-black text-emerald-300">
+                  <div className="text-base font-black text-white">
                     {showFinancials ? formatCurrency(kpis.doanhThu) : "•••••••"}
                   </div>
                 </div>
-                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-900/30 to-blue-800/20 border border-blue-700">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 shadow-lg shadow-blue-500/20 text-white">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-blue-400 font-medium">
+                    <span className="text-[10px] font-bold text-blue-50 opacity-90">
                       Lợi nhuận {getDateLabel()}
                     </span>
                     <div className="flex items-center gap-1">
                       {isOwner && (
                         <button
                           onClick={() => setShowFinancials(!showFinancials)}
-                          className="p-1 hover:bg-blue-700/30 rounded transition-colors"
+                          className="p-1 hover:bg-white/20 rounded transition-colors"
                           aria-label="Toggle profit visibility"
                         >
                           {showFinancials ? (
-                            <Eye className="w-3.5 h-3.5 text-blue-400" />
+                            <Eye className="w-3.5 h-3.5 text-white" />
                           ) : (
-                            <EyeOff className="w-3.5 h-3.5 text-blue-400" />
+                            <EyeOff className="w-3.5 h-3.5 text-white" />
                           )}
                         </button>
                       )}
-                      <TrendingUp className="w-4 h-4 text-blue-400" />
+                      <TrendingUp className="w-4 h-4 text-white" />
                     </div>
                   </div>
-                  <div className="text-base font-black text-blue-300">
+                  <div className="text-base font-black text-white">
                     {showFinancials ? formatCurrency(kpis.loiNhuan) : "•••••••"}
                   </div>
                 </div>

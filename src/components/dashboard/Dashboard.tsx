@@ -61,6 +61,7 @@ const Dashboard: React.FC = () => {
   >("month");
   const [isLoading, setIsLoading] = useState(true);
   const [showBalance, setShowBalance] = useState(false);
+  const [showRevenue, setShowRevenue] = useState(false);
 
   // Load data using custom hook
   const {
@@ -172,9 +173,21 @@ const Dashboard: React.FC = () => {
       {/* Báo cáo - Dropdown với Doanh thu & Lợi nhuận - Chỉ hiện trên mobile */}
       <div className="md:hidden bg-white dark:bg-slate-800 rounded-xl p-4 md:p-5 shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-white">
-            Báo cáo
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-white">
+              Báo cáo
+            </h2>
+            <button
+              onClick={() => setShowRevenue(!showRevenue)}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1"
+            >
+              {showRevenue ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+          </div>
           <select
             value={reportFilter}
             onChange={(e) =>
@@ -200,7 +213,7 @@ const Dashboard: React.FC = () => {
               Doanh thu
             </p>
             <p className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {formatCurrency(filteredStats.revenue)}
+              {showRevenue ? formatCurrency(filteredStats.revenue) : "******"}
             </p>
           </Link>
           <Link
@@ -216,7 +229,7 @@ const Dashboard: React.FC = () => {
                 : "text-red-600 dark:text-red-400"
                 }`}
             >
-              {formatCurrency(filteredStats.profit)}
+              {showRevenue ? formatCurrency(filteredStats.profit) : "******"}
             </p>
           </Link>
         </div>

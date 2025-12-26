@@ -66,15 +66,32 @@ const EditReceiptModal: React.FC<{
       sku: (item as any).sku || "", // Assuming sku might be in item or we need to fetch it
     }))
   );
-  const [payments, setPayments] = useState([
-    {
-      time: "15:31",
-      date: receipt.date,
-      payer: "Xu�n Nhan",
-      cashier: "(Ti�n m�t)",
-      amount: receipt.total,
-    },
-  ]);
+
+  const [payments, setPayments] = useState(() => {
+    // Extract payer from notes if available
+    let payerName = "Nhân viên";
+    const firstItem = receipt.items[0];
+    if (firstItem?.notes?.includes("NV:")) {
+      const extracted = firstItem.notes.split("NV:")[1]?.split("NCC:")[0]?.trim();
+      if (extracted) payerName = extracted;
+    }
+
+    const receiptDate = new Date(receipt.date);
+    const timeStr = receiptDate.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    return [
+      {
+        time: timeStr,
+        date: receipt.date,
+        payer: payerName,
+        cashier: "(Tiền mặt)",
+        amount: receipt.total,
+      },
+    ];
+  });
   const [isPaid, setIsPaid] = useState(true);
 
   // Extract phone from notes if available
@@ -117,12 +134,12 @@ const EditReceiptModal: React.FC<{
 
   const removeItem = (index: number) => {
     if (items.length === 1) {
-      showToast.error("Ph�i c� �t nh�t 1 s�n ph�m");
+      showToast.error("Phải có ít nhất 1 sản phẩm");
       return;
     }
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
-    showToast.success("� x�a s�n ph�m");
+    showToast.success("Đã xóa sản phẩm");
   };
 
   const handleAddProduct = (product: {
@@ -144,7 +161,7 @@ const EditReceiptModal: React.FC<{
     };
     setItems([...items, newItem]);
     setShowAddProductModal(false);
-    showToast.success(`� th�m ${product.partName} (s� l�u khi b�m L�U)`);
+    showToast.success(`Đã thêm ${product.partName} (sẽ lưu khi bấm LƯU)`);
   };
 
   const handleSaveSupplier = (supplierData: {
@@ -158,8 +175,8 @@ const EditReceiptModal: React.FC<{
     setShowSupplierModal(false);
     showToast.success(
       supplierModalMode === "add"
-        ? "� th�m nh� cung c�p"
-        : "� c�p nh�t nh� cung c�p"
+        ? "Đã thêm nhà cung cấp"
+        : "Đã cập nhật nhà cung cấp"
     );
   };
 
@@ -175,7 +192,7 @@ const EditReceiptModal: React.FC<{
 
   const handleEditItem = (index: number) => {
     setEditingItemIndex(index);
-    showToast.info("Click v�o � s� l��ng ho�c ��n gi� �� ch�0nh s�a");
+    showToast.info("Click vào ô số lượng hoặc đơn giá để chỉnh sửa");
   };
 
   const handleItemMenu = (index: number) => {
@@ -476,7 +493,7 @@ const EditReceiptModal: React.FC<{
                             {item.partName}
                           </div>
                           <div className="text-xs text-slate-500 dark:text-slate-400">
-                            {item.sku ? `SKU: ${item.sku}` : "[Khác]"}
+                            {item.sku ? `SKU: ${item.sku}` : ""}
                           </div>
                         </td>
                         <td className="px-3 py-3 text-center">
@@ -579,9 +596,11 @@ const EditReceiptModal: React.FC<{
                         <div className="text-[15px] font-bold text-slate-800 dark:text-slate-100 leading-snug">
                           {item.partName}
                         </div>
-                        <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono bg-slate-50 dark:bg-slate-900/50 px-1.5 py-0.5 rounded inline-block">
-                          {item.sku ? item.sku : "NO-SKU"}
-                        </div>
+                        {item.sku && (
+                          <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono bg-slate-50 dark:bg-slate-900/50 px-1.5 py-0.5 rounded inline-block">
+                            {item.sku}
+                          </div>
+                        )}
                       </div>
                       <button
                         type="button"
@@ -636,13 +655,13 @@ const EditReceiptModal: React.FC<{
                 ))}
 
                 {/* Summary Card V3 - Gradient */}
-                <div className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-700 dark:to-slate-800 rounded-2xl p-5 shadow-xl">
+                <div className="bg-gradient-to-br from-white to-slate-100 dark:from-slate-700 dark:to-slate-800 rounded-2xl p-5 shadow-xl border border-slate-200 dark:border-slate-600">
                   <div className="flex justify-between items-center">
                     <div>
-                      <div className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest font-bold mb-1">
                         Tổng cộng
                       </div>
-                      <div className="text-3xl font-black text-white tracking-tight">
+                      <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                         {formatCurrency(totalAmount)}
                       </div>
                     </div>
@@ -849,4 +868,3 @@ const EditReceiptModal: React.FC<{
 
 
 export default EditReceiptModal;
-

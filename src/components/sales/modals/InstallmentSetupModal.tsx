@@ -114,27 +114,27 @@ export const InstallmentSetupModal: React.FC<InstallmentSetupModalProps> = ({
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100000]">
-            <div className="relative z-[100001] bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-0 md:p-4 z-[100000]">
+            <div className="relative z-[100001] bg-white dark:bg-slate-800 rounded-none md:rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col h-full md:h-auto md:max-h-[90vh]">
                 {/* Header */}
-                <div className="bg-purple-600 p-4 flex justify-between items-center text-white flex-none">
+                <div className="bg-purple-600 p-3 md:p-4 flex flex-col md:flex-row justify-between items-start md:items-center text-white flex-none gap-2 md:gap-0">
                     <div className="flex items-center gap-2">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
                         <h2 className="text-lg font-bold">Thiết lập Trả góp</h2>
                     </div>
-                    <div className="text-sm font-medium bg-purple-700/50 px-3 py-1 rounded-full">
-                        Tổng đơn hàng: {formatCurrency(totalAmount)}
+                    <div className="text-sm font-medium bg-purple-700/50 px-3 py-1 rounded-full self-start md:self-auto">
+                        Tổng đơn: {formatCurrency(totalAmount)}
                     </div>
                 </div>
 
                 {/* Body - Scrollable */}
                 <div className="p-4 md:p-6 overflow-y-auto flex-1">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 h-full">
                         {/* LEFT COLUMN: Inputs */}
-                        <div className="space-y-5">
-                            <h3 className="font-semibold text-slate-800 dark:text-slate-200 border-b pb-2">1. Thông tin khoản vay</h3>
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-slate-800 dark:text-slate-200 border-b pb-2 hidden md:block">1. Thông tin khoản vay</h3>
 
                             {/* Finance Company */}
                             <div>
@@ -167,65 +167,76 @@ export const InstallmentSetupModal: React.FC<InstallmentSetupModalProps> = ({
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                                     Tiền đặt cọc / Trả trước
                                 </label>
-                                <NumberInput
-                                    value={prepaidAmount}
-                                    onChange={setPrepaidAmount}
-                                    min={0}
-                                    max={totalAmount}
-                                    className="w-full p-2 text-lg font-bold text-green-600 border rounded-lg"
-                                />
-                                <div className="flex gap-2 flex-wrap">
-                                    {[10, 20, 30, 50].map(percent => (
-                                        <button
-                                            key={percent}
-                                            onClick={() => setPrepaidAmount(Math.round(totalAmount * (percent / 100)))}
-                                            className="px-3 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded text-slate-600 dark:text-slate-300"
-                                        >
-                                            {percent}%
-                                        </button>
-                                    ))}
+                                <div className="bg-slate-50 dark:bg-slate-900/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <NumberInput
+                                        value={prepaidAmount}
+                                        onChange={setPrepaidAmount}
+                                        min={0}
+                                        max={totalAmount}
+                                        className="w-full p-2 text-xl font-bold text-center text-green-600 bg-transparent border-0 focus:ring-0 placeholder-slate-300"
+                                    />
+                                    <div className="grid grid-cols-4 gap-1 mt-1">
+                                        {[10, 20, 30, 50].map(percent => (
+                                            <button
+                                                key={percent}
+                                                onClick={() => setPrepaidAmount(Math.round(totalAmount * (percent / 100)))}
+                                                className="py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-slate-700 shadow-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-600"
+                                            >
+                                                {percent}%
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Term & Interest */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                                {/* Term Presets */}
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        Số kỳ (tháng)
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        Chọn kỳ hạn (tháng)
                                     </label>
-                                    <div className="flex gap-1 mb-2">
+                                    <div className="grid grid-cols-4 gap-2">
                                         {[3, 6, 9, 12].map(m => (
                                             <button
                                                 key={m}
                                                 onClick={() => setTerm(m)}
-                                                className={`flex-1 py-1 text-xs border rounded transition-colors ${term === m
-                                                    ? "bg-purple-600 text-white border-purple-600"
-                                                    : "bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50"
+                                                className={`py-2 text-sm font-medium rounded-lg border transition-all ${term === m
+                                                    ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/20"
+                                                    : "bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-purple-300"
                                                     }`}
                                             >
                                                 {m}
                                             </button>
                                         ))}
                                     </div>
-                                    <NumberInput
-                                        value={term}
-                                        onChange={setTerm}
-                                        min={1}
-                                        className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-center"
-                                    />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        Lãi suất (%/tháng)
-                                    </label>
-                                    <div className="h-[26px] mb-2"></div> {/* Spacer to align with term buttons */}
-                                    <input
-                                        type="number"
-                                        value={interestRate}
-                                        onChange={(e) => setInterestRate(Number(e.target.value))}
-                                        step="0.01"
-                                        className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-center h-[41px]" // Matching height
-                                    />
+
+                                {/* Custom Term & Interest Inputs */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs uppercase tracking-wider text-slate-500 font-bold mb-1.5">
+                                            Số kỳ khác
+                                        </label>
+                                        <NumberInput
+                                            value={term}
+                                            onChange={setTerm}
+                                            min={1}
+                                            className="w-full px-3 py-2.5 border rounded-lg bg-white dark:bg-slate-700 text-center font-bold text-slate-800 dark:text-slate-100"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs uppercase tracking-wider text-slate-500 font-bold mb-1.5">
+                                            Lãi suất (%)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={interestRate}
+                                            onChange={(e) => setInterestRate(Number(e.target.value))}
+                                            step="0.01"
+                                            className="w-full px-3 py-2.5 border rounded-lg bg-white dark:bg-slate-700 text-center font-bold text-slate-800 dark:text-slate-100"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <p className="text-xs text-slate-500 text-center italic">
@@ -309,19 +320,28 @@ export const InstallmentSetupModal: React.FC<InstallmentSetupModalProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="bg-slate-50 dark:bg-slate-900 p-4 flex justify-end gap-3 border-t dark:border-slate-700 flex-none">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-200 transition-colors"
-                    >
-                        Hủy bỏ
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        className="px-6 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-lg shadow-purple-500/30 transition-all"
-                    >
-                        Xác nhận kế hoạch
-                    </button>
+                {/* Footer */}
+                <div className="bg-slate-50 dark:bg-slate-900 p-3 md:p-4 border-t dark:border-slate-700 flex-none flex flex-col gap-3">
+                    {/* Mobile Only Summary Row */}
+                    <div className="flex justify-between items-center md:hidden">
+                        <span className="text-sm text-slate-500">Góp mỗi tháng:</span>
+                        <span className="text-xl font-bold text-red-600">{formatCurrency(monthlyPayment)}</span>
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 md:flex-none px-4 py-2.5 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-200 transition-colors border border-slate-200 md:border-transparent bg-white md:bg-transparent"
+                        >
+                            Hủy bỏ
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="flex-[2] md:flex-none px-6 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-lg shadow-purple-500/30 transition-all"
+                        >
+                            Xác nhận trả góp
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>,

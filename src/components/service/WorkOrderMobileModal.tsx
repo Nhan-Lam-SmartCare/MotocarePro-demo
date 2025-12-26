@@ -888,21 +888,21 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
     return (
       <div className="fixed inset-0 bg-black/50 z-[100] flex items-end md:items-center justify-center">
         {/* Mobile Full Screen */}
-        <div className="md:hidden w-full h-full bg-[#151521] flex flex-col">
+        <div className="md:hidden w-full h-full bg-slate-50 dark:bg-[#151521] flex flex-col transition-colors">
           {/* Header */}
-          <div className="flex-shrink-0 bg-[#1e1e2d] px-4 py-4 flex items-center justify-between border-b border-slate-700/50">
+          <div className="flex-shrink-0 bg-white dark:bg-[#1e1e2d] px-4 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-700/50">
             <div className="flex items-center gap-3">
               <button
                 onClick={onClose}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-800 text-slate-400 active:scale-95 transition-all"
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 active:scale-95 transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
               <div>
-                <h2 className="text-sm font-bold text-white">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                   Chi tiết phiếu
                 </h2>
-                <div className="text-[10px] text-blue-400 font-mono font-medium">
+                <div className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-medium">
                   #{formatWorkOrderId(workOrder.id)}
                 </div>
               </div>
@@ -919,9 +919,9 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
           </div>
 
           {/* Scrollable Content - View Only */}
-          <div className="flex-1 overflow-y-auto bg-[#151521]">
+          <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-[#151521]">
             {/* Trạng thái & Thời gian */}
-            <div className="p-3 bg-[#1e1e2d] border-b border-slate-700">
+            <div className="p-3 bg-white dark:bg-[#1e1e2d] border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between">
                 <span
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold ${getStatusColor(
@@ -930,7 +930,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                 >
                   {workOrder.status}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {new Date(workOrder.creationDate).toLocaleDateString("vi-VN")}{" "}
                   {new Date(workOrder.creationDate).toLocaleTimeString(
                     "vi-VN",
@@ -939,10 +939,10 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                 </span>
               </div>
               {workOrder.technicianName && (
-                <div className="mt-2 text-xs text-slate-300 flex items-center gap-1.5">
+                <div className="mt-2 text-xs text-slate-500 dark:text-slate-300 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-slate-400" />
                   KTV:{" "}
-                  <span className="font-medium text-white">
+                  <span className="font-medium text-slate-900 dark:text-white">
                     {workOrder.technicianName}
                   </span>
                 </div>
@@ -950,35 +950,35 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
             </div>
 
             {/* Thông tin khách hàng */}
-            <div className="p-3 border-b border-slate-700">
-              <h3 className="text-xs font-semibold text-blue-400 mb-2 flex items-center gap-1.5">
+            <div className="p-3 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5" />
                 KHÁCH HÀNG
               </h3>
-              <div className="bg-[#1e1e2d] rounded-xl p-3 space-y-2">
+              <div className="bg-white dark:bg-[#1e1e2d] rounded-xl p-3 space-y-2 border border-slate-200 dark:border-transparent">
                 <div className="flex items-center justify-between">
-                  <span className="text-white font-medium">
+                  <span className="text-slate-900 dark:text-white font-medium">
                     {workOrder.customerName || "—"}
                   </span>
                   {workOrder.customerPhone && (
                     <a
                       href={`tel:${workOrder.customerPhone}`}
-                      className="text-blue-400 text-sm flex items-center gap-1.5"
+                      className="text-blue-600 dark:text-blue-400 text-sm flex items-center gap-1.5"
                     >
                       <PhoneCall className="w-3.5 h-3.5" />
                       {workOrder.customerPhone}
                     </a>
                   )}
                 </div>
-                <div className="text-sm text-slate-300 flex items-center gap-1.5">
+                <div className="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                   <Bike className="w-3.5 h-3.5 text-slate-400" />
                   {workOrder.vehicleModel || "—"} •{" "}
-                  <span className="text-yellow-400 font-mono">
+                  <span className="text-yellow-600 dark:text-yellow-400 font-mono">
                     {workOrder.licensePlate || "—"}
                   </span>
                 </div>
                 {workOrder.currentKm && (
-                  <div className="text-xs text-slate-400 flex items-center gap-1.5">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                     <TrendingUp className="w-3.5 h-3.5" />
                     Số km hiện tại: {formatKm(workOrder.currentKm)} km
                   </div>
@@ -988,12 +988,12 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
             {/* Mô tả vấn đề */}
             {workOrder.issueDescription && (
-              <div className="p-3 border-b border-slate-700">
-                <h3 className="text-xs font-semibold text-orange-400 mb-2 flex items-center gap-1.5">
+              <div className="p-3 border-b border-slate-200 dark:border-slate-700">
+                <h3 className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-2 flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5" />
                   MÔ TẢ VẤN ĐỀ
                 </h3>
-                <div className="bg-[#1e1e2d] rounded-xl p-3 text-sm text-slate-300 whitespace-pre-wrap">
+                <div className="bg-white dark:bg-[#1e1e2d] rounded-xl p-3 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap border border-slate-200 dark:border-transparent">
                   {workOrder.issueDescription}
                 </div>
               </div>
@@ -1001,25 +1001,25 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
             {/* Phụ tùng */}
             {workOrder.partsUsed && workOrder.partsUsed.length > 0 && (
-              <div className="p-3 border-b border-slate-700">
-                <h3 className="text-xs font-semibold text-emerald-400 mb-2 flex items-center gap-1.5">
+              <div className="p-3 border-b border-slate-200 dark:border-slate-700">
+                <h3 className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
                   <Package className="w-3.5 h-3.5" />
                   PHỤ TÙNG ({workOrder.partsUsed.length})
                 </h3>
                 <div className="space-y-2">
                   {workOrder.partsUsed.map((part, idx) => (
-                    <div key={idx} className="bg-[#1e1e2d] rounded-xl p-3">
+                    <div key={idx} className="bg-white dark:bg-[#1e1e2d] rounded-xl p-3 border border-slate-200 dark:border-transparent">
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0 pr-2">
-                          <div className="text-sm text-white font-medium truncate">
+                          <div className="text-sm text-slate-900 dark:text-white font-medium truncate">
                             {part.partName || "Phụ tùng"}
                           </div>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs text-slate-500 dark:text-slate-400">
                             SL: {part.quantity} {part.sku && `• ${part.sku}`}
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="text-sm font-bold text-emerald-400">
+                          <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                             {formatCurrency(part.price * part.quantity)}
                           </div>
                           <div className="text-xs text-slate-500">
@@ -1028,11 +1028,11 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                         </div>
                       </div>
                       {/* Hiển thị giá vốn để debug */}
-                      <div className="mt-1 text-[10px] text-slate-500 flex justify-between">
+                      <div className="mt-1 text-[10px] text-slate-400 dark:text-slate-500 flex justify-between">
                         <span>
                           Giá vốn: {formatCurrency(part.costPrice || 0)}/cái
                         </span>
-                        <span className="text-yellow-400">
+                        <span className="text-yellow-600 dark:text-yellow-400">
                           Lãi:{" "}
                           {formatCurrency(
                             (part.price - (part.costPrice || 0)) * part.quantity
@@ -1048,8 +1048,8 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
             {/* Dịch vụ */}
             {workOrder.additionalServices &&
               workOrder.additionalServices.length > 0 && (
-                <div className="p-3 border-b border-slate-700">
-                  <h3 className="text-xs font-semibold text-purple-400 mb-2 flex items-center gap-1.5">
+                <div className="p-3 border-b border-slate-200 dark:border-slate-700">
+                  <h3 className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1.5">
                     <Wrench className="w-3.5 h-3.5" />
                     DỊCH VỤ ({workOrder.additionalServices.length})
                   </h3>
@@ -1057,19 +1057,19 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     {workOrder.additionalServices.map((svc, idx) => (
                       <div
                         key={idx}
-                        className="bg-[#1e1e2d] rounded-xl p-3 flex items-center justify-between"
+                        className="bg-white dark:bg-[#1e1e2d] rounded-xl p-3 flex items-center justify-between border border-slate-200 dark:border-transparent"
                       >
                         <div className="flex-1 min-w-0 pr-2">
-                          <div className="text-sm text-white font-medium truncate">
+                          <div className="text-sm text-slate-900 dark:text-white font-medium truncate">
                             {svc.description || "Dịch vụ"}
                           </div>
                           {svc.quantity > 1 && (
-                            <div className="text-xs text-slate-400">
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
                               SL: {svc.quantity}
                             </div>
                           )}
                         </div>
-                        <div className="text-sm font-bold text-purple-400 flex-shrink-0">
+                        <div className="text-sm font-bold text-purple-600 dark:text-purple-400 flex-shrink-0">
                           {formatCurrency(svc.price * (svc.quantity || 1))}
                         </div>
                       </div>
@@ -1080,12 +1080,12 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
             {/* Ghi chú */}
             {workOrder.notes && (
-              <div className="p-3 border-b border-slate-700">
-                <h3 className="text-xs font-semibold text-yellow-400 mb-2 flex items-center gap-1.5">
+              <div className="p-3 border-b border-slate-200 dark:border-slate-700">
+                <h3 className="text-xs font-semibold text-yellow-600 dark:text-yellow-400 mb-2 flex items-center gap-1.5">
                   <MessageSquare className="w-3.5 h-3.5" />
                   GHI CHÚ
                 </h3>
-                <div className="bg-[#1e1e2d] rounded-xl p-3 text-sm text-slate-300 whitespace-pre-wrap">
+                <div className="bg-white dark:bg-[#1e1e2d] rounded-xl p-3 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap border border-slate-200 dark:border-transparent">
                   {workOrder.notes}
                 </div>
               </div>
@@ -1093,10 +1093,10 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
             {/* Tổng tiền */}
             <div className="p-3">
-              <div className="bg-[#1e1e2d] rounded-xl p-4 border border-slate-700/50 shadow-sm">
+              <div className="bg-white dark:bg-[#1e1e2d] rounded-xl p-4 border border-slate-200 dark:border-slate-700/50 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-slate-400 text-xs">Tổng phụ tùng</span>
-                  <span className="text-white font-medium text-sm">
+                  <span className="text-slate-500 dark:text-slate-400 text-xs">Tổng phụ tùng</span>
+                  <span className="text-slate-900 dark:text-white font-medium text-sm">
                     {formatCurrency(
                       workOrder.partsUsed?.reduce(
                         (s, p) => s + p.price * p.quantity,
@@ -1106,8 +1106,8 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-slate-400 text-xs">Tổng dịch vụ</span>
-                  <span className="text-white font-medium text-sm">
+                  <span className="text-slate-500 dark:text-slate-400 text-xs">Tổng dịch vụ</span>
+                  <span className="text-slate-900 dark:text-white font-medium text-sm">
                     {formatCurrency(
                       workOrder.additionalServices?.reduce(
                         (s, svc) => s + svc.price * (svc.quantity || 1),
@@ -1118,26 +1118,26 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                 </div>
                 {(workOrder.discount || 0) > 0 && (
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-slate-400 text-xs">Giảm giá</span>
-                    <span className="text-red-400 font-medium text-sm">
+                    <span className="text-slate-500 dark:text-slate-400 text-xs">Giảm giá</span>
+                    <span className="text-red-500 dark:text-red-400 font-medium text-sm">
                       -{formatCurrency(workOrder.discount || 0)}
                     </span>
                   </div>
                 )}
-                <div className="border-t border-slate-700 pt-3 mt-2 flex items-center justify-between">
-                  <span className="text-base font-bold text-white uppercase">
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-3 mt-2 flex items-center justify-between">
+                  <span className="text-base font-bold text-slate-900 dark:text-white uppercase">
                     TỔNG CỘNG
                   </span>
-                  <span className="text-xl font-black text-blue-500">
+                  <span className="text-xl font-black text-blue-600 dark:text-blue-500">
                     {formatCurrency(workOrder.total)}
                   </span>
                 </div>
-                <div className="mt-3 pt-3 border-t border-slate-700/30 flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Trạng thái thanh toán</span>
+                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700/30 flex items-center justify-between text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">Trạng thái thanh toán</span>
                   <span
                     className={`font-bold flex items-center gap-1.5 ${workOrder.paymentStatus === "paid"
-                      ? "text-emerald-400"
-                      : "text-amber-400"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-amber-600 dark:text-amber-400"
                       }`}
                   >
                     {workOrder.paymentStatus === "paid" ? (
@@ -1159,10 +1159,10 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
           {/* Footer - Nút chỉnh sửa */}
           {onSwitchToEdit && (
-            <div className="flex-shrink-0 p-3 bg-[#1e1e2d] border-t border-slate-700">
+            <div className="flex-shrink-0 p-3 bg-white dark:bg-[#1e1e2d] border-t border-slate-200 dark:border-slate-700">
               <button
                 onClick={onSwitchToEdit}
-                className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold text-base flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
               >
                 ✏️ Chỉnh sửa phiếu
               </button>
@@ -1173,8 +1173,8 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
         {/* Desktop View */}
         <div className="hidden md:block max-w-2xl w-full max-h-[90vh] bg-white dark:bg-slate-800 rounded-xl shadow-2xl overflow-hidden">
           {/* Similar content for desktop - simplified */}
-          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+            <h2 className="text-base font-bold">
               Chi tiết phiếu #{formatWorkOrderId(workOrder.id)}
             </h2>
             <div className="flex items-center gap-2">
@@ -1188,7 +1188,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
               )}
               <button
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1209,17 +1209,17 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 z-[100] flex items-end md:items-center justify-center">
       {/* Mobile Full Screen */}
-      <div className="md:hidden w-full h-full bg-[#151521] flex flex-col">
+      <div className="md:hidden w-full h-full bg-slate-50 dark:bg-[#151521] flex flex-col transition-colors">
         {/* Header */}
-        <div className="flex-shrink-0 bg-[#1e1e2d] px-4 py-4 flex items-center justify-between border-b border-slate-700/50">
+        <div className="flex-shrink-0 bg-white dark:bg-[#1e1e2d] px-4 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-700/50">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-800 text-slate-400 active:scale-95 transition-all"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 active:scale-95 transition-all"
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-sm font-bold text-white">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
               {workOrder
                 ? `Sửa phiếu #${formatWorkOrderId(workOrder.id)}`
                 : "Tạo phiếu mới"}
@@ -1237,7 +1237,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">
                 Trạng thái sửa chữa
               </label>
-              <div className="grid grid-cols-4 gap-1.5 p-1 bg-[#1e1e2d] rounded-xl border border-slate-700/50">
+              <div className="grid grid-cols-4 gap-1.5 p-1 bg-white dark:bg-[#1e1e2d] rounded-xl border border-slate-200 dark:border-slate-700/50">
                 {[
                   { id: WORK_ORDER_STATUS.RECEIVED, label: "Nhận", icon: FileText },
                   { id: WORK_ORDER_STATUS.IN_PROGRESS, label: "Sửa", icon: Wrench },
@@ -1279,10 +1279,10 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                         onClick={() => setSelectedTechnicianId(emp.id)}
                         className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${isActive
                           ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20 scale-[1.02]"
-                          : "bg-[#1e1e2d] border-slate-700/50 text-slate-400 hover:border-slate-600"
+                          : "bg-white dark:bg-[#1e1e2d] border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-600"
                           }`}
                       >
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-slate-800 text-slate-500"
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
                           }`}>
                           {emp.name.split(" ").pop()?.charAt(0) || "T"}
                         </div>
@@ -1311,7 +1311,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     value={customerSearchTerm}
                     onChange={(e) => setCustomerSearchTerm(e.target.value)}
                     placeholder="Tìm tên hoặc số điện thoại..."
-                    className="w-full pl-11 pr-4 py-3.5 bg-[#1e1e2d] border border-slate-700/50 rounded-2xl text-white text-sm placeholder-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+                    className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/50 rounded-2xl text-slate-900 dark:text-white text-sm placeholder-slate-400 dark:placeholder-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
                     autoFocus
                   />
                 </div>
@@ -1327,7 +1327,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       <div
                         key={customer.id}
                         onClick={() => handleSelectCustomer(customer)}
-                        className="p-4 bg-[#1e1e2d] border border-slate-700/30 rounded-2xl cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/5 transition-all active:scale-[0.98]"
+                        className="p-4 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/30 rounded-2xl cursor-pointer hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-blue-500/5 transition-all active:scale-[0.98]"
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-3">
@@ -1335,7 +1335,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                               {customer.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <div className="text-white font-bold text-sm">
+                              <div className="text-slate-900 dark:text-white font-bold text-sm">
                                 {customer.name}
                               </div>
                               <div className="text-xs text-slate-500 flex items-center gap-1">
@@ -1393,7 +1393,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                 </div>
               </div>
             ) : selectedCustomer ? (
-              <div className="p-4 bg-[#1e1e2d] border border-blue-500/30 rounded-2xl shadow-lg shadow-blue-500/5">
+              <div className="p-4 bg-white dark:bg-[#1e1e2d] border border-blue-200 dark:border-blue-500/30 rounded-2xl shadow-lg shadow-blue-500/5">
                 {isEditingCustomer ? (
                   // Edit mode - show input fields
                   <div className="space-y-3">
@@ -1405,7 +1405,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                         type="text"
                         value={editCustomerName}
                         onChange={(e) => setEditCustomerName(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
                         placeholder="Nhập tên khách hàng"
                       />
                     </div>
@@ -1417,7 +1417,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                         type="tel"
                         value={editCustomerPhone}
                         onChange={(e) => setEditCustomerPhone(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
                         placeholder="Nhập số điện thoại"
                       />
                     </div>
@@ -1428,7 +1428,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                           setEditCustomerName(selectedCustomer.name);
                           setEditCustomerPhone(selectedCustomer.phone || "");
                         }}
-                        className="flex-1 py-2.5 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold active:scale-95 transition-all"
+                        className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 rounded-xl text-xs font-bold active:scale-95 transition-all"
                       >
                         Hủy
                       </button>
@@ -1448,7 +1448,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                         {selectedCustomer.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="text-white font-bold text-base">
+                        <div className="text-slate-900 dark:text-white font-bold text-base">
                           {selectedCustomer.name}
                         </div>
                         <div className="text-xs text-slate-400 flex items-center gap-1.5">
@@ -1464,7 +1464,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                           setEditCustomerPhone(selectedCustomer.phone || "");
                           setIsEditingCustomer(true);
                         }}
-                        className="w-9 h-9 flex items-center justify-center bg-blue-500/10 text-blue-400 rounded-xl active:scale-95 transition-all"
+                        className="w-9 h-9 flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl active:scale-95 transition-all"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -1475,7 +1475,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                           setShowCustomerSearch(true);
                           setIsEditingCustomer(false);
                         }}
-                        className="w-9 h-9 flex items-center justify-center bg-slate-800 text-slate-400 rounded-xl active:scale-95 transition-all"
+                        className="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl active:scale-95 transition-all"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1501,17 +1501,17 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                         onClick={() => handleSelectVehicle(vehicle)}
                         className={`p-4 rounded-2xl cursor-pointer transition-all border ${isActive
                           ? "bg-blue-600 border-blue-500 shadow-lg shadow-blue-500/20"
-                          : "bg-[#1e1e2d] border-slate-700/30 hover:border-slate-600"
+                          : "bg-white dark:bg-[#1e1e2d] border-slate-200 dark:border-slate-700/30 hover:border-slate-400 dark:hover:border-slate-600"
                           }`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-800 text-slate-400"
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                               }`}>
                               <Bike className="w-5 h-5" />
                             </div>
                             <div>
-                              <div className={`font-bold text-sm ${isActive ? "text-white" : "text-slate-200"}`}>
+                              <div className={`font-bold text-sm ${isActive ? "text-white" : "text-slate-900 dark:text-slate-200"}`}>
                                 {vehicle.model}
                               </div>
                               <div className={`text-xs font-mono ${isActive ? "text-blue-100" : "text-slate-500"}`}>
@@ -1552,7 +1552,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       onChange={(e) => setCurrentKm(e.target.value)}
                       placeholder="Nhập số KM..."
                       inputMode="numeric"
-                      className="w-full pl-11 pr-4 py-3 bg-[#1e1e2d] border border-slate-700/50 rounded-xl text-white text-sm focus:border-blue-500 transition-all"
+                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/50 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
                     />
                   </div>
                 </div>
@@ -1603,7 +1603,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       onChange={(e) => setIssueDescription(e.target.value)}
                       placeholder="Mô tả các vấn đề cần sửa chữa..."
                       rows={3}
-                      className="w-full pl-11 pr-4 py-3 bg-[#1e1e2d] border border-slate-700/50 rounded-xl text-white text-sm resize-none focus:border-blue-500 transition-all"
+                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/50 rounded-xl text-slate-900 dark:text-white text-sm resize-none focus:border-blue-500 transition-all"
                     />
                   </div>
                 </div>
@@ -1632,11 +1632,11 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     {selectedParts.map((part, index) => (
                       <div
                         key={part.partId}
-                        className="p-4 bg-[#1e1e2d] border border-slate-700/30 rounded-2xl shadow-sm"
+                        className="p-4 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/30 rounded-2xl shadow-sm"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-white truncate">
+                            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
                               {part.partName}
                             </div>
                             <div className="text-[10px] text-slate-500 font-mono mt-0.5">
@@ -1658,7 +1658,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                                   );
                                 }}
                                 inputMode="numeric"
-                                className="w-24 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-blue-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
+                                className="w-24 px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-blue-600 dark:text-blue-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
                               />
                             </div>
                           </div>
@@ -1669,14 +1669,14 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                             >
                               <Trash2 className="w-5 h-5" />
                             </button>
-                            <div className="flex items-center bg-slate-800 rounded-xl p-1 border border-slate-700/50">
+                            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700/50">
                               <button
                                 onClick={() => handleUpdatePartQuantity(part.partId, -1)}
-                                className="w-9 h-9 flex items-center justify-center text-slate-400 active:bg-slate-700 rounded-lg transition-all"
+                                className="w-9 h-9 flex items-center justify-center text-slate-400 active:bg-slate-200 dark:active:bg-slate-700 rounded-lg transition-all"
                               >
                                 <Minus className="w-4 h-4" />
                               </button>
-                              <span className="w-8 text-center text-sm font-bold text-white">
+                              <span className="w-8 text-center text-sm font-bold text-slate-900 dark:text-white">
                                 {part.quantity}
                               </span>
                               <button
@@ -1728,11 +1728,11 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     {additionalServices.map((service) => (
                       <div
                         key={service.id}
-                        className="p-4 bg-[#1e1e2d] border border-slate-700/30 rounded-2xl shadow-sm"
+                        className="p-4 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/30 rounded-2xl shadow-sm"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-white truncate">
+                            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
                               {service.name}
                             </div>
                             <div className="mt-2 flex flex-col gap-2">
@@ -1752,7 +1752,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                                     );
                                   }}
                                   inputMode="numeric"
-                                  className="w-24 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-orange-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
+                                  className="w-24 px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-orange-600 dark:text-orange-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
                                 />
                               </div>
                               <div className="flex items-center gap-2">
@@ -1771,7 +1771,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                                     );
                                   }}
                                   inputMode="numeric"
-                                  className="w-24 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
+                                  className="w-24 px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
                                 />
                               </div>
                             </div>
@@ -1828,18 +1828,18 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                   }
                   placeholder="0"
                   inputMode="numeric"
-                  className="w-full px-2.5 py-1.5 bg-[#2b2b40] rounded-lg text-white text-xs"
+                  className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-[#2b2b40] rounded-lg text-slate-900 dark:text-white text-xs"
                 />
               </div>
 
               {/* Deposit Toggle */}
               <div className="pt-2">
-                <div className="flex items-center justify-between p-3 bg-[#2b2b40] rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-[#2b2b40] rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
                       <span className="text-lg">💳</span>
                     </div>
-                    <span className="text-white font-medium text-sm">
+                    <span className="text-slate-900 dark:text-white font-medium text-sm">
                       Đặt cọc trước
                     </span>
                   </div>
@@ -1862,10 +1862,10 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                 </div>
 
                 {isDeposit && (
-                  <div className="mt-3 p-3 bg-[#151521] border-2 border-[#009ef7] rounded-lg">
+                  <div className="mt-3 p-3 bg-slate-50 dark:bg-[#151521] border-2 border-[#009ef7] rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-lg">💵</span>
-                      <span className="text-slate-400 text-xs">
+                      <span className="text-slate-500 dark:text-slate-400 text-xs">
                         Nhập số tiền cọc...
                       </span>
                     </div>
@@ -1879,7 +1879,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       }
                       placeholder="0"
                       inputMode="numeric"
-                      className="w-full px-3 py-2.5 bg-[#2b2b40] border border-slate-600 rounded-lg text-white text-sm focus:border-[#009ef7] focus:outline-none transition-colors"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2b40] border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:border-[#009ef7] focus:outline-none transition-colors"
                     />
                   </div>
                 )}
@@ -1895,7 +1895,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     onClick={() => setPaymentMethod("cash")}
                     className={`relative p-3 rounded-lg transition-all border-2 ${paymentMethod === "cash"
                       ? "bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/20"
-                      : "bg-[#2b2b40] border-transparent hover:border-slate-600"
+                      : "bg-slate-100 dark:bg-[#2b2b40] border-transparent hover:border-slate-400 dark:hover:border-slate-600"
                       }`}
                   >
                     <div className="flex flex-col items-center gap-1">
@@ -1936,7 +1936,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     onClick={() => setPaymentMethod("bank")}
                     className={`relative p-3 rounded-lg transition-all border-2 ${paymentMethod === "bank"
                       ? "bg-blue-500/10 border-blue-500 shadow-lg shadow-blue-500/20"
-                      : "bg-[#2b2b40] border-transparent hover:border-slate-600"
+                      : "bg-slate-100 dark:bg-[#2b2b40] border-transparent hover:border-slate-400 dark:hover:border-slate-600"
                       }`}
                   >
                     <div className="flex flex-col items-center gap-1">
@@ -1979,12 +1979,12 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                 {status === "Trả máy" && (
                   <div className="mt-3">
                     {/* Checkbox to enable payment */}
-                    <div className="flex items-center justify-between p-3 bg-[#2b2b40] rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-[#2b2b40] rounded-lg">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
                           <span className="text-lg">✅</span>
                         </div>
-                        <span className="text-white font-medium text-sm">
+                        <span className="text-slate-900 dark:text-white font-medium text-sm">
                           Thanh toán khi trả xe
                         </span>
                       </div>
@@ -2016,8 +2016,8 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
                     {/* Payment Input - show when checkbox is enabled */}
                     {showPaymentInput && (
-                      <div className="mt-3 p-3 bg-[#151521] border-2 border-emerald-500 rounded-lg">
-                        <label className="block text-xs font-medium text-slate-400 mb-2">
+                      <div className="mt-3 p-3 bg-slate-50 dark:bg-[#151521] border-2 border-emerald-500 rounded-lg">
+                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
                           Số tiền thanh toán thêm:
                         </label>
                         <input
@@ -2030,13 +2030,13 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                           }
                           placeholder="0"
                           inputMode="numeric"
-                          className="w-full px-3 py-2.5 bg-[#2b2b40] border border-slate-600 rounded-lg text-white text-sm focus:border-emerald-500 focus:outline-none transition-colors mb-2"
+                          className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2b40] border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:border-emerald-500 focus:outline-none transition-colors mb-2"
                         />
                         {/* Quick amount buttons */}
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setPartialAmount(0)}
-                            className="flex-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-xs font-medium transition-colors"
+                            className="flex-1 px-3 py-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-white rounded-lg text-xs font-medium transition-colors"
                           >
                             0%
                           </button>
@@ -2048,7 +2048,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                                 Math.round(remainingToPay * 0.5)
                               );
                             }}
-                            className="flex-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-xs font-medium transition-colors"
+                            className="flex-1 px-3 py-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-white rounded-lg text-xs font-medium transition-colors"
                           >
                             50%
                           </button>
@@ -2081,30 +2081,30 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
               </div>
 
               {/* Summary Section - Premium Redesign */}
-              <div className="mt-6 p-4 bg-[#1e1e2d] rounded-2xl border border-slate-700/30 space-y-4">
+              <div className="mt-6 p-4 bg-white dark:bg-[#1e1e2d] rounded-2xl border border-slate-200 dark:border-slate-700/30 space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <TrendingUp className="w-4 h-4 text-blue-400" />
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                     Tổng kết chi phí
                   </h3>
                 </div>
 
                 <div className="space-y-2.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400">Phí dịch vụ:</span>
-                    <span className="text-xs font-bold text-white">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Phí dịch vụ:</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">
                       {formatCurrency(laborCost)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400">Tiền phụ tùng:</span>
-                    <span className="text-xs font-bold text-white">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Tiền phụ tùng:</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">
                       {formatCurrency(partsTotal)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400">Gia công/Đặt hàng:</span>
-                    <span className="text-xs font-bold text-white">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Gia công/Đặt hàng:</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">
                       {formatCurrency(servicesTotal)}
                     </span>
                   </div>
@@ -2114,7 +2114,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-red-400 font-bold">Giảm giá:</span>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-[#2b2b40] p-1 rounded-xl border border-slate-700/50">
+                    <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#2b2b40] p-1 rounded-xl border border-slate-200 dark:border-slate-700/50">
                       <input
                         type="text"
                         value={formatNumberWithDots(discount)}
@@ -2122,14 +2122,14 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                           setDiscount(parseFormattedNumber(e.target.value))
                         }
                         placeholder="0"
-                        className="w-16 bg-transparent text-white text-xs font-bold text-right focus:outline-none px-1"
+                        className="w-16 bg-transparent text-slate-900 dark:text-white text-xs font-bold text-right focus:outline-none px-1"
                       />
-                      <div className="flex bg-slate-800 rounded-lg p-0.5">
+                      <div className="flex bg-white dark:bg-slate-800 rounded-lg p-0.5">
                         <button
                           onClick={() => setDiscountType("amount")}
                           className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${discountType === "amount"
                             ? "bg-blue-600 text-white shadow-sm"
-                            : "text-slate-500"
+                            : "text-slate-400 dark:text-slate-500"
                             }`}
                         >
                           ₫
@@ -2138,7 +2138,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                           onClick={() => setDiscountType("percent")}
                           className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${discountType === "percent"
                             ? "bg-blue-600 text-white shadow-sm"
-                            : "text-slate-500"
+                            : "text-slate-400 dark:text-slate-500"
                             }`}
                         >
                           %
@@ -2175,7 +2175,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                   <div className="flex justify-between items-end mb-4">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tổng thanh toán</span>
-                      <span className="text-2xl font-black text-white tracking-tight">
+                      <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                         {formatCurrency(total)}
                       </span>
                     </div>
@@ -2189,7 +2189,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
                   {/* Payment breakdown */}
                   {((isDeposit && depositAmount > 0) || (showPaymentInput && partialAmount > 0)) && (
-                    <div className="p-3 bg-[#151521] rounded-xl border border-slate-700/50 space-y-2">
+                    <div className="p-3 bg-slate-50 dark:bg-[#151521] rounded-xl border border-slate-200 dark:border-slate-700/50 space-y-2">
                       {isDeposit && depositAmount > 0 && (
                         <div className="flex justify-between items-center">
                           <span className="text-[10px] font-bold text-purple-400 uppercase">Đã đặt cọc</span>
@@ -2207,8 +2207,8 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                         </div>
                       )}
 
-                      <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
-                        <span className="text-xs font-bold text-white">Còn lại:</span>
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">Còn lại:</span>
                         <span className={`text-lg font-black ${total - (isDeposit ? depositAmount : 0) - (showPaymentInput ? partialAmount : 0) > 0
                           ? "text-amber-400"
                           : "text-green-400"
@@ -2225,7 +2225,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
         </div>
 
         {/* STICKY FOOTER - Action Buttons */}
-        <div className="flex-shrink-0 bg-[#1e1e2d] border-t border-slate-700 p-3">
+        <div className="flex-shrink-0 bg-white dark:bg-[#1e1e2d] border-t border-slate-200 dark:border-slate-700 p-3">
           {/* Row 1: Print/Share buttons - only show when editing existing order */}
           {workOrder?.id && (
             <div className="flex gap-2 mb-2">
@@ -2234,7 +2234,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                   // Trigger print functionality
                   window.print();
                 }}
-                className="flex-1 py-2 bg-[#2b2b40] text-slate-300 rounded-lg font-medium hover:bg-slate-700 transition-colors text-xs flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 bg-slate-100 dark:bg-[#2b2b40] text-slate-500 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xs flex items-center justify-center gap-1.5"
               >
                 <Printer className="w-3.5 h-3.5" />
                 In phiếu
@@ -2258,7 +2258,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     );
                   }
                 }}
-                className="flex-1 py-2 bg-[#2b2b40] text-slate-300 rounded-lg font-medium hover:bg-slate-700 transition-colors text-xs flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 bg-slate-100 dark:bg-[#2b2b40] text-slate-500 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xs flex items-center justify-center gap-1.5"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 Chia sẻ
@@ -2269,7 +2269,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-3 py-2.5 bg-[#2b2b40] text-slate-300 rounded-lg font-medium hover:bg-slate-700 transition-colors text-xs"
+              className="px-3 py-2.5 bg-slate-100 dark:bg-[#2b2b40] text-slate-500 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xs"
             >
               Hủy
             </button>
@@ -2303,12 +2303,12 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
             )}
           </div>
         </div>
-      </div >
+      </div>
 
       {/* Desktop - Keep Original (Not Changed) */}
-      < div className="hidden md:block" >
+      <div className="hidden md:block">
         {/* Desktop modal would go here - keeping original unchanged */}
-      </div >
+      </div>
 
       {/* Part Search Top Sheet - Fixed at top for keyboard visibility */}
       {
@@ -2316,12 +2316,12 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
           <div className="fixed inset-0 bg-black/70 z-[110] flex flex-col">
             {/* Top Sheet Container - positioned at TOP so input is always visible above keyboard */}
             <div
-              className="w-full bg-[#151521] rounded-b-2xl flex flex-col"
+              className="w-full bg-slate-50 dark:bg-[#151521] rounded-b-2xl flex flex-col transition-colors"
               style={{ maxHeight: "60vh" }}
             >
               {/* Header */}
-              <div className="flex-shrink-0 p-3 border-b border-slate-700 flex items-center justify-between">
-                <h3 className="text-white font-semibold text-sm">
+              <div className="flex-shrink-0 p-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <h3 className="text-slate-900 dark:text-white font-semibold text-sm">
                   🔍 Tìm phụ tùng
                 </h3>
                 <button
@@ -2336,7 +2336,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
               </div>
 
               {/* Search Input - Always visible at top */}
-              <div className="flex-shrink-0 p-3 bg-[#151521]">
+              <div className="flex-shrink-0 p-3 bg-slate-50 dark:bg-[#151521]">
                 {/* Part Search Input */}
                 <div className="flex gap-2 mb-3">
                   <div className="relative flex-1">
@@ -2346,7 +2346,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       value={partSearchTerm}
                       onChange={(e) => setPartSearchTerm(e.target.value)}
                       placeholder="Tìm tên hoặc mã phụ tùng..."
-                      className="w-full pl-10 pr-4 py-3 bg-[#2b2b40] border border-slate-700/50 rounded-xl text-white text-sm focus:border-blue-500 transition-all"
+                      className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#2b2b40] border border-slate-200 dark:border-slate-700/50 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
                       autoFocus
                     />
                   </div>
@@ -2395,11 +2395,11 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       <div
                         key={part.id}
                         onClick={() => handleAddPart(part)}
-                        className="p-2.5 bg-[#1e1e2d] rounded-lg cursor-pointer hover:bg-[#2b2b40] active:bg-blue-600/20 transition-colors"
+                        className="p-2.5 bg-white dark:bg-[#1e1e2d] rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-[#2b2b40] active:bg-blue-600/20 transition-colors"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <div className="text-white font-medium text-xs">
+                            <div className="text-slate-900 dark:text-white font-medium text-xs">
                               {part.name}
                             </div>
                             <div className="text-[11px] text-blue-400 font-mono mt-0.5">
@@ -2441,10 +2441,10 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
       {
         showAddService && (
           <div className="fixed inset-0 bg-black/70 z-[110] flex items-end md:items-center md:justify-center">
-            <div className="w-full md:max-w-md bg-[#1e1e2d] rounded-t-2xl md:rounded-xl overflow-hidden">
+            <div className="w-full md:max-w-md bg-white dark:bg-[#1e1e2d] rounded-t-2xl md:rounded-xl overflow-hidden transition-colors">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-slate-700">
-                <h3 className="text-white font-semibold text-base">
+              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 className="text-slate-900 dark:text-white font-semibold text-base">
                   THÊM DỊCH VỤ GIA CÔNG
                 </h3>
                 <button
@@ -2465,7 +2465,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
               <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
                 {/* Service Name */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-500 dark:text-slate-300 mb-2">
                     Tên công việc / Mô tả:
                   </label>
                   <input
@@ -2473,7 +2473,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     value={newServiceName}
                     onChange={(e) => setNewServiceName(e.target.value)}
                     placeholder="Nhập tên (VD: Hàn yếm, Sơn...)"
-                    className="w-full px-4 py-3 bg-[#151521] border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:border-[#009ef7] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-[#009ef7] focus:outline-none transition-colors"
                     autoFocus
                   />
                 </div>
@@ -2488,12 +2488,12 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       onClick={() =>
                         setNewServiceQuantity(Math.max(1, newServiceQuantity - 1))
                       }
-                      className="w-12 h-12 bg-[#2b2b40] hover:bg-slate-700 rounded-lg flex items-center justify-center text-white text-2xl font-bold transition-colors"
+                      className="w-12 h-12 bg-slate-100 dark:bg-[#2b2b40] hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-900 dark:text-white text-2xl font-bold transition-colors"
                     >
                       −
                     </button>
-                    <div className="w-20 h-12 bg-[#151521] border border-slate-700 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xl font-bold">
+                    <div className="w-20 h-12 bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-center">
+                      <span className="text-slate-900 dark:text-white text-xl font-bold">
                         {newServiceQuantity}
                       </span>
                     </div>
@@ -2501,7 +2501,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       onClick={() =>
                         setNewServiceQuantity(newServiceQuantity + 1)
                       }
-                      className="w-12 h-12 bg-[#2b2b40] hover:bg-slate-700 rounded-lg flex items-center justify-center text-white text-2xl font-bold transition-colors"
+                      className="w-12 h-12 bg-slate-100 dark:bg-[#2b2b40] hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-900 dark:text-white text-2xl font-bold transition-colors"
                     >
                       +
                     </button>
@@ -2510,7 +2510,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
                 {/* Cost & Price Section */}
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wide">
+                  <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-300 mb-3 uppercase tracking-wide">
                     CHI PHÍ & GIÁ BÁN
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -2524,7 +2524,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                           value={newServiceCost}
                           onChange={(val: number) => setNewServiceCost(val)}
                           placeholder="0"
-                          className="w-full px-3 py-3 pr-8 bg-[#151521] border border-slate-700 rounded-lg text-slate-400 text-sm focus:border-slate-600 focus:outline-none transition-colors"
+                          className="w-full px-3 py-3 pr-8 bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-sm focus:border-slate-400 dark:focus:border-slate-600 focus:outline-none transition-colors"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
                           đ
@@ -2543,7 +2543,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                           onChange={(val: number) => setNewServicePrice(val)}
                           allowNegative={true}
                           placeholder="0"
-                          className="w-full px-3 py-3 pr-8 bg-[#151521] border-2 border-[#009ef7] rounded-lg text-white text-sm font-semibold focus:border-[#0077c7] focus:outline-none transition-colors"
+                          className="w-full px-3 py-3 pr-8 bg-slate-50 dark:bg-[#151521] border-2 border-[#009ef7] rounded-lg text-slate-900 dark:text-white text-sm font-semibold focus:border-[#0077c7] focus:outline-none transition-colors"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#009ef7] text-xs font-bold pointer-events-none">
                           đ
@@ -2554,7 +2554,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                 </div>
 
                 {/* Total Amount - Auto Calculate */}
-                <div className="p-4 bg-[#151521] border border-slate-700 rounded-lg">
+                <div className="p-4 bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-slate-700 rounded-lg">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400 text-sm">
                       Thành tiền (Tự tính):
@@ -2567,7 +2567,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
               </div>
 
               {/* Footer Button */}
-              <div className="p-4 border-t border-slate-700">
+              <div className="p-4 border-t border-slate-200 dark:border-slate-700">
                 <button
                   onClick={handleAddService}
                   disabled={!newServiceName.trim()}
@@ -2584,17 +2584,17 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
       {/* Add Vehicle Modal - Premium Redesign */}
       {showAddVehicle && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#1e1e2d] rounded-3xl p-5 border border-slate-700/50 shadow-2xl">
+          <div className="w-full max-w-md bg-white dark:bg-[#1e1e2d] rounded-3xl p-5 border border-slate-200 dark:border-slate-700/50 shadow-2xl transition-colors">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                  <Bike className="w-5 h-5 text-blue-400" />
+                  <Bike className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h3 className="text-white font-bold text-base">Thêm xe mới</h3>
+                <h3 className="text-slate-900 dark:text-white font-bold text-base">Thêm xe mới</h3>
               </div>
               <button
                 onClick={() => setShowAddVehicle(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 text-slate-400 active:scale-95 transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 active:scale-95 transition-all"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2610,7 +2610,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                   value={newVehiclePlate}
                   onChange={(e) => setNewVehiclePlate(e.target.value.toUpperCase())}
                   placeholder="59G1-123.45"
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm font-bold uppercase focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm font-bold uppercase focus:border-blue-500 transition-all"
                 />
               </div>
 
@@ -2627,11 +2627,11 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                   }}
                   onFocus={() => setShowVehicleDropdown(true)}
                   placeholder="Chọn hoặc nhập dòng xe"
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
                 />
                 {/* Vehicle Model Dropdown */}
                 {showVehicleDropdown && (
-                  <div className="absolute z-20 w-full mt-1 bg-[#1e1e2d] border border-slate-700 rounded-xl shadow-2xl max-h-[200px] overflow-y-auto scrollbar-hide">
+                  <div className="absolute z-20 w-full mt-1 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-[200px] overflow-y-auto scrollbar-hide">
                     {POPULAR_MOTORCYCLES.filter((model) =>
                       model.toLowerCase().includes(newVehicleName.toLowerCase())
                     )
@@ -2644,7 +2644,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                             setNewVehicleName(model);
                             setShowVehicleDropdown(false);
                           }}
-                          className="w-full text-left px-4 py-3 hover:bg-slate-800 text-xs text-white border-b border-slate-700/50 last:border-0 transition-colors"
+                          className="w-full text-left px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700/50 last:border-0 transition-colors"
                         >
                           {model}
                         </button>
@@ -2663,7 +2663,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowAddVehicle(false)}
-                  className="flex-1 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold text-xs active:scale-95 transition-all"
+                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl font-bold text-xs active:scale-95 transition-all"
                 >
                   Hủy
                 </button>
@@ -2682,13 +2682,13 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
       {/* Add Customer Modal - Premium Redesign */}
       {showAddCustomer && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#1e1e2d] rounded-3xl p-6 border border-slate-700/50 shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+          <div className="w-full max-w-md bg-white dark:bg-[#1e1e2d] rounded-3xl p-6 border border-slate-200 dark:border-slate-700/50 shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-hide transition-colors">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
-                  <UserPlus className="w-5 h-5 text-green-400" />
+                  <UserPlus className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="text-white font-bold text-base">Thêm khách hàng mới</h3>
+                <h3 className="text-slate-900 dark:text-white font-bold text-base">Thêm khách hàng mới</h3>
               </div>
               <button
                 onClick={() => {
@@ -2698,7 +2698,8 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                   setNewCustomerVehicleModel("");
                   setNewCustomerLicensePlate("");
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 text-slate-400 active:scale-95 transition-all"
+
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 active:scale-95 transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2723,7 +2724,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     value={newCustomerName}
                     onChange={(e) => setNewCustomerName(e.target.value)}
                     placeholder="Nguyễn Văn A"
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
                     autoFocus
                   />
                 </div>
@@ -2737,7 +2738,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     value={newCustomerPhone}
                     onChange={(e) => setNewCustomerPhone(e.target.value)}
                     placeholder="0901234567"
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
                   />
                 </div>
               </div>
@@ -2764,11 +2765,11 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     }}
                     onFocus={() => setShowCustomerVehicleDropdown(true)}
                     placeholder="Chọn hoặc nhập dòng xe..."
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
                   />
                   {/* Vehicle Model Dropdown for New Customer */}
                   {showCustomerVehicleDropdown && (
-                    <div className="absolute z-20 w-full mt-1 bg-[#1e1e2d] border border-slate-700 rounded-xl shadow-2xl max-h-[200px] overflow-y-auto scrollbar-hide">
+                    <div className="absolute z-20 w-full mt-1 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-[200px] overflow-y-auto scrollbar-hide">
                       {POPULAR_MOTORCYCLES.filter((model) =>
                         model
                           .toLowerCase()
@@ -2783,7 +2784,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                               setNewCustomerVehicleModel(model);
                               setShowCustomerVehicleDropdown(false);
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-slate-800 text-xs text-white border-b border-slate-700/50 last:border-0 transition-colors"
+                            className="w-full text-left px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700/50 last:border-0 transition-colors"
                           >
                             {model}
                           </button>
@@ -2812,7 +2813,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       setNewCustomerLicensePlate(e.target.value.toUpperCase())
                     }
                     placeholder="59G1-12345"
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white text-sm font-bold uppercase focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm font-bold uppercase focus:border-blue-500 transition-all"
                   />
                 </div>
               </div>
@@ -2826,7 +2827,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     setNewCustomerVehicleModel("");
                     setNewCustomerLicensePlate("");
                   }}
-                  className="flex-1 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold text-xs active:scale-95 transition-all"
+                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl font-bold text-xs active:scale-95 transition-all"
                 >
                   Hủy
                 </button>
@@ -2841,7 +2842,8 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
             </div>
           </div>
         </div>
-      )}
+      )
+      }
     </div>
   );
 };

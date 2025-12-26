@@ -17,10 +17,14 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+      if (metaThemeColor) metaThemeColor.setAttribute('content', '#0f172a'); // slate-900
     } else {
       document.documentElement.classList.remove('dark');
+      if (metaThemeColor) metaThemeColor.setAttribute('content', '#ffffff'); // white
     }
   }, [theme]);
 

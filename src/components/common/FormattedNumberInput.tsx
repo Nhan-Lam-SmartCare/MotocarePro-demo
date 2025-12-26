@@ -46,14 +46,14 @@ export const FormattedNumberInput: React.FC<FormattedNumberInputProps> = ({
   ariaLabel,
 }) => {
   const [display, setDisplay] = React.useState<string>(
-    value ? nf.format(value) : ""
+    value !== undefined && value !== null ? nf.format(value) : ""
   );
   const [isEditing, setIsEditing] = React.useState(false);
 
   React.useEffect(() => {
     // Sync when external value changes (e.g., programmatic updates)
     if (!isEditing) {
-      setDisplay(value ? nf.format(value) : "");
+      setDisplay(value !== undefined && value !== null ? nf.format(value) : "");
     }
   }, [value, isEditing]);
 
@@ -61,20 +61,22 @@ export const FormattedNumberInput: React.FC<FormattedNumberInputProps> = ({
     const raw = e.target.value;
     setDisplay(raw);
     const parsed = parseToNumber(raw);
-    if (min !== undefined && parsed < min) {
-      onValue(min);
-      return;
-    }
-    if (max !== undefined && parsed > max) {
-      onValue(max);
-      return;
-    }
+
+    // Only enforce max during typing if it's way out of bounds? 
+    // Actually, better to just let parent handle validation or do it on blur.
+    // But for now, let's pass the parsed value directly.
     onValue(parsed);
   };
 
   const handleBlur = () => {
     setIsEditing(false);
-    setDisplay(value ? nf.format(value) : "");
+    let finalVal = value;
+    if (min !== undefined && finalVal < min) finalVal = min;
+    if (max !== undefined && finalVal > max) finalVal = max;
+
+    if (finalVal !== value) onValue(finalVal);
+
+    setDisplay(finalVal !== undefined && finalVal !== null ? nf.format(finalVal) : "");
   };
 
   return (

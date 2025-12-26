@@ -17,6 +17,7 @@ import "./index.css";
 import { LoginPage } from "./components/auth/LoginPage";
 import { ResetPasswordPage } from "./components/auth/ResetPasswordPage";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { RoleBasedRedirect } from "./components/auth/RoleBasedRedirect";
 import { useAppContext } from "./contexts/AppContext";
 import { BottomNav, Nav } from "./components/layout";
 import Dashboard from "./components/dashboard/Dashboard";
@@ -251,7 +252,7 @@ const MainLayout: React.FC = () => {
           }`}
       >
         <Routes>
-          <Route path="/" element={<Navigate to="/service" replace />} />
+          <Route path="/" element={<RoleBasedRedirect />} />
           <Route
             path="/dashboard"
             element={

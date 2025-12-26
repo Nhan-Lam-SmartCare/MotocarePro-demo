@@ -2,6 +2,7 @@
 import { useCreatePartRepo } from '../../../hooks/usePartsRepository';
 import { showToast } from '../../../utils/toast';
 import { formatCurrency } from '../../../utils/format';
+import { validatePriceAndQty } from '../../../utils/validation';
 import { getCategoryColor } from '../../../utils/categoryColors';
 import FormattedNumberInput from '../../common/FormattedNumberInput';
 import SupplierModal from '../../inventory/components/SupplierModal';

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; // Refresh
 import {
     AreaChart,
     Area,
@@ -190,8 +190,8 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-[#1e1e2d] border border-slate-700 p-3 rounded-lg shadow-xl">
-                    <p className="text-slate-300 text-xs mb-1">{formatDate(label)}</p>
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-lg shadow-xl">
+                    <p className="text-slate-600 dark:text-slate-300 text-xs mb-1">{formatDate(label)}</p>
                     {payload.map((entry: any, index: number) => (
                         <p
                             key={index}
@@ -258,8 +258,8 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
             </div>
 
             {/* Chart */}
-            <div className="bg-[#1e1e2d] border border-slate-700/50 rounded-2xl p-4">
-                <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-4">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-blue-400" />
                     Xu hướng doanh thu
                 </h3>
@@ -347,11 +347,11 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
                         <button
                             key={idx}
                             onClick={() => onDateClick(day.date)}
-                            className="w-full bg-[#1e1e2d] border border-slate-700/50 p-4 rounded-xl flex flex-col gap-3 active:scale-[0.98] transition-transform"
+                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 p-4 rounded-xl flex flex-col gap-3 active:scale-[0.98] transition-transform shadow-sm dark:shadow-none"
                         >
-                            <div className="flex items-center justify-between w-full border-b border-slate-700/50 pb-3">
+                            <div className="flex items-center justify-between w-full border-b border-slate-100 dark:border-slate-700/50 pb-3">
                                 <div className="text-left">
-                                    <div className="text-sm font-bold text-white">
+                                    <div className="text-sm font-bold text-slate-800 dark:text-white">
                                         {formatDate(day.date)}
                                     </div>
                                     <div className="text-xs text-slate-400 mt-0.5">
@@ -403,30 +403,30 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
         <div className="space-y-4 pb-20">
             {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#1e1e2d] border border-slate-700/50 p-4 rounded-2xl">
-                    <div className="text-xs text-slate-400 mb-1">Tổng thu</div>
-                    <div className="text-lg font-bold text-green-400">
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 p-4 rounded-2xl shadow-sm dark:shadow-none">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Tổng thu</div>
+                    <div className="text-lg font-bold text-green-600 dark:text-green-400">
                         {formatCurrency(cashflowReport.totalIncome)}
                     </div>
                 </div>
-                <div className="bg-[#1e1e2d] border border-slate-700/50 p-4 rounded-2xl">
-                    <div className="text-xs text-slate-400 mb-1">Tổng chi</div>
-                    <div className="text-lg font-bold text-red-400">
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 p-4 rounded-2xl shadow-sm dark:shadow-none">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Tổng chi</div>
+                    <div className="text-lg font-bold text-red-600 dark:text-red-400">
                         {formatCurrency(cashflowReport.totalExpense)}
                     </div>
                 </div>
             </div>
 
             {/* Net Cashflow */}
-            <div className="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl flex items-center justify-between">
+            <div className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 p-5 rounded-2xl flex items-center justify-between shadow-sm dark:shadow-none">
                 <div>
-                    <div className="text-sm text-slate-400 font-medium">Dòng tiền ròng</div>
-                    <div className={`text-2xl font-bold mt-1 ${cashflowReport.netCashFlow >= 0 ? "text-blue-400" : "text-orange-400"}`}>
+                    <div className="text-sm text-slate-600 dark:text-slate-400 font-medium">Dòng tiền ròng</div>
+                    <div className={`text-2xl font-bold mt-1 ${cashflowReport.netCashFlow >= 0 ? "text-blue-600 dark:text-blue-400" : "text-orange-600 dark:text-orange-400"}`}>
                         {formatCurrency(cashflowReport.netCashFlow)}
                     </div>
                 </div>
-                <div className={`p-3 rounded-full ${cashflowReport.netCashFlow >= 0 ? "bg-blue-500/20" : "bg-orange-500/20"}`}>
-                    <Wallet className={`w-6 h-6 ${cashflowReport.netCashFlow >= 0 ? "text-blue-400" : "text-orange-400"}`} />
+                <div className={`p-3 rounded-full ${cashflowReport.netCashFlow >= 0 ? "bg-blue-100 dark:bg-blue-500/20" : "bg-orange-100 dark:bg-orange-500/20"}`}>
+                    <Wallet className={`w-6 h-6 ${cashflowReport.netCashFlow >= 0 ? "text-blue-600 dark:text-blue-400" : "text-orange-600 dark:text-orange-400"}`} />
                 </div>
             </div>
 
@@ -436,26 +436,26 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
                     Theo danh mục
                 </h3>
                 {Object.entries(cashflowReport.byCategory).map(([cat, val], idx) => (
-                    <div key={idx} className="bg-[#1e1e2d] border border-slate-700/50 p-4 rounded-xl">
+                    <div key={idx} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 p-4 rounded-xl shadow-sm dark:shadow-none">
                         <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-bold text-white capitalize">{cat}</span>
+                            <span className="text-sm font-bold text-slate-800 dark:text-white capitalize">{cat}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <div className="text-[10px] text-slate-500 uppercase">Thu</div>
-                                <div className="text-sm font-bold text-green-400">
+                                <div className="text-sm font-bold text-green-600 dark:text-green-400">
                                     {formatCurrency(val.income)}
                                 </div>
                             </div>
                             <div className="text-right">
                                 <div className="text-[10px] text-slate-500 uppercase">Chi</div>
-                                <div className="text-sm font-bold text-red-400">
+                                <div className="text-sm font-bold text-red-600 dark:text-red-400">
                                     {formatCurrency(val.expense)}
                                 </div>
                             </div>
                         </div>
                         {/* Mini Bar */}
-                        <div className="mt-3 h-1.5 w-full bg-slate-700 rounded-full overflow-hidden flex">
+                        <div className="mt-3 h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden flex">
                             <div
                                 className="h-full bg-green-500"
                                 style={{ width: `${(val.income / (val.income + val.expense || 1)) * 100}%` }}
@@ -473,39 +473,39 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
 
     const renderInventoryTab = () => (
         <div className="space-y-4 pb-20">
-            <div className="bg-gradient-to-br from-purple-600/20 to-purple-900/20 border border-purple-500/30 p-5 rounded-2xl text-center">
-                <div className="text-sm text-purple-300 font-medium mb-2">Tổng giá trị tồn kho</div>
-                <div className="text-3xl font-bold text-white">
+            <div className="bg-gradient-to-br from-purple-600/10 to-purple-900/10 dark:from-purple-600/20 dark:to-purple-900/20 border border-purple-500/20 dark:border-purple-500/30 p-5 rounded-2xl text-center">
+                <div className="text-sm text-purple-600 dark:text-purple-300 font-medium mb-2">Tổng giá trị tồn kho</div>
+                <div className="text-3xl font-bold text-slate-900 dark:text-white">
                     {formatCurrency(inventoryReport.totalValue).replace("₫", "")}
-                    <span className="text-sm text-purple-300 font-normal ml-1">đ</span>
+                    <span className="text-sm text-purple-500 dark:text-purple-300 font-normal ml-1">đ</span>
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#1e1e2d] border border-slate-700/50 p-4 rounded-2xl">
-                    <div className="text-xs text-slate-400 mb-1">Tổng sản phẩm</div>
-                    <div className="text-xl font-bold text-white">{inventoryReport.parts.length}</div>
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 p-4 rounded-2xl shadow-sm dark:shadow-none">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Tổng sản phẩm</div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white">{inventoryReport.parts.length}</div>
                 </div>
-                <div className="bg-[#1e1e2d] border border-slate-700/50 p-4 rounded-2xl">
-                    <div className="text-xs text-slate-400 mb-1">Sắp hết hàng</div>
-                    <div className="text-xl font-bold text-orange-400">{inventoryReport.lowStockCount}</div>
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 p-4 rounded-2xl shadow-sm dark:shadow-none">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Sắp hết hàng</div>
+                    <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{inventoryReport.lowStockCount}</div>
                 </div>
             </div>
 
             {inventoryReport.lowStockCount > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-sm font-bold text-orange-400 uppercase tracking-wider ml-1 flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider ml-1 flex items-center gap-2">
                         <Search className="w-4 h-4" /> Cần nhập hàng
                     </h3>
                     {inventoryReport.lowStockItems.map((item, idx) => (
-                        <div key={idx} className="bg-[#1e1e2d] border border-slate-700/50 p-4 rounded-xl flex justify-between items-center">
+                        <div key={idx} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 p-4 rounded-xl flex justify-between items-center shadow-sm dark:shadow-none">
                             <div>
-                                <div className="text-sm font-bold text-white">{item.name}</div>
+                                <div className="text-sm font-bold text-slate-800 dark:text-white">{item.name}</div>
                                 <div className="text-xs text-slate-500 mt-1">Giá nhập: {formatCurrency(item.price)}</div>
                             </div>
                             <div className="text-right">
                                 <div className="text-xs text-slate-400">Tồn</div>
-                                <div className="text-lg font-bold text-red-400">{item.stock}</div>
+                                <div className="text-lg font-bold text-red-600 dark:text-red-400">{item.stock}</div>
                             </div>
                         </div>
                     ))}
@@ -515,16 +515,16 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
     );
 
     return (
-        <div className="md:hidden min-h-screen bg-[#151521] text-white">
+        <div className="md:hidden min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white transition-colors">
             {/* Header with Dropdown Selector */}
-            <div className="sticky top-0 z-20 bg-[#151521]/95 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+            <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3">
                 <div className="flex items-center justify-between">
                     <div className="relative">
                         <button
                             onClick={() => setShowReportMenu(!showReportMenu)}
-                            className="flex items-center gap-2 text-lg font-bold text-white active:scale-95 transition-transform"
+                            className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white active:scale-95 transition-transform"
                         >
-                            Báo cáo: <span className="text-blue-400">{getTabLabel(activeTab)}</span>
+                            Báo cáo: <span className="text-blue-600 dark:text-blue-400">{getTabLabel(activeTab)}</span>
                             {showReportMenu ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
                         </button>
 
@@ -532,7 +532,7 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
                         {showReportMenu && (
                             <>
                                 <div className="fixed inset-0 z-30" onClick={() => setShowReportMenu(false)} />
-                                <div className="absolute top-full left-0 mt-2 w-56 bg-[#1e1e2d] border border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                                     {["revenue", "cashflow", "inventory", "debt", "payroll", "tax"].map((tab) => (
                                         <button
                                             key={tab}
@@ -541,8 +541,8 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
                                                 setShowReportMenu(false);
                                             }}
                                             className={`w-full text-left px-4 py-3 text-sm font-medium flex items-center gap-3 transition-colors ${activeTab === tab
-                                                ? "bg-blue-600/10 text-blue-400"
-                                                : "text-slate-300 hover:bg-slate-800"
+                                                ? "bg-blue-50 text-blue-600 dark:bg-blue-600/10 dark:text-blue-400"
+                                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                                                 }`}
                                         >
                                             {tab === "revenue" && <DollarSign className="w-4 h-4" />}
@@ -552,7 +552,7 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
                                             {tab === "payroll" && <BriefcaseBusiness className="w-4 h-4" />}
                                             {tab === "tax" && <FileText className="w-4 h-4" />}
                                             {getTabLabel(tab)}
-                                            {activeTab === tab && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" />}
+                                            {activeTab === tab && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />}
                                         </button>
                                     ))}
                                 </div>
@@ -573,18 +573,18 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
             <div className="px-4 py-3">
                 <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="w-full flex items-center justify-between bg-[#1e1e2d] border border-slate-700 p-3 rounded-xl"
+                    className="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-xl shadow-sm dark:shadow-none"
                 >
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                        <Calendar className="w-4 h-4 text-blue-400" />
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         {getDateRangeLabel(dateRange)}
                         {dateRange === "month" && ` ${selectedMonth}`}
                     </div>
-                    {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    {showFilters ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                 </button>
 
                 {showFilters && (
-                    <div className="mt-2 bg-[#1e1e2d] border border-slate-700 rounded-xl p-3 animate-in slide-in-from-top-2">
+                    <div className="mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 animate-in slide-in-from-top-2 shadow-lg z-10 relative">
                         <div className="grid grid-cols-3 gap-2">
                             {["today", "week", "month", "quarter", "year", "custom"].map((range) => (
                                 <button
@@ -595,7 +595,7 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
                                     }}
                                     className={`p-2 rounded-lg text-xs font-medium ${dateRange === range
                                         ? "bg-blue-600 text-white"
-                                        : "bg-slate-800 text-slate-400"
+                                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                                         }`}
                                 >
                                     {getDateRangeLabel(range)}
@@ -614,7 +614,7 @@ export const ReportsManagerMobile: React.FC<ReportsManagerMobileProps> = ({
                                         }}
                                         className={`p-2 rounded-lg text-xs font-bold ${selectedMonth === m
                                             ? "bg-blue-600 text-white"
-                                            : "bg-slate-800 text-slate-400"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                                             }`}
                                     >
                                         T{m}
