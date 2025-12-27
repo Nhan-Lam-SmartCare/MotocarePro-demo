@@ -96,8 +96,9 @@ export const CreatePOModal: React.FC<CreatePOModalProps> = ({
   const filteredParts = useMemo(() => {
     let filtered = allParts;
 
-    // Filter by low stock
-    if (showLowStockOnly) {
+    // Filter by low stock - Only apply if NO search term
+    // If searching, we want to find ANY product matching the name/sku
+    if (showLowStockOnly && !searchTerm) {
       filtered = filtered.filter((p) => {
         const stock =
           typeof p.stock === "object" ? p.stock[branchId] || 0 : p.stock || 0;
@@ -1070,7 +1071,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 </label>
                 <FormattedNumberInput
                   value={formData.costPrice}
-                  onChange={(value) =>
+                  onValue={(value) =>
                     setFormData({ ...formData, costPrice: value })
                   }
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-green-500"
@@ -1082,7 +1083,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 </label>
                 <FormattedNumberInput
                   value={formData.retailPrice}
-                  onChange={(value) =>
+                  onValue={(value) =>
                     setFormData({ ...formData, retailPrice: value })
                   }
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-green-500"
@@ -1094,7 +1095,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 </label>
                 <FormattedNumberInput
                   value={formData.wholesalePrice}
-                  onChange={(value) =>
+                  onValue={(value) =>
                     setFormData({ ...formData, wholesalePrice: value })
                   }
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-green-500"
@@ -1109,7 +1110,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
               </label>
               <FormattedNumberInput
                 value={formData.stock}
-                onChange={(value) => setFormData({ ...formData, stock: value })}
+                onValue={(value) => setFormData({ ...formData, stock: value })}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-green-500"
               />
             </div>
