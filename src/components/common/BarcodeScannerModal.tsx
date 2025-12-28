@@ -31,7 +31,7 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     hasScannedRef.current = true;
 
     console.log("✅ Barcode scanned:", decodedText);
-    
+
     // Vibrate
     if (navigator.vibrate) {
       navigator.vibrate(100);
@@ -85,7 +85,7 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const startScanner = async () => {
     try {
       setError(null);
-      
+
       // Stop existing scanner if any
       if (scannerRef.current) {
         try {
@@ -102,11 +102,36 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       const scanner = new Html5Qrcode("barcode-scanner-container");
       scannerRef.current = scanner;
 
+      // Optimized config for iOS - higher fps, larger qrbox, experimental features
       const config = {
-        fps: 10,
-        qrbox: { width: 280, height: 150 },
+        fps: 15, // Increased from 10 for faster scanning on iOS
+        qrbox: { width: 300, height: 180 }, // Larger scanning area
         aspectRatio: 1.5,
         disableFlip: false,
+        // Experimental features help with iOS Safari
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true, // Use native BarcodeDetector API if available
+        },
+        // Support common barcode formats for better detection
+        formatsToSupport: [
+          0,  // QR_CODE
+          1,  // AZTEC
+          2,  // CODABAR
+          3,  // CODE_39
+          4,  // CODE_93
+          5,  // CODE_128
+          6,  // DATA_MATRIX
+          7,  // MAXICODE
+          8,  // ITF
+          9,  // EAN_13
+          10, // EAN_8
+          11, // PDF_417
+          12, // RSS_14
+          13, // RSS_EXPANDED
+          14, // UPC_A
+          15, // UPC_E
+          16, // UPC_EAN_EXTENSION
+        ],
       };
 
       await scanner.start(
@@ -208,17 +233,17 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 className="w-full rounded-xl overflow-hidden bg-black"
                 style={{ minHeight: 300 }}
               />
-              
+
               {/* Scan frame overlay */}
               {isScanning && (
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div className="w-[280px] h-[150px] relative">
+                  <div className="w-[300px] h-[180px] relative">
                     {/* Corner markers */}
                     <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400 rounded-tl" />
                     <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400 rounded-tr" />
                     <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400 rounded-bl" />
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400 rounded-br" />
-                    
+
                     {/* Scanning line animation */}
                     <div className="absolute inset-x-0 h-0.5 bg-green-400 animate-scan" />
                   </div>
