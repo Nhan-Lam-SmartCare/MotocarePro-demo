@@ -385,11 +385,24 @@ const AnalyticsDashboard: React.FC = () => {
     return { thisYear, lastYear, change };
   }, [sales, workOrders, cashTransactions]);
 
-  // Simple forecast based on trend
-  const forecast = useMemo(() => {
-    if (monthlyTrendData.length < 3) return { nextMonth: 0, trend: 'stable', growthRate: 0 };
+  // === FORECAST CHART DATA ===
+  const forecastChartData = useMemo(() => {
+    // Default empty state matching the expected shape
+    const emptyResult = {
+      data: [] as { month: string; actual: number | null; projected: number | null }[],
+      growthRate: 0
+    };
 
-    // Use last 3 months for simple linear regression
+    if (monthlyTrendData.length < 2) return emptyResult;
+
+    // 1. Format Historical Data
+    const data = monthlyTrendData.map(d => ({
+      month: d.month,
+      actual: d.revenue,
+      projected: null as number | null,
+    }));
+
+    // 2. Calculate Projections (Next 3 Months)
     const recentMonths = monthlyTrendData.slice(-3);
     const avgGrowth = recentMonths.reduce((sum, m, i) => {
       if (i === 0) return 0;
@@ -397,15 +410,59 @@ const AnalyticsDashboard: React.FC = () => {
       return sum + (prev > 0 ? (m.revenue - prev) / prev : 0);
     }, 0) / (recentMonths.length - 1);
 
-    const lastMonth = recentMonths[recentMonths.length - 1].revenue;
-    const nextMonth = Math.round(lastMonth * (1 + avgGrowth));
+    // Limit extreme growth rates for visual sanity (-20% to +20%)
+    const clampedGrowth = Math.max(-0.2, Math.min(0.2, avgGrowth));
 
-    let trend: 'up' | 'down' | 'stable' = 'stable';
-    if (avgGrowth > 0.05) trend = 'up';
-    else if (avgGrowth < -0.05) trend = 'down';
+    let lastRevenue = monthlyTrendData[monthlyTrendData.length - 1].revenue;
 
-    return { nextMonth, trend, growthRate: avgGrowth * 100 };
+    // Add last actual point as start of projection line (for continuity)
+    const lastMonth = data[data.length - 1];
+    if (lastMonth) {
+      lastMonth.projected = lastMonth.actual;
+    }
+
+    const now = new Date();
+    for (let i = 1; i <= 3; i++) {
+      const nextRevenue = Math.round(lastRevenue * (1 + clampedGrowth));
+      const nextDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
+
+      data.push({
+        month: `T${nextDate.getMonth() + 1}`,
+        actual: null,
+        projected: nextRevenue
+      });
+      lastRevenue = nextRevenue;
+    }
+
+    return { data, growthRate: clampedGrowth * 100 };
   }, [monthlyTrendData]);
+
+  // Mobile Collapsible Section
+  const CollapsibleSection = ({ title, icon, children, defaultOpen = true }: { title: string, icon?: React.ReactNode, children: React.ReactNode, defaultOpen?: boolean }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    return (
+      <div className="bg-white dark:bg-[#1e293b] rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+        >
+          <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            {icon} {title}
+          </h3>
+          <div className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-slate-400">
+              <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        </button>
+        {isOpen && (
+          <div className="p-5 pt-0 border-t border-slate-100 dark:border-slate-700/50">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const handleExportPDF = () => {
     try {
@@ -558,67 +615,92 @@ const AnalyticsDashboard: React.FC = () => {
         {/* Main Analytics Grid - Chart & Comparisons */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Left Column: 6-Month Revenue Trend Chart (Larger) */}
-          <div className="lg:col-span-2 bg-white dark:bg-[#1e293b] p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
-              <LineChart className="w-5 h-5 text-blue-500" />
-              Xu hướng doanh thu 6 tháng
-            </h3>
-            <div className="flex-1 min-h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.1} vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    stroke="#94a3b8"
-                    tick={{ fontSize: 12, fill: '#64748b' }}
-                    axisLine={false}
-                    tickLine={false}
-                    dy={10}
-                  />
-                  <YAxis
-                    stroke="#94a3b8"
-                    tick={{ fontSize: 12, fill: '#64748b' }}
-                    width={35}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "rgba(15, 23, 42, 0.95)",
-                      border: "none",
-                      borderRadius: "8px",
-                      color: "#fff",
-                      fontSize: "13px",
-                      padding: "8px 12px",
-                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)"
-                    }}
-                    formatter={(value: number, name: string) => [`${value}M ₫`, name === "revenue" ? "Doanh thu" : "Lợi nhuận"]}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRevenue)" strokeWidth={3} name="revenue" />
-                  <Area type="monotone" dataKey="profit" stroke="#10b981" fillOpacity={1} fill="url(#colorProfit)" strokeWidth={3} name="profit" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50">
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className="font-medium">Doanh thu</span>
+          <div className="lg:col-span-2">
+            <CollapsibleSection title="Xu hướng & Dự báo" icon={<LineChart className="w-5 h-5 text-blue-500" />}>
+              <div className="h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={forecastChartData.data.length > 0 ? forecastChartData.data : monthlyTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                      <pattern id="patternProjected" patternUnits="userSpaceOnUse" width="4" height="4">
+                        <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" stroke="#8b5cf6" strokeWidth="1" />
+                      </pattern>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.1} vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      stroke="#94a3b8"
+                      tick={{ fontSize: 12, fill: '#64748b' }}
+                      axisLine={false}
+                      tickLine={false}
+                      dy={10}
+                    />
+                    <YAxis
+                      stroke="#94a3b8"
+                      tick={{ fontSize: 12, fill: '#64748b' }}
+                      width={35}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(15, 23, 42, 0.95)",
+                        border: "none",
+                        borderRadius: "8px",
+                        color: "#fff",
+                        fontSize: "13px",
+                        padding: "8px 12px",
+                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)"
+                      }}
+                      formatter={(value: number, name: string) => {
+                        if (name === "actual") return [`${value}M ₫`, "Doanh thu thực tế"];
+                        if (name === "projected") return [`${value}M ₫`, "Dự báo"];
+                        return [value, name];
+                      }}
+                      labelStyle={{ color: "#94a3b8", marginBottom: "4px" }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="actual"
+                      stroke="#3b82f6"
+                      fillOpacity={1}
+                      fill="url(#colorRevenue)"
+                      strokeWidth={3}
+                      name="actual"
+                      connectNulls
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="projected"
+                      stroke="#8b5cf6"
+                      strokeDasharray="5 5"
+                      fill="none"
+                      strokeWidth={3}
+                      name="projected"
+                      connectNulls
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                <span className="font-medium">Lợi nhuận gộp</span>
+              <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span className="font-medium">Thực tế</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="w-8 h-0.5 border-t-2 border-dashed border-violet-500"></div>
+                  <span className="font-medium flex items-center gap-1">
+                    Dự báo
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${forecastChartData.growthRate >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                      {forecastChartData.growthRate > 0 ? '+' : ''}{forecastChartData.growthRate.toFixed(1)}%
+                    </span>
+                  </span>
+                </div>
               </div>
-            </div>
+            </CollapsibleSection>
           </div>
 
           {/* Right Column: Performance Comparisons (Stacked) */}
@@ -667,26 +749,47 @@ const AnalyticsDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Forecast */}
-            <div className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-violet-200 dark:border-violet-700/50 flex-1 flex flex-col justify-center">
-              <div>
-                <div className="text-xs font-bold text-violet-600 dark:text-violet-400 mb-1 uppercase tracking-wide flex items-center gap-1">
-                  <LineChart className="w-3 h-3" /> Dự báo tháng tới
+            {/* Profit Margin Efficiency - Fills the gap */}
+            <div className="bg-white dark:bg-[#1e293b] p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-800 transition-colors flex-1 flex flex-col justify-center">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  Hiệu suất lợi nhuận
                 </div>
-                <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-                  ~{forecast.nextMonth}M ₫
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Dựa trên xu hướng tăng trưởng {forecast.growthRate.toFixed(1)}%
+                <div className="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
+                  <HandCoins className="w-4 h-4" />
                 </div>
               </div>
-              <div className="mt-3 w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${forecast.trend === 'up' ? 'bg-emerald-500' : forecast.trend === 'down' ? 'bg-red-500' : 'bg-slate-400'}`}
-                  style={{ width: '100%' }}
-                ></div>
+
+              <div className="flex items-baseline gap-2 mt-1">
+                <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  {currentStats.revenue > 0 ? ((currentStats.profit / currentStats.revenue) * 100).toFixed(1) : 0}%
+                </div>
+                <span className="text-sm text-slate-500 dark:text-slate-400">Net Margin</span>
+              </div>
+
+              <div className="mt-3">
+                <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+                  <span>Mức an toàn (20%)</span>
+                  <span>{currentStats.revenue > 0 ? ((currentStats.profit / currentStats.revenue) * 100).toFixed(1) : 0}%</span>
+                </div>
+                <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-1000 ${(currentStats.revenue > 0 ? (currentStats.profit / currentStats.revenue) : 0) >= 0.2
+                        ? 'bg-emerald-500'
+                        : (currentStats.revenue > 0 ? (currentStats.profit / currentStats.revenue) : 0) >= 0.1
+                          ? 'bg-amber-500'
+                          : 'bg-red-500'
+                      }`}
+                    style={{ width: `${Math.min(100, Math.max(0, (currentStats.revenue > 0 ? (currentStats.profit / currentStats.revenue) * 100 : 0)))}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  Tỷ suất lợi nhuận ròng trên tổng doanh thu
+                </p>
               </div>
             </div>
+
+            {/* Third Card - could be expense summary or something else, but visual balance is good with just 2 if forecast is merged into chart */}
           </div>
         </div>
 
