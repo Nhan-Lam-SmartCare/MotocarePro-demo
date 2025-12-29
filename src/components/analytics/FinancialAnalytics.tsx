@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -21,8 +21,7 @@ import {
 } from "../../hooks/useDebtsRepository";
 import { useAppContext } from "../../contexts/AppContext";
 import { formatCurrency } from "../../utils/format";
-
-type TimeRange = "7days" | "30days" | "90days" | "all";
+import { getDateRange } from "../../utils/dateUtils";
 
 interface FinancialAnalyticsProps {
   sales: any[];
@@ -41,31 +40,27 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
   customerDebts,
   supplierDebts,
   currentBranchId,
-  dateFilter
+  dateFilter = "30days"
 }) => {
   const isLoading = false; // Data comes from parent
-  const [timeRange, setTimeRange] = useState<TimeRange>("30days");
+
+  // Removed local timeRange state
 
   // Filter by time range
-  const getCutoffDate = () => {
-    if (timeRange === "all") return new Date(0);
-    const days = timeRange === "7days" ? 7 : timeRange === "30days" ? 30 : 90;
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    return cutoffDate;
-  };
+  const { startDate, endDate } = getDateRange(dateFilter);
 
   // Income from Sales (bán hàng)
   const salesIncome = useMemo(() => {
-    const cutoffDate = getCutoffDate();
     return sales
-      .filter((s) => new Date(s.date) >= cutoffDate)
+      .filter((s) => {
+        const d = new Date(s.date);
+        return d >= startDate && d <= endDate;
+      })
       .reduce((sum, s) => sum + s.total, 0);
-  }, [sales, timeRange]);
+  }, [sales, dateFilter, startDate, endDate]);
 
   // Income from Work Orders (sửa chữa) - tính các đơn đã trả máy hoặc đã thanh toán
   const workOrderIncome = useMemo(() => {
-    const cutoffDate = getCutoffDate();
     return workOrders
       .filter((wo) => {
         const woDate = new Date(wo.creationDate);
@@ -75,19 +70,21 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
           wo.paymentStatus === "paid" ||
           wo.paymentStatus === "partial" ||
           (wo.totalPaid && wo.totalPaid > 0);
-        return woDate >= cutoffDate && isCompleted && !wo.refunded;
+        return woDate >= startDate && woDate <= endDate && isCompleted && !wo.refunded;
       })
       .reduce((sum, wo) => sum + (wo.totalPaid || wo.total || 0), 0);
-  }, [workOrders, timeRange]);
+  }, [workOrders, dateFilter, startDate, endDate]);
 
   // Total Income
   const totalIncome = salesIncome + workOrderIncome;
 
   // Cost of Goods Sold from Sales
   const salesCOGS = useMemo(() => {
-    const cutoffDate = getCutoffDate();
     return sales
-      .filter((s) => new Date(s.date) >= cutoffDate)
+      .filter((s) => {
+        const d = new Date(s.date);
+        return d >= startDate && d <= endDate;
+      })
       .reduce((sum, sale) => {
         const saleCost = sale.items.reduce((itemSum, item) => {
           const part = parts.find((p) => p.id === item.partId);
@@ -96,11 +93,10 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
         }, 0);
         return sum + saleCost;
       }, 0);
-  }, [sales, parts, currentBranchId, timeRange]);
+  }, [sales, parts, currentBranchId, dateFilter, startDate, endDate]);
 
   // Cost of Goods Sold from Work Orders
   const workOrderCOGS = useMemo(() => {
-    const cutoffDate = getCutoffDate();
     return workOrders
       .filter((wo) => {
         const woDate = new Date(wo.creationDate);
@@ -108,7 +104,7 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
           wo.paymentStatus === "paid" ||
           wo.paymentStatus === "partial" ||
           (wo.totalPaid && wo.totalPaid > 0);
-        return woDate >= cutoffDate && isCompleted && !wo.refunded;
+        return woDate >= startDate && woDate <= endDate && isCompleted && !wo.refunded;
       })
       .reduce((sum, wo) => {
         // Giá vốn phụ tùng trong work order
@@ -124,7 +120,7 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
         );
         return sum + partsCost + servicesCost;
       }, 0);
-  }, [workOrders, parts, currentBranchId, timeRange]);
+  }, [workOrders, parts, currentBranchId, dateFilter, startDate, endDate]);
 
   // Total Cost of Goods Sold
   const totalCOGS = salesCOGS + workOrderCOGS;
@@ -135,12 +131,14 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
 
   // Daily income vs cost of goods sold
   const dailyFinancials = useMemo(() => {
-    const cutoffDate = getCutoffDate();
     const financialMap = new Map<string, { income: number; expense: number }>();
 
     // Add sales income and calculate COGS for each sale
     sales
-      .filter((s) => new Date(s.date) >= cutoffDate)
+      .filter((s) => {
+        const d = new Date(s.date);
+        return d >= startDate && d <= endDate;
+      })
       .forEach((sale) => {
         const date = sale.date.slice(0, 10);
         const existing = financialMap.get(date) || { income: 0, expense: 0 };
@@ -165,7 +163,7 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
           wo.paymentStatus === "paid" ||
           wo.paymentStatus === "partial" ||
           (wo.totalPaid && wo.totalPaid > 0);
-        return woDate >= cutoffDate && isCompleted && !wo.refunded;
+        return woDate >= startDate && woDate <= endDate && isCompleted && !wo.refunded;
       })
       .forEach((wo) => {
         const date = wo.creationDate.slice(0, 10);
@@ -199,7 +197,7 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
         profit: Math.round(data.income - data.expense),
       }))
       .slice(-30);
-  }, [sales, workOrders, parts, currentBranchId, timeRange]);
+  }, [sales, workOrders, parts, currentBranchId, dateFilter, startDate, endDate]);
 
   // Customer debts summary
   const customerDebtStats = useMemo(() => {
@@ -248,7 +246,6 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
 
   // Product profitability analysis
   const productProfitability = useMemo(() => {
-    const cutoffDate = getCutoffDate();
     const productMap = new Map<string, {
       name: string;
       category: string;
@@ -271,7 +268,10 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
 
     // Process sales
     sales
-      .filter((s) => new Date(s.date) >= cutoffDate)
+      .filter((s) => {
+        const d = new Date(s.date);
+        return d >= startDate && d <= endDate;
+      })
       .forEach((sale: any) => {
         (sale.items || []).forEach((item: any) => {
           if (item.isService) return;
@@ -302,7 +302,7 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
     workOrders
       .filter((wo) => {
         const d = new Date(wo.creationDate);
-        return d >= cutoffDate && wo.status !== "Đã hủy" && !wo.refunded;
+        return d >= startDate && d <= endDate && wo.status !== "Đã hủy" && !wo.refunded;
       })
       .forEach((wo: any) => {
         (wo.partsUsed || []).forEach((part: any) => {
@@ -349,11 +349,10 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
       .slice(0, 10);
 
     return { topProfit, leastProfit };
-  }, [sales, workOrders, parts, currentBranchId, timeRange]);
+  }, [sales, workOrders, parts, currentBranchId, dateFilter, startDate, endDate]);
 
   // Category margin analysis
   const categoryMargin = useMemo(() => {
-    const cutoffDate = getCutoffDate();
     const categoryMap = new Map<string, { revenue: number; cost: number }>();
 
     // Build cost map
@@ -370,7 +369,10 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
 
     // Process sales
     sales
-      .filter((s) => new Date(s.date) >= cutoffDate)
+      .filter((s) => {
+        const d = new Date(s.date);
+        return d >= startDate && d <= endDate;
+      })
       .forEach((sale: any) => {
         (sale.items || []).forEach((item: any) => {
           if (item.isService) return;
@@ -394,7 +396,7 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
     workOrders
       .filter((wo) => {
         const d = new Date(wo.creationDate);
-        return d >= cutoffDate && wo.status !== "Đã hủy" && !wo.refunded;
+        return d >= startDate && d <= endDate && wo.status !== "Đã hủy" && !wo.refunded;
       })
       .forEach((wo: any) => {
         (wo.partsUsed || []).forEach((part: any) => {
@@ -423,7 +425,7 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
       }))
       .filter((c) => c.revenue > 0)
       .sort((a, b) => b.margin - a.margin);
-  }, [sales, workOrders, parts, currentBranchId, timeRange]);
+  }, [sales, workOrders, parts, currentBranchId, dateFilter, startDate, endDate]);
 
   if (isLoading) {
     return (
@@ -435,28 +437,7 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Time Range Selector */}
-      <div className="flex gap-1.5">
-        {(
-          [
-            { value: "7days", label: "7 ngày" },
-            { value: "30days", label: "30 ngày" },
-            { value: "90days", label: "90 ngày" },
-            { value: "all", label: "Tất cả" },
-          ] as const
-        ).map((option) => (
-          <button
-            key={option.value}
-            onClick={() => setTimeRange(option.value)}
-            className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-colors ${timeRange === option.value
-              ? "bg-blue-600 text-white"
-              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      {/* Time Range Selector removed */}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -787,8 +768,8 @@ const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({
                     </td>
                     <td className="px-2 py-2 text-right">
                       <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${item.margin < 10
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                         }`}>
                         {item.margin.toFixed(1)}%
                       </span>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
     BarChart,
     Bar,
@@ -14,9 +14,8 @@ import {
 } from "recharts";
 import { useAppContext } from "../../contexts/AppContext";
 import { formatCurrency } from "../../utils/format";
+import { getDateRange } from "../../utils/dateUtils";
 import { Users, UserCheck, UserPlus, Award, Clock, AlertTriangle, TrendingUp, Zap, RefreshCw } from "lucide-react";
-
-type TimeRange = "7days" | "30days" | "90days" | "all";
 
 interface CustomerAnalyticsProps {
     customers: any[];
@@ -33,23 +32,26 @@ const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({
     workOrders,
     parts,
     currentBranchId,
-    dateFilter
+    dateFilter = "30days" // Default fallback
 }) => {
-    const [timeRange, setTimeRange] = useState<TimeRange>("30days");
-    const isLoading = false;
+    // Removed local timeRange state
 
     const { filteredSales, filteredWorkOrders } = useMemo(() => {
-        if (timeRange === "all") return { filteredSales: sales, filteredWorkOrders: workOrders };
-
-        const now = new Date();
-        const days = timeRange === "7days" ? 7 : timeRange === "30days" ? 30 : 90;
-        const cutoff = new Date(now.setDate(now.getDate() - days));
+        const { startDate, endDate } = getDateRange(dateFilter);
 
         return {
-            filteredSales: sales.filter(s => new Date(s.date) >= cutoff),
-            filteredWorkOrders: workOrders.filter(wo => new Date(wo.creationDate || wo.creationdate) >= cutoff)
+            filteredSales: sales.filter(s => {
+                const d = new Date(s.date);
+                return d >= startDate && d <= endDate;
+            }),
+            filteredWorkOrders: workOrders.filter(wo => {
+                const d = new Date(wo.creationDate || wo.creationdate);
+                return d >= startDate && d <= endDate;
+            })
         };
-    }, [sales, workOrders, timeRange]);
+    }, [sales, workOrders, dateFilter]);
+
+    // ... rest of the component ... 
 
     // Helper Map (Phone -> ID)
     const phoneToIdMap = useMemo(() => {
@@ -262,25 +264,7 @@ const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({
 
     return (
         <div className="space-y-6">
-            {/* Time Range Selector */}
-            <div className="flex gap-2">
-                {(["7days", "30days", "90days", "all"] as const).map((range) => (
-                    <button
-                        key={range}
-                        onClick={() => setTimeRange(range)}
-                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${timeRange === range
-                            ? "bg-indigo-600 text-white"
-                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
-                            }`}
-                    >
-                        {range === "7days" && "7 ngày"}
-                        {range === "30days" && "30 ngày"}
-                        {range === "90days" && "3 tháng"}
-                        {range === "all" && "Tất cả"}
-                    </button>
-                ))}
-            </div>
-            {/* 1. Header & Controls */}
+            {/* 1. Header & Controls - REMOVED redundant filter */}
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
                 <div>
                     {/* Title handled by parent tab but nice to have summary here if needed */}

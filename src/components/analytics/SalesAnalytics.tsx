@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -15,8 +15,7 @@ import {
 } from "recharts";
 import { useAppContext } from "../../contexts/AppContext";
 import { formatCurrency } from "../../utils/format";
-
-type TimeRange = "7days" | "30days" | "90days" | "all";
+import { getDateRange } from "../../utils/dateUtils";
 
 interface SalesAnalyticsProps {
   sales: any[];
@@ -31,21 +30,19 @@ const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({
   workOrders,
   parts,
   currentBranchId,
-  dateFilter
+  dateFilter = "30days" // Default fallback
 }) => {
-  const [timeRange, setTimeRange] = useState<TimeRange>("30days");
+  // Removed local timeRange state
   const isLoading = false; // Data comes from parent
 
   // Filter sales by time range
   const filteredSales = useMemo(() => {
-    if (timeRange === "all") return sales;
-
-    const days = timeRange === "7days" ? 7 : timeRange === "30days" ? 30 : 90;
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-
-    return sales.filter((sale) => new Date(sale.date) >= cutoffDate);
-  }, [sales, timeRange]);
+    const { startDate, endDate } = getDateRange(dateFilter);
+    return sales.filter((sale) => {
+      const d = new Date(sale.date);
+      return d >= startDate && d <= endDate;
+    });
+  }, [sales, dateFilter]);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -121,16 +118,12 @@ const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({
     });
 
     // 2. Process Work Orders
-    const cutoffDate = new Date();
-    if (timeRange !== "all") {
-      const days = timeRange === "7days" ? 7 : timeRange === "30days" ? 30 : 90;
-      cutoffDate.setDate(cutoffDate.getDate() - days);
-    }
+    const { startDate, endDate } = getDateRange(dateFilter);
 
     workOrders.forEach((wo) => {
       // Filter by date
       const woDate = new Date(wo.creationDate || wo.creationdate);
-      if (timeRange !== "all" && woDate < cutoffDate) return;
+      if (woDate < startDate || woDate > endDate) return;
 
       // Filter valid status (exclude cancelled)
       const status = (wo.status || "").toLowerCase();
@@ -172,7 +165,7 @@ const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({
       }))
       .sort((a, b) => b.quantity - a.quantity) // Sort by quantity to match Dashboard logic (was revenue)
       .slice(0, 10);
-  }, [filteredSales, workOrders, timeRange, parts]);
+  }, [filteredSales, workOrders, dateFilter, parts]);
 
   // Sales by payment method
   const paymentMethodData = useMemo(() => {
@@ -232,28 +225,7 @@ const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Time Range Selector */}
-      <div className="flex gap-1.5">
-        {(
-          [
-            { value: "7days", label: "7 ngày" },
-            { value: "30days", label: "30 ngày" },
-            { value: "90days", label: "90 ngày" },
-            { value: "all", label: "Tất cả" },
-          ] as const
-        ).map((option) => (
-          <button
-            key={option.value}
-            onClick={() => setTimeRange(option.value)}
-            className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-colors ${timeRange === option.value
-              ? "bg-blue-600 text-white"
-              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      {/* Time Range Selector removed */}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

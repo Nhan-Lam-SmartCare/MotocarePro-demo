@@ -44,71 +44,10 @@ import { useCashTxRepo } from "../../hooks/useCashTransactionsRepository";
 
 type TabType = "inventory" | "sales" | "financial" | "services" | "customers";
 
-// Helper to get date range from filter
-const getDateRange = (filter: string): { startDate: Date; endDate: Date; label: string } => {
-  const now = new Date();
-  let startDate: Date;
-  let endDate: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-  let label = "";
+import { getDateRange } from "../../utils/dateUtils";
 
-  // Handle specific month filters (month1, month2, ... month12)
-  if (filter.startsWith("month") && filter.length > 5) {
-    const monthNum = parseInt(filter.slice(5), 10);
-    if (monthNum >= 1 && monthNum <= 12) {
-      startDate = new Date(now.getFullYear(), monthNum - 1, 1);
-      endDate = new Date(now.getFullYear(), monthNum, 0, 23, 59, 59);
-      label = `Tháng ${monthNum}`;
-    } else {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      label = "Tháng này";
-    }
-  }
-  // Handle quarter filters (q1, q2, q3, q4)
-  else if (filter.startsWith("q") && filter.length === 2) {
-    const quarterNum = parseInt(filter.slice(1), 10);
-    if (quarterNum >= 1 && quarterNum <= 4) {
-      const startMonth = (quarterNum - 1) * 3;
-      startDate = new Date(now.getFullYear(), startMonth, 1);
-      endDate = new Date(now.getFullYear(), startMonth + 3, 0, 23, 59, 59);
-      label = `Quý ${quarterNum}`;
-    } else {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      label = "Tháng này";
-    }
-  }
-  // Handle standard filters
-  else {
-    switch (filter) {
-      case "today":
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        label = "Hôm nay";
-        break;
-      case "7days":
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        label = "7 ngày qua";
-        break;
-      case "week":
-        const dayOfWeek = now.getDay();
-        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff);
-        label = "Tuần này";
-        break;
-      case "month":
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        label = "Tháng này";
-        break;
-      case "year":
-        startDate = new Date(now.getFullYear(), 0, 1);
-        label = `Năm ${now.getFullYear()}`;
-        break;
-      default:
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        label = "Tháng này";
-    }
-  }
-
-  return { startDate, endDate, label };
-};
+// Helper to get date range from filter (MOVED TO UTILS)
+// const getDateRange = ... (removed)
 
 // Get previous period for comparison
 const getPreviousPeriodRange = (filter: string): { startDate: Date; endDate: Date } => {
@@ -448,7 +387,7 @@ const AnalyticsDashboard: React.FC = () => {
 
   // Simple forecast based on trend
   const forecast = useMemo(() => {
-    if (monthlyTrendData.length < 3) return { nextMonth: 0, trend: 'stable' };
+    if (monthlyTrendData.length < 3) return { nextMonth: 0, trend: 'stable', growthRate: 0 };
 
     // Use last 3 months for simple linear regression
     const recentMonths = monthlyTrendData.slice(-3);
@@ -550,8 +489,7 @@ const AnalyticsDashboard: React.FC = () => {
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="text-sm bg-transparent border-none focus:ring-0 text-slate-700 dark:text-slate-200 cursor-pointer pr-6 dark:[color-scheme:dark]"
-                style={{ colorScheme: 'auto' }}
+                className="text-sm bg-transparent border-none focus:ring-0 text-slate-700 dark:text-slate-200 cursor-pointer pr-6 dark:[color-scheme:dark] [&>optgroup]:bg-white [&>optgroup]:text-slate-900 dark:[&>optgroup]:bg-slate-800 dark:[&>optgroup]:text-slate-200"
               >
                 <optgroup label="Thời gian">
                   <option value="today">Hôm nay</option>
@@ -617,138 +555,157 @@ const AnalyticsDashboard: React.FC = () => {
           />
         </div>
 
-        {/* 6-Month Revenue Trend Chart */}
-        <div className="mb-6 bg-white dark:bg-[#1e293b] p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
-            Xu hướng 6 tháng qua (triệu đồng)
-          </h3>
-          <ResponsiveContainer width="100%" height={140}>
-            <AreaChart data={monthlyTrendData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <defs>
-                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-              <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-              <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} width={35} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "rgba(15, 23, 42, 0.95)",
-                  border: "none",
-                  borderRadius: "8px",
-                  color: "#fff",
-                  fontSize: "12px",
-                }}
-                formatter={(value: number, name: string) => [`${value}M`, name]}
-              />
-              <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRevenue)" strokeWidth={2} name="Doanh thu" />
-              <Area type="monotone" dataKey="profit" stroke="#10b981" fillOpacity={1} fill="url(#colorProfit)" strokeWidth={2} name="Lợi nhuận" />
-            </AreaChart>
-          </ResponsiveContainer>
-          <div className="flex justify-center gap-6 mt-2">
-            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span>Doanh thu</span>
+        {/* Main Analytics Grid - Chart & Comparisons */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Left Column: 6-Month Revenue Trend Chart (Larger) */}
+          <div className="lg:col-span-2 bg-white dark:bg-[#1e293b] p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
+            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+              <LineChart className="w-5 h-5 text-blue-500" />
+              Xu hướng doanh thu 6 tháng
+            </h3>
+            <div className="flex-1 min-h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={monthlyTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.1} vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    stroke="#94a3b8"
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    axisLine={false}
+                    tickLine={false}
+                    dy={10}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    width={35}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "rgba(15, 23, 42, 0.95)",
+                      border: "none",
+                      borderRadius: "8px",
+                      color: "#fff",
+                      fontSize: "13px",
+                      padding: "8px 12px",
+                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)"
+                    }}
+                    formatter={(value: number, name: string) => [`${value}M ₫`, name === "revenue" ? "Doanh thu" : "Lợi nhuận"]}
+                  />
+                  <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRevenue)" strokeWidth={3} name="revenue" />
+                  <Area type="monotone" dataKey="profit" stroke="#10b981" fillOpacity={1} fill="url(#colorProfit)" strokeWidth={3} name="profit" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-              <span>Lợi nhuận</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Performance Comparison Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-          {/* Month over Month */}
-          <div className="bg-white dark:bg-[#1e293b] p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-              Tháng này vs Tháng trước
-            </div>
-            <div className="flex items-end justify-between">
-              <div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {formatCurrency(monthOverMonth.thisMonth)}
-                </div>
-                <div className="text-[10px] text-slate-500">
-                  trước: {formatCurrency(monthOverMonth.lastMonth)}
-                </div>
+            <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="font-medium">Doanh thu</span>
               </div>
-              <div className={`flex items-center gap-1 text-sm font-semibold ${monthOverMonth.change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                }`}>
-                <span>{monthOverMonth.change >= 0 ? '▲' : '▼'}</span>
-                <span>{Math.abs(monthOverMonth.change).toFixed(1)}%</span>
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span className="font-medium">Lợi nhuận gộp</span>
               </div>
             </div>
           </div>
 
-          {/* Year over Year */}
-          <div className="bg-white dark:bg-[#1e293b] p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-              Năm nay vs Năm ngoái (YTD)
-            </div>
-            <div className="flex items-end justify-between">
-              <div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {formatCurrency(yearOverYear.thisYear)}
+          {/* Right Column: Performance Comparisons (Stacked) */}
+          <div className="lg:col-span-1 flex flex-col gap-4">
+            {/* Month over Month */}
+            <div className="bg-white dark:bg-[#1e293b] p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">
+                Tháng này vs Tháng trước
+              </div>
+              <div className="flex items-end justify-between mt-2">
+                <div>
+                  <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                    {formatCurrency(monthOverMonth.thisMonth)}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    Tháng trước: {formatCurrency(monthOverMonth.lastMonth)}
+                  </div>
                 </div>
-                <div className="text-[10px] text-slate-500">
-                  trước: {formatCurrency(yearOverYear.lastYear)}
+                <div className={`flex items-center gap-1 text-sm font-bold px-2 py-1 rounded bg-opacity-10 ${monthOverMonth.change >= 0 ? 'bg-emerald-500 text-emerald-600 dark:text-emerald-400' : 'bg-red-500 text-red-600 dark:text-red-400'
+                  }`}>
+                  <span>{monthOverMonth.change >= 0 ? '▲' : '▼'}</span>
+                  <span>{Math.abs(monthOverMonth.change).toFixed(1)}%</span>
                 </div>
               </div>
-              <div className={`flex items-center gap-1 text-sm font-semibold ${yearOverYear.change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                }`}>
-                <span>{yearOverYear.change >= 0 ? '▲' : '▼'}</span>
-                <span>{Math.abs(yearOverYear.change).toFixed(1)}%</span>
-              </div>
             </div>
-          </div>
 
-          {/* Forecast */}
-          <div className="bg-gradient-to-br from-violet-50 to-violet-100 dark:from-violet-900/20 dark:to-violet-800/20 p-4 rounded-xl border border-violet-200 dark:border-violet-700">
-            <div className="text-xs font-medium text-violet-600 dark:text-violet-400 mb-1">
-              Dự báo tháng tới
-            </div>
-            <div className="flex items-end justify-between">
-              <div>
-                <div className="text-lg font-bold text-violet-900 dark:text-violet-100">
-                  ~{forecast.nextMonth}M đ
+            {/* Year over Year */}
+            <div className="bg-white dark:bg-[#1e293b] p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">
+                Năm nay vs Năm ngoái (YTD)
+              </div>
+              <div className="flex items-end justify-between mt-2">
+                <div>
+                  <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                    {formatCurrency(yearOverYear.thisYear)}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    Năm ngoái: {formatCurrency(yearOverYear.lastYear)}
+                  </div>
                 </div>
-                <div className="text-[10px] text-violet-600 dark:text-violet-400">
-                  Dựa trên xu hướng 3 tháng
+                <div className={`flex items-center gap-1 text-sm font-bold px-2 py-1 rounded bg-opacity-10 ${yearOverYear.change >= 0 ? 'bg-emerald-500 text-emerald-600 dark:text-emerald-400' : 'bg-red-500 text-red-600 dark:text-red-400'
+                  }`}>
+                  <span>{yearOverYear.change >= 0 ? '▲' : '▼'}</span>
+                  <span>{Math.abs(yearOverYear.change).toFixed(1)}%</span>
                 </div>
               </div>
-              <div className={`text-2xl ${forecast.trend === 'up' ? 'text-emerald-500' : forecast.trend === 'down' ? 'text-red-500' : 'text-slate-400'
-                }`}>
-                {forecast.trend === 'up' ? '📈' : forecast.trend === 'down' ? '📉' : '➡️'}
+            </div>
+
+            {/* Forecast */}
+            <div className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-violet-200 dark:border-violet-700/50 flex-1 flex flex-col justify-center">
+              <div>
+                <div className="text-xs font-bold text-violet-600 dark:text-violet-400 mb-1 uppercase tracking-wide flex items-center gap-1">
+                  <LineChart className="w-3 h-3" /> Dự báo tháng tới
+                </div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                  ~{forecast.nextMonth}M ₫
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Dựa trên xu hướng tăng trưởng {forecast.growthRate.toFixed(1)}%
+                </div>
+              </div>
+              <div className="mt-3 w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${forecast.trend === 'up' ? 'bg-emerald-500' : forecast.trend === 'down' ? 'bg-red-500' : 'bg-slate-400'}`}
+                  style={{ width: '100%' }}
+                ></div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+        {/* Tabs - Pill Style */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 font-medium transition-all relative text-sm whitespace-nowrap ${activeTab === tab.id
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+              className={`px-4 py-2.5 rounded-lg font-medium transition-all text-sm whitespace-nowrap flex items-center gap-2 ${activeTab === tab.id
+                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
                 }`}
             >
-              <span className="flex items-center gap-1.5">
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
+              <span className={activeTab === tab.id ? "text-white" : "text-slate-500 dark:text-slate-400"}>
+                {tab.icon}
               </span>
-              {activeTab === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
-              )}
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>

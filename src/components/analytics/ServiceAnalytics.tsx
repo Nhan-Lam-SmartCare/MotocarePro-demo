@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
     BarChart,
     Bar,
@@ -13,8 +13,7 @@ import {
 import { useAppContext } from "../../contexts/AppContext";
 import { formatCurrency } from "../../utils/format";
 import { useWorkOrdersRepo } from "../../hooks/useWorkOrdersRepository";
-
-type TimeRange = "7days" | "30days" | "90days" | "all";
+import { getDateRange } from "../../utils/dateUtils";
 
 interface ServiceAnalyticsProps {
     workOrders: any[];
@@ -25,22 +24,19 @@ interface ServiceAnalyticsProps {
 const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({
     workOrders,
     currentBranchId,
-    dateFilter
+    dateFilter = "30days"
 }) => {
-    const [timeRange, setTimeRange] = useState<TimeRange>("30days");
+    // Removed local timeRange state
     const isLoading = false;
 
     // Filter by Time Range
     const filteredOrders = useMemo(() => {
-        if (timeRange === "all") return workOrders;
-        const now = new Date();
-        const days = timeRange === "7days" ? 7 : timeRange === "30days" ? 30 : 90;
-        const cutoff = new Date(now.setDate(now.getDate() - days));
+        const { startDate, endDate } = getDateRange(dateFilter);
         return workOrders.filter(wo => {
             const d = new Date(wo.creationDate || wo.creationdate);
-            return d >= cutoff;
+            return d >= startDate && d <= endDate;
         });
-    }, [workOrders, timeRange]);
+    }, [workOrders, dateFilter]);
 
     // --- Statistics ---
 
@@ -125,24 +121,7 @@ const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({
 
     return (
         <div className="space-y-4">
-            {/* Time Range Selector */}
-            <div className="flex gap-2 mb-4">
-                {(["7days", "30days", "90days", "all"] as const).map((range) => (
-                    <button
-                        key={range}
-                        onClick={() => setTimeRange(range)}
-                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${timeRange === range
-                            ? "bg-indigo-600 text-white"
-                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
-                            }`}
-                    >
-                        {range === "7days" && "7 ngày"}
-                        {range === "30days" && "30 ngày"}
-                        {range === "90days" && "3 tháng"}
-                        {range === "all" && "Tất cả"}
-                    </button>
-                ))}
-            </div>
+            {/* Time Range Selector removed */}
             {/* Summary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700">
