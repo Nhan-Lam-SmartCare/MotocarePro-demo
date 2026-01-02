@@ -108,7 +108,7 @@ const PrintOrderPreviewModal: React.FC<PrintOrderPreviewModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-2">
-            <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-full max-h-[95vh] flex flex-col">
+            <div className="bg-white dark:bg-slate-800 rounded-xl w-full md:w-auto md:max-w-4xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
                 {/* Modal Header */}
                 <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between rounded-t-xl flex-shrink-0">
                     <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
@@ -142,15 +142,12 @@ const PrintOrderPreviewModal: React.FC<PrintOrderPreviewModalProps> = ({
                 <div className="flex-1 overflow-y-auto p-4 bg-slate-100 dark:bg-slate-900 flex justify-center">
                     <div
                         id="mobile-print-preview-content"
-                        className="bg-white shadow-lg relative !bg-white !text-black flex-shrink-0"
+                        className="bg-white shadow-lg relative !bg-white !text-black flex-shrink-0 transform origin-top scale-[0.63] mb-[-75mm] md:transform-none md:scale-100 md:mb-0"
                         style={{
                             width: "148mm", // Keep original A5 width
                             minHeight: "210mm",
                             color: "#000000",
                             backgroundColor: "#ffffff",
-                            transform: "scale(0.63)", // Scale down to fit mobile
-                            transformOrigin: "top center",
-                            marginBottom: "-75mm" // Compensate for scale white space
                         }}
                     >
                         {/* Watermark Logo for Print */}
