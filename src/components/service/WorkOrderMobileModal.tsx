@@ -908,8 +908,14 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
       await onSave(workOrderData);
       // Note: Not resetting isSubmitting here because modal will close on success
       // Parent component is responsible for closing the modal
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving work order:", error);
+      console.error("Error details:", {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+      });
       setIsSubmitting(false); // Reset on error so user can retry
 
       // Fallback: Save to Local Storage as draft
@@ -921,8 +927,26 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
       });
       localStorage.setItem("offline_drafts", JSON.stringify(drafts));
 
-      // Show alert but dont close to allow retry or copy
-      alert("Có lỗi khi lưu (Timeout/Mạng). Vui lòng thử lại hoặc chụp màn hình.");
+      // Show detailed error message
+      let errorMessage = "Có lỗi khi lưu";
+      if (error?.message) {
+        const msg = error.message.toUpperCase();
+        if (msg.includes("UNAUTHORIZED")) {
+          errorMessage = "❌ Bạn không có quyền tạo phiếu sửa chữa. Vui lòng liên hệ quản lý để được cấp quyền.";
+        } else if (msg.includes("BRANCH_MISMATCH")) {
+          errorMessage = "❌ Chi nhánh không khớp. Bạn chỉ có thể tạo phiếu cho chi nhánh của mình.";
+        } else if (msg.includes("INSUFFICIENT_STOCK") || msg.includes("THIẾU TỒN KHO")) {
+          errorMessage = "❌ Tồn kho không đủ cho một hoặc nhiều phụ tùng.";
+        } else if (msg.includes("PART_NOT_FOUND")) {
+          errorMessage = "❌ Không tìm thấy phụ tùng trong kho.";
+        } else {
+          errorMessage = `❌ ${error.message}`;
+        }
+      } else {
+        errorMessage = "❌ Lỗi kết nối (Timeout/Mạng). Vui lòng kiểm tra kết nối mạng.";
+      }
+      
+      alert(errorMessage + "\n\nDữ liệu đã được lưu tạm. Bạn có thể thử lại hoặc chụp màn hình.");
       // onClose(); // Don't close so user can retry
     }
   };
