@@ -48,13 +48,30 @@ const PrintOrderPreviewModal: React.FC<PrintOrderPreviewModalProps> = ({
                 return;
             }
 
-            // Capture the element as canvas
+            // Remove any transform/scale from element temporarily for full capture
+            const originalTransform = (element as HTMLElement).style.transform;
+            const originalMarginBottom = (element as HTMLElement).style.marginBottom;
+            (element as HTMLElement).style.transform = "none";
+            (element as HTMLElement).style.marginBottom = "0";
+
+            // Wait for layout to settle
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Capture the element as canvas with full height
             const canvas = await html2canvas(element, {
                 scale: 2, // Higher quality
                 backgroundColor: "#ffffff",
                 useCORS: true,
                 logging: false,
+                width: element.scrollWidth,
+                height: element.scrollHeight,
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight,
             });
+
+            // Restore original styles
+            (element as HTMLElement).style.transform = originalTransform;
+            (element as HTMLElement).style.marginBottom = originalMarginBottom;
 
             // Convert canvas to blob
             const blob = await new Promise<Blob>((resolve) => {
