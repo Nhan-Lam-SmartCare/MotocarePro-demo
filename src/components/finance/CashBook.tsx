@@ -62,8 +62,11 @@ const CashBook: React.FC = () => {
   );
   const [filterPaymentSource, setFilterPaymentSource] = useState<string>("all");
   const [filterDateRange, setFilterDateRange] = useState<
-    "today" | "week" | "month" | "all"
+    "today" | "week" | "month" | "all" | "custom-month"
   >("month");
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    new Date().toISOString().slice(0, 7) // Format: YYYY-MM
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTransaction, setEditingTransaction] =
@@ -120,6 +123,13 @@ const CashBook: React.FC = () => {
         monthAgo.setMonth(monthAgo.getMonth() - 1);
         filtered = filtered.filter((tx) => new Date(tx.date) >= monthAgo);
         break;
+      case "custom-month":
+        // Filter by selected month (YYYY-MM)
+        filtered = filtered.filter((tx) => {
+          const txMonth = new Date(tx.date).toISOString().slice(0, 7);
+          return txMonth === selectedMonth;
+        });
+        break;
     }
 
     // Filter by search query
@@ -137,7 +147,8 @@ const CashBook: React.FC = () => {
 
     return filtered.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    );lectedMonth,
+    se
   }, [
     cashTransactions,
     currentBranchId,
@@ -535,8 +546,17 @@ const CashBook: React.FC = () => {
                 <option value="today">Hôm nay</option>
                 <option value="week">7 ngày qua</option>
                 <option value="month">30 ngày qua</option>
+                <option value="custom-month">Theo tháng</option>
                 <option value="all">Tất cả</option>
               </select>
+              {filterDateRange === 'custom-month' && (
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="w-full mt-2 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+                />
+              )}
             </div>
           </div>
 
@@ -599,11 +619,12 @@ const CashBook: React.FC = () => {
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Thời gian:
                 </span>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   {[
                     { value: "today", label: "Hôm nay" },
                     { value: "week", label: "7 ngày" },
                     { value: "month", label: "30 ngày" },
+                    { value: "custom-month", label: "Theo tháng" },
                     { value: "all", label: "Tất cả" },
                   ].map((option) => (
                     <button
@@ -617,6 +638,14 @@ const CashBook: React.FC = () => {
                       {option.label}
                     </button>
                   ))}
+                  {filterDateRange === 'custom-month' && (
+                    <input
+                      type="month"
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm text-slate-900 dark:text-white"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -889,7 +918,6 @@ const CashBook: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </div>
 
         {/* Add Transaction Modal */}
         {showAddModal && (
@@ -999,6 +1027,7 @@ const CashBook: React.FC = () => {
             }}
           />
         )}
+      </div>
       </div>
     </>
   );

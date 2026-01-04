@@ -6,8 +6,9 @@ import {
   fetchPinBalanceSummary,
   PinCashTransaction,
 } from "../../lib/pinSupabase";
+import { syncBidirectional } from "../../lib/syncCashTransactions";
 import { formatCurrency, formatDate } from "../../utils/format";
-import { Loader2, RefreshCw, Building2, Wrench, Filter } from "lucide-react";
+import { Loader2, RefreshCw, Building2, Wrench, Filter, ArrowLeftRight } from "lucide-react";
 
 type SourceFilter = "all" | "motocare" | "pin";
 
@@ -41,6 +42,8 @@ const CombinedFinance: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<
     "all" | "month" | "week" | "today"
   >("month");
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string>("");
 
   // Fetch Pin data
   const loadPinData = async () => {
@@ -48,19 +51,47 @@ const CombinedFinance: React.FC = () => {
     try {
       const [transactions, balance] = await Promise.all([
         fetchPinCashTransactions(),
-        fetchPinBalanceSummary(),
+        fetchPinBalanceSummary(currentBranchId),
       ]);
+      
+      console.log("[CombinedFinance] Pin transactions:", transactions.length);
+      console.log("[CombinedFinance] Pin balance:", balance);
+      
       setPinTx(transactions);
       setPinBalance(balance);
-    } catch (error) {
-      console.error("Error loading Pin data:", error);
+      
+      if (transactions.length === 0) {
+        console.warn("[CombinedFinance] ⚠️ Pin Factory không có dữ liệu hoặc RLS đang chặn!");
+      }
+    } catch (error: any) {
+      console.error("[CombinedFinance] Error loading Pin data:", error);
+      if (error?.code === '42501') {
+        setSyncResult("❌ Pin Factory: Lỗi RLS chặn truy cập. Cần chạy script fix_rls trên Pin DB.");
+      }
     }
     setPinLoading(false);
   };
 
   useEffect(() => {
     loadPinData();
-  }, []);
+  }, [currentBranchId]);
+
+  // Sync function
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setSyncResult("");
+    try {
+      const result = await syncBidirectional(currentBranchId);
+      const msg = `✅ Đồng bộ thành công!\nMotocare→Pin: ${result.motoToPin.success} giao dịch\nPin→Motocare: ${result.pinToMoto.success} giao dịch`;
+      setSyncResult(msg);
+      // Reload data
+      await loadPinData();
+    } catch (error: any) {
+      setSyncResult(`❌ Lỗi: ${error.message || "Không thể đồng bộ"}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Helper functions
   const isIncomeType = (type: string) =>
@@ -170,16 +201,35 @@ const CombinedFinance: React.FC = () => {
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-3">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-lg font-bold">📊 Tổng hợp Tài chính</h1>
-          <button
-            onClick={loadPinData}
-            disabled={isLoading}
-            className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-          >
-            <RefreshCw
-              className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`}
-            />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="p-2 bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              title="Đồng bộ 2 chiều"
+            >
+              <ArrowLeftRight
+                className={`w-5 h-5 ${isSyncing ? "animate-spin" : ""}`}
+              />
+            </button>
+            <button
+              onClick={loadPinData}
+              disabled={isLoading}
+              className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+            >
+              <RefreshCw
+                className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`}
+              />
+            </button>
+          </div>
         </div>
+
+        {/* Sync Result */}
+        {syncResult && (
+          <div className="mb-3 p-2 bg-white/20 rounded-lg text-xs whitespace-pre-line">
+            {syncResult}
+          </div>
+        )}
 
         {/* Total Balance */}
         <div className="bg-white/10 backdrop-blur rounded-xl p-3">

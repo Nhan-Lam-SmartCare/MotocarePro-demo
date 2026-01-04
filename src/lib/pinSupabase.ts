@@ -39,42 +39,61 @@ export async function fetchPinCashTransactions(): Promise<
   return data || [];
 }
 
+// Fetch số dư ban đầu từ Pin payment_sources
+export async function fetchPinInitialBalance(branchId: string = "CN1"): Promise<{
+  cash: number;
+  bank: number;
+}> {
+  const { data, error } = await pinSupabase
+    .from("payment_sources")
+    .select("id, balance")
+    .in("id", ["cash", "bank"]);
+
+  if (error) {
+    console.error("[PinSupabase] Error fetching initial balance:", error);
+    return { cash: 0, bank: 0 };
+  }
+
+  const cashSource = data?.find((ps) => ps.id === "cash");
+  const bankSource = data?.find((ps) => ps.id === "bank");
+
+  return {
+    cash: cashSource?.balance?.[branchId] || 0,
+    bank: bankSource?.balance?.[branchId] || 0,
+  };
+}
+
 // Fetch tổng số dư từ Pin DB (chia theo tiền mặt và ngân hàng)
-export async function fetchPinBalanceSummary(): Promise<{
+export async function fetchPinBalanceSummary(branchId: string = "CN1"): Promise<{
   totalIncome: number;
   totalExpense: number;
   balance: number;
   cash: number;
   bank: number;
 }> {
-  const isMissingColumn = (err: any, col: string) =>
-    typeof err?.message === "string" && err.message.toLowerCase().includes(col.toLowerCase());
+  // Pin Factory dùng cột payment_source_id
+  const { data, error } = await pinSupabase
+    .from("cashtransactions")
+    .select("type, amount, payment_source_id");
 
-  let data: any[] | null = null;
-
-  // Attempt 1: include payment_method if it exists
-  {
-    const res = await pinSupabase
-      .from("cashtransactions")
-      .select("type, amount, payment_method");
-
-    if (!res.error) {
-      data = res.data || [];
-    } else if (isMissingColumn(res.error, "payment_method")) {
-      // Attempt 2: fall back to minimal fields
-      const res2 = await pinSupabase
-        .from("cashtransactions")
-        .select("type, amount");
-      if (res2.error) {
-        console.error("[PinSupabase] Error fetching balance:", res2.error);
-        return { totalIncome: 0, totalExpense: 0, balance: 0, cash: 0, bank: 0 };
-      }
-      data = res2.data || [];
-    } else {
-      console.error("[PinSupabase] Error fetching balance:", res.error);
-      return { totalIncome: 0, totalExpense: 0, balance: 0, cash: 0, bank: 0 };
-    }
+  if (error) {
+    console.error("[PinSupabase] Error fetching balance:", error);
+    return { totalIncome: 0, totalExpense: 0, balance: 0, cash: 0, bank: 0 };
   }
+
+  // Helper để kiểm tra là tiền mặt
+  const isCash = (t: any): boolean => {
+    const source = t.payment_source_id;
+    // Tiền mặt nếu payment_source_id là "cash", null, hoặc không có
+    return !source || source === "cash";
+  };
+
+  // Helper để kiểm tra là ngân hàng
+  const isBank = (t: any): boolean => {
+    const source = t.payment_source_id;
+    // Ngân hàng nếu payment_source_id là "bank"
+    return source === "bank";
+  };
 
   const totalIncome = (data || [])
     .filter((t) => t.type === "income")
@@ -84,27 +103,38 @@ export async function fetchPinBalanceSummary(): Promise<{
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
 
-  // Tính số dư tiền mặt
+  // Tính biến động tiền mặt từ transactions
   const cashIncome = (data || [])
-    .filter((t) => t.type === "income" && (t.payment_method === "cash" || !t.payment_method))
+    .filter((t) => t.type === "income" && isCash(t))
     .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
   const cashExpense = (data || [])
-    .filter((t) => t.type === "expense" && (t.payment_method === "cash" || !t.payment_method))
+    .filter((t) => t.type === "expense" && isCash(t))
     .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
 
-  // Tính số dư ngân hàng
+  // Tính biến động ngân hàng từ transactions
   const bankIncome = (data || [])
-    .filter((t) => t.type === "income" && t.payment_method === "bank")
+    .filter((t) => t.type === "income" && isBank(t))
     .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
   const bankExpense = (data || [])
-    .filter((t) => t.type === "expense" && t.payment_method === "bank")
+    .filter((t) => t.type === "expense" && isBank(t))
     .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+
+  console.log("[PinSupabase] Cash delta: income=", cashIncome, "expense=", cashExpense, "net=", cashIncome - cashExpense);
+  console.log("[PinSupabase] Bank delta: income=", bankIncome, "expense=", bankExpense, "net=", bankIncome - bankExpense);
+
+  // Lấy số dư ban đầu
+  const initialBalance = await fetchPinInitialBalance(branchId);
+  console.log("[PinSupabase] Initial balance: cash=", initialBalance.cash, "bank=", initialBalance.bank);
+
+  // Tính số dư thực tế = Số dư ban đầu + Biến động
+  const cashBalance = initialBalance.cash + (cashIncome - cashExpense);
+  const bankBalance = initialBalance.bank + (bankIncome - bankExpense);
 
   return {
     totalIncome,
     totalExpense,
-    balance: totalIncome - totalExpense,
-    cash: cashIncome - cashExpense,
-    bank: bankIncome - bankExpense,
+    balance: cashBalance + bankBalance,
+    cash: cashBalance,
+    bank: bankBalance,
   };
 }
