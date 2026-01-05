@@ -392,6 +392,14 @@ const LoanCard: React.FC<{
       (1000 * 60 * 60 * 24)
   );
 
+  // Kiểm tra nếu là khoản vay đáo hạn
+  const isDaoHan = loan.purpose?.toLowerCase().includes("đáo hạn");
+  
+  // Tính tiền lãi hàng tháng cho khoản vay đáo hạn
+  const monthlyInterest = isDaoHan 
+    ? (loan.remainingAmount * loan.interestRate / 100 / 12)
+    : 0;
+
   return (
     <div
       className={`bg-white dark:bg-slate-800 rounded-lg border-2 p-6 ${
@@ -486,7 +494,7 @@ const LoanCard: React.FC<{
             Trả hàng tháng
           </div>
           <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-            {formatCurrency(loan.monthlyPayment)}
+            {isDaoHan ? formatCurrency(monthlyInterest) : formatCurrency(loan.monthlyPayment)}
           </div>
         </div>
       </div>
@@ -679,13 +687,18 @@ const AddLoanModal: React.FC<{
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Mục đích vay
             </label>
-            <input
-              type="text"
+            <select
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
-              placeholder="Ví dụ: Mở rộng cửa hàng, mua thiết bị..."
               className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
-            />
+            >
+              <option value="">-- Chọn mục đích --</option>
+              <option value="Đáo hạn">Đáo hạn</option>
+              <option value="Mở rộng kinh doanh">Mở rộng kinh doanh</option>
+              <option value="Mua thiết bị">Mua thiết bị</option>
+              <option value="Bổ sung vốn lưu động">Bổ sung vốn lưu động</option>
+              <option value="Khác">Khác</option>
+            </select>
           </div>
 
           <div>
@@ -874,13 +887,18 @@ const EditLoanModal: React.FC<{
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Mục đích vay
             </label>
-            <input
-              type="text"
+            <select
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
-              placeholder="Ví dụ: Mở rộng cửa hàng, mua thiết bị..."
               className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
-            />
+            >
+              <option value="">-- Chọn mục đích --</option>
+              <option value="Đáo hạn">Đáo hạn</option>
+              <option value="Mở rộng kinh doanh">Mở rộng kinh doanh</option>
+              <option value="Mua thiết bị">Mua thiết bị</option>
+              <option value="Bổ sung vốn lưu động">Bổ sung vốn lưu động</option>
+              <option value="Khác">Khác</option>
+            </select>
           </div>
 
           <div>
@@ -923,10 +941,21 @@ const LoanPaymentModal: React.FC<{
   onClose: () => void;
   onSave: (payment: LoanPayment) => void;
 }> = ({ loan, onClose, onSave }) => {
+  // Kiểm tra xem có phải khoản vay đáo hạn không
+  const isDaoHan = loan.purpose?.toLowerCase().includes("đáo hạn");
+  
+  // Tính lãi cho kỳ hạn (tháng)
+  const calculateInterest = () => {
+    // Lãi = Số tiền còn nợ * lãi suất/năm / 12 tháng
+    return (loan.remainingAmount * loan.interestRate / 100 / 12);
+  };
+
   const [principalAmount, setPrincipalAmount] = useState(
-    loan.monthlyPayment.toString()
+    isDaoHan ? "0" : loan.monthlyPayment.toString()
   );
-  const [interestAmount, setInterestAmount] = useState("0");
+  const [interestAmount, setInterestAmount] = useState(
+    isDaoHan ? calculateInterest().toFixed(2) : "0"
+  );
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank">("bank");
   const [paymentDate, setPaymentDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -966,6 +995,13 @@ const LoanPaymentModal: React.FC<{
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Còn nợ: {formatCurrency(loan.remainingAmount)}
           </p>
+          {isDaoHan && (
+            <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <p className="text-xs text-amber-800 dark:text-amber-200">
+                ⚠️ Khoản vay đáo hạn: Chỉ tính lãi suất, không trả gốc
+              </p>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -977,8 +1013,9 @@ const LoanPaymentModal: React.FC<{
               type="number"
               value={principalAmount}
               onChange={(e) => setPrincipalAmount(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
+              className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               required
+              disabled={isDaoHan}
             />
           </div>
 

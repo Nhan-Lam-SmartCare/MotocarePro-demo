@@ -502,6 +502,8 @@ const ReportsManager: React.FC = () => {
     "outsourcing",      // Chi gia công bên ngoài - đã tính trong lợi nhuận phiếu SC
     "service_cost",     // Chi phí dịch vụ - đã tính trong lợi nhuận phiếu SC
     "refund",           // Hoàn trả - không phải chi phí thực tế
+    "loan_payment",     // Trả nợ vay (gốc) - không phải chi phí thực tế
+    "debt_payment",     // Trả nợ - không phải chi phí thực tế
   ];
 
   // Helper function để check exclude với case-insensitive
