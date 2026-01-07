@@ -295,7 +295,7 @@ export function Nav() {
             )}
             {isOwnerOrManager && (
               <NavLink
-                to="/admin/promotions"
+                to="/admin/khuyen-mai"
                 colorKey="pink"
                 icon={<Tag className="w-4 h-4" />}
                 label="Khuyến mãi"
@@ -438,7 +438,7 @@ export function Nav() {
                       />
                       {isOwnerOrManager && (
                         <MobileDrawerLink
-                          to="/admin/promotions"
+                          to="/admin/khuyen-mai"
                           icon={<Tag className="w-5 h-5" />}
                           label="Quản lý khuyến mãi"
                           color="pink"

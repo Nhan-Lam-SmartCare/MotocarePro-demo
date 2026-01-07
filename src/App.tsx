@@ -1,6 +1,6 @@
 import React, { useEffect, useState, Suspense } from "react";
 import {
-  HashRouter,
+  BrowserRouter,
   Routes,
   Route,
   Navigate,
@@ -225,7 +225,7 @@ const queryClient = new QueryClient({
 const MainLayout: React.FC = () => {
   const location = useLocation();
   const isSalesPage = location.pathname === "/sales";
-  const isShopPage = ['/shop', '/promotions', '/gallery'].includes(location.pathname);
+  const isShopPage = ['/san-pham', '/khuyen-mai', '/thu-vien'].includes(location.pathname);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors pb-20 md:pb-0 relative overflow-hidden">
@@ -383,7 +383,7 @@ const MainLayout: React.FC = () => {
           />
           {/* Public Shop Pages - No authentication required */}
           <Route
-            path="/shop"
+            path="/san-pham"
             element={
               <ShopLayout>
                 <Suspense fallback={<PageLoader />}>
@@ -393,7 +393,7 @@ const MainLayout: React.FC = () => {
             }
           />
           <Route
-            path="/promotions"
+            path="/khuyen-mai"
             element={
               <ShopLayout>
                 <Suspense fallback={<PageLoader />}>
@@ -403,7 +403,7 @@ const MainLayout: React.FC = () => {
             }
           />
           <Route
-            path="/gallery"
+            path="/thu-vien"
             element={
               <ShopLayout>
                 <Suspense fallback={<PageLoader />}>
@@ -414,7 +414,7 @@ const MainLayout: React.FC = () => {
           />
           {/* Admin Shop Pages - Manage shop content */}
           <Route
-            path="/admin/promotions"
+            path="/admin/khuyen-mai"
             element={
               <ProtectedRoute requiredRoles={["owner", "manager"]}>
                 <Suspense fallback={<PageLoader />}>
@@ -447,7 +447,7 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <AppProvider>
-            <HashRouter>
+            <BrowserRouter>
               <ErrorBoundary>
                 <TopProgressBar />
                 <Routes>
@@ -472,7 +472,7 @@ export default function App() {
                 {/* Dev-only repository error panel */}
                 {import.meta.env.DEV && <RepoErrorPanel />}
               </ErrorBoundary>
-            </HashRouter>
+            </BrowserRouter>
           </AppProvider>
         </AuthProvider>
       </ThemeProvider>

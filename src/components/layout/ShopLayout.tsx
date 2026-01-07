@@ -10,9 +10,9 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const location = useLocation();
 
   const navLinks = [
-    { path: '/shop', label: 'Sản Phẩm', icon: Home },
-    { path: '/promotions', label: 'Khuyến Mãi', icon: Tag },
-    { path: '/gallery', label: 'Thư Viện', icon: Image },
+    { path: '/san-pham', label: 'Sản Phẩm', icon: Home },
+    { path: '/khuyen-mai', label: 'Khuyến Mãi', icon: Tag },
+    { path: '/thu-vien', label: 'Thư Viện', icon: Image },
   ];
 
   return (
@@ -22,7 +22,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/shop" className="flex items-center gap-3 group">
+            <Link to="/san-pham" className="flex items-center gap-3 group">
               <img
                 src="/logo-smartcare.png"
                 alt="SmartCare Logo"
