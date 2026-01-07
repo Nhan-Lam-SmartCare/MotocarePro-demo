@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppContext } from "../../contexts/AppContext";
+import { supabase } from "../../supabaseClient";
 import {
   Search,
   Filter,
@@ -20,12 +20,62 @@ import type { Part } from "../../types";
 
 export default function ProductCatalog() {
   const navigate = useNavigate();
-  const { parts, currentBranchId } = useAppContext();
+  const [parts, setParts] = useState<Part[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentBranchId, setCurrentBranchId] = useState<string>("branch1"); // Default branch
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [cart, setCart] = useState<Map<string, number>>(new Map());
   const [showCart, setShowCart] = useState(false);
+  const [displayCount, setDisplayCount] = useState(12); // Show 12 products initially
+
+  // Fetch products from Supabase (public access)
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        console.log('🔍 [Shop] Bắt đầu fetch sản phẩm...');
+        
+        // Select only existing columns: id, name, sku, category, stock, retailPrice, wholesalePrice
+        const { data, error } = await supabase
+          .from('parts')
+          .select('id, name, sku, category, stock, retailPrice, wholesalePrice')
+          .order('name');
+
+        console.log('📦 [Shop] Kết quả fetch:', {
+          totalProducts: data?.length || 0,
+          error: error?.message,
+          sampleProduct: data?.[0],
+          sampleStock: data?.[0]?.stock,
+          sampleStockType: typeof data?.[0]?.stock,
+          stockKeys: data?.[0]?.stock ? Object.keys(data?.[0]?.stock) : []
+        });
+
+        if (error) {
+          console.error('❌ [Shop] Lỗi fetch:', error);
+          throw error;
+        }
+        
+        console.log('✅ [Shop] Fetch thành công!', {
+          products: data?.length,
+          currentBranchId
+        });
+        
+        setParts(data || []);
+      } catch (error) {
+        console.error('❌ [Shop] Error fetching products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Reset display count when filters change
+  useEffect(() => {
+    setDisplayCount(12);
+  }, [searchQuery, selectedCategory]);
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -35,10 +85,34 @@ export default function ProductCatalog() {
 
   // Filter products
   const filteredProducts = useMemo(() => {
+    console.log('🔍 [Shop] Filtering products...', {
+      totalParts: parts.length,
+      currentBranchId,
+      searchQuery,
+      selectedCategory
+    });
+    
     let filtered = parts.filter((p) => {
-      // Only show products with stock
-      const hasStock = (p.stock?.[currentBranchId] || 0) > 0;
+      // Stock is JSONB: {CN1: quantity}
+      // Get actual branch ID from stock keys (CN1, CN2, etc.)
+      const stockKeys = p.stock && typeof p.stock === 'object' ? Object.keys(p.stock) : [];
+      const actualBranchId = stockKeys[0] || 'CN1'; // Use first branch or default to CN1
+      
+      // Calculate TOTAL stock across ALL branches
+      let totalStock = 0;
+      if (p.stock && typeof p.stock === 'object') {
+        totalStock = Object.values(p.stock).reduce((sum: number, qty: any) => {
+          const numQty = Number(qty) || 0;
+          return sum + numQty;
+        }, 0);
+      }
+      
+      const hasStock = totalStock > 0;
+      
       if (!hasStock) return false;
+      
+      // Store actual branch ID in product for display
+      (p as any).actualBranchId = actualBranchId;
 
       // Filter by search
       if (searchQuery) {
@@ -56,8 +130,13 @@ export default function ProductCatalog() {
       return true;
     });
 
+    console.log('✅ [Shop] Filter result:', {
+      filteredCount: filtered.length,
+      sampleProduct: filtered[0]
+    });
+
     return filtered;
-  }, [parts, searchQuery, selectedCategory]);
+  }, [parts, searchQuery, selectedCategory, currentBranchId]);
 
   const addToCart = (partId: string) => {
     setCart((prev) => {
@@ -119,12 +198,18 @@ export default function ProductCatalog() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-[#0a0a0f] dark:to-[#1a1a2e]">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
-        <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            🏍️ Phụ Tùng Xe Máy Chính Hãng
-          </h1>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* Hero Section */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+            <div className="container mx-auto px-4">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                🏍️ Phụ Tùng Xe Máy Chính Hãng
+              </h1>
           <p className="text-xl text-blue-100">
             Tìm kiếm và đặt hàng phụ tùng nhanh chóng, tiện lợi
           </p>
@@ -207,32 +292,46 @@ export default function ProductCatalog() {
 
           {/* Results count */}
           <div className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-            Tìm thấy <span className="font-bold text-blue-600 dark:text-blue-400">{filteredProducts.length}</span> sản phẩm
+            Hiển thị <span className="font-bold text-blue-600 dark:text-blue-400">{Math.min(displayCount, filteredProducts.length)}</span> / {filteredProducts.length} sản phẩm
           </div>
         </div>
 
         {/* Products Grid/List */}
         {viewMode === "grid" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
+            {filteredProducts.slice(0, displayCount).map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
                 onAddToCart={addToCart}
                 cartQuantity={cart.get(product.id) || 0}
+                currentBranchId={currentBranchId}
               />
             ))}
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredProducts.map((product) => (
+            {filteredProducts.slice(0, displayCount).map((product) => (
               <ProductListItem
                 key={product.id}
                 product={product}
                 onAddToCart={addToCart}
                 cartQuantity={cart.get(product.id) || 0}
+                currentBranchId={currentBranchId}
               />
             ))}
+          </div>
+        )}
+
+        {/* Load More Button */}
+        {displayCount < filteredProducts.length && (
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={() => setDisplayCount(prev => prev + 12)}
+              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-colors shadow-lg hover:shadow-xl"
+            >
+              Xem thêm ({filteredProducts.length - displayCount} sản phẩm)
+            </button>
           </div>
         )}
 
@@ -281,11 +380,15 @@ export default function ProductCatalog() {
                       className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-[#151521] rounded-xl"
                     >
                       <img
-                        src={`/images/products/${item.part.sku || 'placeholder'}.jpg`}
+                        src={item.part.imageUrl || `/images/products/${item.part.sku || 'placeholder'}.png`}
                         alt={item.part.name}
-                        className="w-16 h-16 object-cover rounded-lg"
+                        className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = "/images/products/placeholder.jpg";
+                          if (e.currentTarget.src.endsWith('.png')) {
+                            e.currentTarget.src = `/images/products/${item.part.sku || 'placeholder'}.jpg`;
+                          } else {
+                            e.currentTarget.src = "/images/products/placeholder.jpg";
+                          }
                         }}
                       />
                       <div className="flex-1">
@@ -348,6 +451,8 @@ export default function ProductCatalog() {
           </div>
         </div>
       )}
+        </>
+      )}
     </div>
   );
 }
@@ -357,12 +462,13 @@ function ProductCard({
   product,
   onAddToCart,
   cartQuantity,
+  currentBranchId,
 }: {
   product: Part;
   onAddToCart: (id: string) => void;
   cartQuantity: number;
+  currentBranchId: string;
 }) {
-  const { currentBranchId } = useAppContext();
   const categoryColor = getCategoryColor(product.category || "");
 
   return (
@@ -370,11 +476,19 @@ function ProductCard({
       {/* Image */}
       <div className="relative aspect-square bg-slate-100 dark:bg-slate-800">
         <img
-          src={`/images/products/${product.sku || 'placeholder'}.jpg`}
+          src={product.imageUrl || `/images/products/${product.sku || 'placeholder'}.webp`}
           alt={product.name}
           className="w-full h-full object-cover"
           onError={(e) => {
-            e.currentTarget.src = "/images/products/placeholder.jpg";
+            const target = e.currentTarget;
+            // Try .webp -> .png -> .jpg -> placeholder
+            if (target.src.endsWith('.webp')) {
+              target.src = `/images/products/${product.sku || 'placeholder'}.png`;
+            } else if (target.src.endsWith('.png')) {
+              target.src = `/images/products/${product.sku || 'placeholder'}.jpg`;
+            } else {
+              target.src = "/images/products/placeholder.jpg";
+            }
           }}
         />
         {product.category && (
@@ -402,10 +516,18 @@ function ProductCard({
 
         <div className="flex items-center justify-between mb-3">
           <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {formatCurrency(product.retailPrice?.[currentBranchId] || 0)}
+            {formatCurrency(
+              (product.retailPrice && typeof product.retailPrice === 'object')
+                ? (product.retailPrice[(product as any).actualBranchId || 'CN1'] || 0)
+                : 0
+            )}
           </span>
           <span className="text-sm text-slate-500 dark:text-slate-400">
-            Còn: {product.stock?.[currentBranchId] || 0}
+            Còn: {
+              (product.stock && typeof product.stock === 'object')
+                ? (product.stock[(product as any).actualBranchId || 'CN1'] || 0)
+                : 0
+            }
           </span>
         </div>
 
@@ -426,12 +548,13 @@ function ProductListItem({
   product,
   onAddToCart,
   cartQuantity,
+  currentBranchId,
 }: {
   product: Part;
   onAddToCart: (id: string) => void;
   cartQuantity: number;
+  currentBranchId: string;
 }) {
-  const { currentBranchId } = useAppContext();
   const categoryColor = getCategoryColor(product.category || "");
 
   return (
@@ -439,11 +562,19 @@ function ProductListItem({
       {/* Image */}
       <div className="relative w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
         <img
-          src={`/images/products/${product.sku || 'placeholder'}.jpg`}
+          src={product.imageUrl || `/images/products/${product.sku || 'placeholder'}.webp`}
           alt={product.name}
           className="w-full h-full object-cover"
           onError={(e) => {
-            e.currentTarget.src = "/images/products/placeholder.jpg";
+            const target = e.currentTarget;
+            // Try .webp -> .png -> .jpg -> placeholder
+            if (target.src.endsWith('.webp')) {
+              target.src = `/images/products/${product.sku || 'placeholder'}.png`;
+            } else if (target.src.endsWith('.png')) {
+              target.src = `/images/products/${product.sku || 'placeholder'}.jpg`;
+            } else {
+              target.src = "/images/products/placeholder.jpg";
+            }
           }}
         />
         {cartQuantity > 0 && (
@@ -473,10 +604,18 @@ function ProductListItem({
       {/* Price & Actions */}
       <div className="flex flex-col items-end gap-2">
         <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-          {formatCurrency(product.retailPrice?.[currentBranchId] || 0)}
+          {formatCurrency(
+            (product.retailPrice && typeof product.retailPrice === 'object')
+              ? (product.retailPrice[(product as any).actualBranchId || 'CN1'] || 0)
+              : 0
+          )}
         </span>
         <span className="text-sm text-slate-500 dark:text-slate-400">
-          Còn: {product.stock?.[currentBranchId] || 0}
+          Còn: {
+            (product.stock && typeof product.stock === 'object')
+              ? (product.stock[(product as any).actualBranchId || 'CN1'] || 0)
+              : 0
+          }
         </span>
         <button
           onClick={() => onAddToCart(product.id)}

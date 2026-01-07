@@ -130,7 +130,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
                   <div>
                     <p className="font-medium">Địa chỉ</p>
                     <p className="text-sm text-gray-400">
-                      Nhạn Lâm, Cần Giuộc, Long An
+                      Ấp Phú Lợi B, Xã Long Phú Thuận, Đồng Tháp
                     </p>
                   </div>
                 </li>
@@ -138,8 +138,8 @@ export function ShopLayout({ children }: ShopLayoutProps) {
                   <Mail className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium">Email</p>
-                    <a href="mailto:contact@smartcare.vn" className="text-orange-400 hover:text-orange-300 text-sm">
-                      contact@smartcare.vn
+                    <a href="mailto:nhanlamsmartcare2025@gmail.com" className="text-orange-400 hover:text-orange-300 text-sm">
+                      nhanlamsmartcare2025@gmail.com
                     </a>
                   </div>
                 </li>
@@ -151,7 +151,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
               <h3 className="text-lg font-bold text-white mb-4">Kết Nối</h3>
               <div className="flex items-center gap-3 mb-6">
                 <a
-                  href="https://facebook.com"
+                  href="https://www.facebook.com/?ref=homescreenpwa"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition"
