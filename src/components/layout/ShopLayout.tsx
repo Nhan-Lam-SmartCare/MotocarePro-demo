@@ -45,7 +45,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
                     to={link.path}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
                       isActive
-                        ? 'bg-orange-100 text-orange-600'
+                        ? 'bg-orange-100 text-orange-700 font-semibold ring-1 ring-orange-200 shadow-sm'
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
@@ -78,7 +78,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
                   to={link.path}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium text-sm whitespace-nowrap transition ${
                     isActive
-                      ? 'bg-orange-100 text-orange-600'
+                      ? 'bg-orange-100 text-orange-700 font-semibold ring-1 ring-orange-200'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >

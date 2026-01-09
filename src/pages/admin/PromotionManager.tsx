@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabaseClient';
 import { Plus, Edit2, Trash2, Save, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
@@ -20,6 +21,7 @@ interface Promotion {
 }
 
 export default function PromotionManager() {
+  const navigate = useNavigate();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -249,13 +251,24 @@ export default function PromotionManager() {
           <h1 className="text-2xl font-bold text-gray-900">Quản Lý Khuyến Mãi</h1>
           <p className="text-sm text-gray-500 mt-1">Thêm, sửa, xóa các chương trình khuyến mãi</p>
         </div>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-        >
-          <Plus className="h-5 w-5" />
-          Thêm Khuyến Mãi
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/thu-vien')}
+            className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <ImageIcon className="h-5 w-5" />
+            Quản lý thư viện
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsFormOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            Thêm Khuyến Mãi
+          </button>
+        </div>
       </div>
 
       {/* Form Modal */}

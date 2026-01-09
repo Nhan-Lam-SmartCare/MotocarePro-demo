@@ -18,11 +18,36 @@ import { formatCurrency } from "../../utils/format";
 import { getCategoryColor } from "../../utils/categoryColors";
 import type { Part } from "../../types";
 
+function getFirstKey(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const keys = Object.keys(value as Record<string, unknown>);
+  return keys.length > 0 ? keys[0] : null;
+}
+
+function getBranchKey(part: Part): string {
+  return (
+    (part as any).actualBranchId ||
+    getFirstKey((part as any).retailPrice) ||
+    getFirstKey((part as any).stock) ||
+    "CN1"
+  );
+}
+
+function getRetailPrice(part: Part): number {
+  const retailPrice = (part as any).retailPrice;
+  if (retailPrice && typeof retailPrice === "object") {
+    const key = getBranchKey(part);
+    const fallbackKey = getFirstKey(retailPrice);
+    return Number(retailPrice[key] ?? (fallbackKey ? retailPrice[fallbackKey] : 0) ?? 0) || 0;
+  }
+  return Number(retailPrice) || 0;
+}
+
 export default function ProductCatalog() {
   const navigate = useNavigate();
   const [parts, setParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentBranchId, setCurrentBranchId] = useState<string>("branch1"); // Default branch
+  const [currentBranchId, setCurrentBranchId] = useState<string>("CN1"); // Default branch key (CN1, CN2, ...)
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -169,9 +194,13 @@ export default function ProductCatalog() {
 
   const cartTotal = useMemo(() => {
     return cartItems.reduce((sum, item) => {
-      return sum + (item.part.retailPrice?.[currentBranchId] || 0) * item.quantity;
+      return sum + getRetailPrice(item.part) * item.quantity;
     }, 0);
-  }, [cartItems, currentBranchId]);
+  }, [cartItems]);
+
+  const cartTotalQuantity = useMemo(() => {
+    return Array.from(cart.values()).reduce((sum, qty) => sum + (Number(qty) || 0), 0);
+  }, [cart]);
 
   const handleOrder = () => {
     if (cartItems.length === 0) return;
@@ -181,7 +210,7 @@ export default function ProductCatalog() {
       .map(
         (item) =>
           `• ${item.part.name} (${item.part.sku}) x${item.quantity} = ${formatCurrency(
-            (item.part.retailPrice?.[currentBranchId] || 0) * item.quantity
+            getRetailPrice(item.part) * item.quantity
           )}`
       )
       .join("\n");
@@ -190,10 +219,14 @@ export default function ProductCatalog() {
       cartTotal
     )}\n\nVui lòng liên hệ để xác nhận đơn hàng!`;
 
-    // Open Zalo/Telegram with pre-filled message
-    const encodedMessage = encodeURIComponent(message);
-    // You can customize phone number or Telegram bot link
-    window.open(`https://zalo.me/g/xxxx?message=${encodedMessage}`, "_blank");
+    // Open Zalo chat and copy the order text for quick paste
+    try {
+      navigator.clipboard?.writeText(message);
+    } catch {
+      // ignore clipboard errors (non-HTTPS or unsupported browser)
+    }
+
+    window.open(`https://zalo.me/0947747907`, "_blank");
   };
 
   return (
@@ -205,7 +238,7 @@ export default function ProductCatalog() {
       ) : (
         <>
           {/* Hero Section */}
-          <div className="relative overflow-hidden bg-slate-900 text-white py-20">
+          <div className="relative overflow-hidden bg-slate-900 text-white py-10 md:py-14">
             {/* Background Pattern */}
             <div className="absolute inset-0 z-0 opacity-20">
               <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
@@ -214,10 +247,10 @@ export default function ProductCatalog() {
             </div>
 
             <div className="container mx-auto px-4 relative z-10 text-center">
-              <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+              <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
                 Phụ Tùng Xe Máy Chính Hãng
               </h1>
-              <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+              <p className="text-base md:text-lg text-slate-300 max-w-2xl mx-auto">
                 Tìm kiếm và đặt hàng phụ tùng chất lượng cao nhanh chóng, tiện lợi với mức giá tốt nhất
               </p>
             </div>
@@ -226,7 +259,7 @@ export default function ProductCatalog() {
           <div className="container mx-auto px-4 py-8">
             {/* Search & Filter Bar */}
             <div className="sticky top-4 z-40 bg-white/80 dark:bg-[#1e1e2d]/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 rounded-2xl shadow-xl p-4 md:p-6 mb-8 transition-all duration-300">
-              <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex flex-col md:flex-row gap-5 md:gap-6">
                 {/* Search */}
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -240,7 +273,7 @@ export default function ProductCatalog() {
                 </div>
 
                 {/* Category Filter */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <Filter className="w-5 h-5 text-slate-400" />
                   <select
                     value={selectedCategory}
@@ -259,7 +292,7 @@ export default function ProductCatalog() {
                 </div>
 
                 {/* View Mode Toggle */}
-                <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#151521] rounded-xl p-1">
+                <div className="flex items-center gap-3 bg-slate-50 dark:bg-[#151521] rounded-xl p-1">
                   <button
                     onClick={() => setViewMode("grid")}
                     className={`p-2 rounded-lg transition-colors ${viewMode === "grid"
@@ -287,9 +320,9 @@ export default function ProductCatalog() {
                 >
                   <ShoppingCart className="w-5 h-5" />
                   <span>Giỏ hàng</span>
-                  {cartItems.length > 0 && (
+                  {cartTotalQuantity > 0 && (
                     <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                      {cartItems.length}
+                      {cartTotalQuantity}
                     </span>
                   )}
                 </button>
@@ -384,18 +417,24 @@ export default function ProductCatalog() {
                           key={item.part.id}
                           className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-[#151521] rounded-xl"
                         >
-                          <img
-                            src={item.part.imageUrl || `/images/products/${item.part.sku || 'placeholder'}.png`}
-                            alt={item.part.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              if (e.currentTarget.src.endsWith('.png')) {
-                                e.currentTarget.src = `/images/products/${item.part.sku || 'placeholder'}.jpg`;
-                              } else {
-                                e.currentTarget.src = "/images/products/placeholder.jpg";
-                              }
-                            }}
-                          />
+                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                            <img
+                              src={item.part.imageUrl || `/images/products/${item.part.sku || 'placeholder'}.webp`}
+                              alt={item.part.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                // Try .webp -> .png -> .jpg -> placeholder
+                                if (target.src.endsWith('.webp')) {
+                                  target.src = `/images/products/${item.part.sku || 'placeholder'}.png`;
+                                } else if (target.src.endsWith('.png')) {
+                                  target.src = `/images/products/${item.part.sku || 'placeholder'}.jpg`;
+                                } else {
+                                  target.src = "/images/products/placeholder.jpg";
+                                }
+                              }}
+                            />
+                          </div>
                           <div className="flex-1">
                             <h3 className="font-bold text-slate-900 dark:text-white">
                               {item.part.name}
@@ -404,7 +443,7 @@ export default function ProductCatalog() {
                               {item.part.sku}
                             </p>
                             <p className="font-bold text-blue-600 dark:text-blue-400">
-                              {formatCurrency(item.part.retailPrice?.[currentBranchId] || 0)}
+                              {formatCurrency(getRetailPrice(item.part))}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
@@ -449,7 +488,7 @@ export default function ProductCatalog() {
                       Đặt hàng ngay
                     </button>
                     <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-3">
-                      Nhấn để gửi đơn hàng qua Zalo
+                      Đã copy nội dung đơn hàng — mở Zalo và dán để gửi
                     </p>
                   </div>
                 )}
@@ -482,8 +521,10 @@ function ProductCard({
     : 0;
   const isOutOfStock = stock <= 0;
 
+  const price = getRetailPrice(product);
+
   return (
-    <div className="group relative bg-white dark:bg-[#1e1e2d] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1 overflow-hidden flex flex-col h-full">
+    <div className="group relative bg-white dark:bg-[#1e1e2d] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1 overflow-hidden flex flex-col h-full focus-within:ring-2 focus-within:ring-blue-500/20">
       {/* Image */}
       <div className="relative aspect-square bg-slate-50 dark:bg-[#151521] overflow-hidden">
         <img
@@ -506,7 +547,7 @@ function ProductCard({
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {product.category && (
-            <span className={`px-3 py-1 bg-black/50 backdrop-blur-md text-white text-xs font-bold rounded-full`}>
+            <span className={`px-3 py-1 bg-black/60 backdrop-blur-md text-white text-xs font-bold rounded-full ring-1 ring-white/10`}>
               {product.category}
             </span>
           )}
@@ -519,11 +560,11 @@ function ProductCard({
         )}
 
         {/* Overlay Actions */}
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300 flex items-center justify-center">
           {!isOutOfStock && (
             <button
               onClick={() => onAddToCart(product.id)}
-              className="bg-white text-slate-900 px-6 py-2 rounded-full font-bold shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 hover:bg-blue-50"
+              className="bg-white text-slate-900 px-6 py-2 rounded-full font-bold shadow-lg transform translate-y-4 group-hover:translate-y-0 group-focus-within:translate-y-0 transition-transform duration-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               Thêm nhanh
             </button>
@@ -534,7 +575,7 @@ function ProductCard({
       {/* Info */}
       <div className="p-5 flex flex-col flex-1">
         <div className="mb-auto">
-          <p className="text-xs text-slate-400 font-mono mb-1">#{product.sku}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-300 font-mono mb-1">#{product.sku}</p>
           <h3 className="font-bold text-slate-800 dark:text-slate-100 leading-tight mb-2 line-clamp-2 group-hover:text-blue-500 transition-colors">
             {product.name}
           </h3>
@@ -542,17 +583,13 @@ function ProductCard({
 
         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-end justify-between">
           <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Đơn giá</p>
+            <p className="text-xs text-slate-500 dark:text-slate-300 mb-1">Đơn giá</p>
             <span className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
-              {formatCurrency(
-                (product.retailPrice && typeof product.retailPrice === 'object')
-                  ? (product.retailPrice[(product as any).actualBranchId || 'CN1'] || 0)
-                  : 0
-              )}
+              {formatCurrency(price)}
             </span>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Kho</p>
+            <p className="text-xs text-slate-500 dark:text-slate-300 mb-1">Kho</p>
             {isOutOfStock ? (
               <span className="text-sm font-bold text-red-500">Hết hàng</span>
             ) : (
@@ -578,6 +615,8 @@ function ProductListItem({
   currentBranchId: string;
 }) {
   const categoryColor = getCategoryColor(product.category || "");
+
+  const price = getRetailPrice(product);
 
   return (
     <div className="bg-white dark:bg-[#1e1e2d] rounded-xl shadow-lg hover:shadow-2xl transition-shadow p-4 flex items-center gap-4">
@@ -611,7 +650,7 @@ function ProductListItem({
         <h3 className="font-bold text-slate-900 dark:text-white mb-1">
           {product.name}
         </h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+        <p className="text-sm text-slate-500 dark:text-slate-300 mb-2">
           SKU: {product.sku}
         </p>
         {product.category && (
@@ -626,13 +665,9 @@ function ProductListItem({
       {/* Price & Actions */}
       <div className="flex flex-col items-end gap-2">
         <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-          {formatCurrency(
-            (product.retailPrice && typeof product.retailPrice === 'object')
-              ? (product.retailPrice[(product as any).actualBranchId || 'CN1'] || 0)
-              : 0
-          )}
+          {formatCurrency(price)}
         </span>
-        <span className="text-sm text-slate-500 dark:text-slate-400">
+        <span className="text-sm text-slate-500 dark:text-slate-300">
           Còn: {
             (product.stock && typeof product.stock === 'object')
               ? (product.stock[(product as any).actualBranchId || 'CN1'] || 0)
@@ -641,7 +676,7 @@ function ProductListItem({
         </span>
         <button
           onClick={() => onAddToCart(product.id)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors flex items-center gap-2 whitespace-nowrap"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors flex items-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
         >
           <ShoppingCart className="w-4 h-4" />
           Thêm vào giỏ
