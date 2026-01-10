@@ -5,15 +5,15 @@
 -- ============================================
 
 -- 1. KHÁCH HÀNG MẪU
-INSERT INTO public.customers (id, name, phone, email, address, "totalSpent", "createdAt") VALUES
-('cust-demo-001', 'Nguyễn Văn An', '0901234567', 'nguyenvanan@gmail.com', '123 Nguyễn Huệ, Q.1, TP.HCM', 0, NOW()),
-('cust-demo-002', 'Trần Thị Bình', '0912345678', 'tranbinhthi@gmail.com', '456 Lê Lợi, Q.1, TP.HCM', 0, NOW()),
-('cust-demo-003', 'Lê Hoàng Cường', '0923456789', 'lehoangcuong@gmail.com', '789 Điện Biên Phủ, Q.3, TP.HCM', 0, NOW()),
-('cust-demo-004', 'Phạm Minh Đức', '0934567890', 'phamminhduc@gmail.com', '321 Võ Văn Tần, Q.3, TP.HCM', 0, NOW()),
-('cust-demo-005', 'Hoàng Thị Em', '0945678901', 'hoangthiem@gmail.com', '654 Trường Sa, Q.Phú Nhuận, TP.HCM', 0, NOW()),
-('cust-demo-006', 'Vũ Quang Phúc', '0956789012', 'vuquangphuc@gmail.com', '987 CMT8, Q.10, TP.HCM', 0, NOW()),
-('cust-demo-007', 'Đặng Thu Hà', '0967890123', 'dangthuha@gmail.com', '147 Hai Bà Trưng, Q.1, TP.HCM', 0, NOW()),
-('cust-demo-008', 'Bùi Văn Kiên', '0978901234', 'buivankien@gmail.com', '258 Nguyễn Thị Minh Khai, Q.3, TP.HCM', 0, NOW())
+INSERT INTO public.customers (id, name, phone) VALUES
+('cust-demo-001', 'Nguyễn Văn An', '0901234567'),
+('cust-demo-002', 'Trần Thị Bình', '0912345678'),
+('cust-demo-003', 'Lê Hoàng Cường', '0923456789'),
+('cust-demo-004', 'Phạm Minh Đức', '0934567890'),
+('cust-demo-005', 'Hoàng Thị Em', '0945678901'),
+('cust-demo-006', 'Vũ Quang Phúc', '0956789012'),
+('cust-demo-007', 'Đặng Thu Hà', '0967890123'),
+('cust-demo-008', 'Bùi Văn Kiên', '0978901234')
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. DANH MỤC PHỤ TÙNG
