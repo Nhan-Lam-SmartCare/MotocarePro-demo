@@ -14,11 +14,10 @@ import {
   Phone,
   CreditCard,
   Package,
-  CheckCircle,
   Clock,
   Star,
   History,
-  ChevronRight,
+  ChevronDown,
   MapPin,
   Edit2,
   Trash2,
@@ -30,7 +29,7 @@ import {
   useDeleteCustomer,
   useCreateCustomersBulk,
 } from "../../hooks/useSupabase";
-import { formatDate, formatCurrency, formatAnyId } from "../../utils/format";
+import { formatDate, formatCurrency, formatAnyId, normalizeSearchText } from "../../utils/format";
 import { validatePhoneNumber } from "../../utils/validation";
 import { PlusIcon, TrashIcon, XMarkIcon, UsersIcon } from "../Icons";
 import {
@@ -44,8 +43,9 @@ import { useWorkOrdersRepo } from "../../hooks/useWorkOrdersRepository";
 import { showToast } from "../../utils/toast";
 import {
   getVehiclesNeedingMaintenance,
-  MAINTENANCE_CYCLES,
 } from "../../utils/maintenanceReminder";
+import { supabase } from "../../supabaseClient";
+import { useDebounce } from "../../hooks/useDebounce";
 
 // --- COMPONENTS ---
 
@@ -159,43 +159,43 @@ const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
 
         {/* Stats Summary - Desktop */}
         <div className="hidden md:grid grid-cols-5 gap-4 p-5 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-800/50 text-center">
-            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+          <div className="bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 border-t-2 border-t-blue-500 shadow-sm text-center">
+            <div className="text-lg font-bold text-slate-900 dark:text-white">
               {customerSales.length}
             </div>
-            <div className="text-[10px] uppercase tracking-wider font-bold text-blue-500/70 dark:text-blue-400/50">
+            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
               Hóa đơn
             </div>
           </div>
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800/50 text-center">
-            <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+          <div className="bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 border-t-2 border-t-emerald-500 shadow-sm text-center">
+            <div className="text-lg font-bold text-slate-900 dark:text-white">
               {customerWorkOrders.length}
             </div>
-            <div className="text-[10px] uppercase tracking-wider font-bold text-emerald-500/70 dark:text-emerald-400/50">
+            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
               Phiếu SC
             </div>
           </div>
-          <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-xl border border-purple-100 dark:border-purple-800/50 text-center">
-            <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+          <div className="bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 border-t-2 border-t-purple-500 shadow-sm text-center">
+            <div className="text-lg font-bold text-slate-900 dark:text-white">
               {formatCurrency(actualTotalSpent)}
             </div>
-            <div className="text-[10px] uppercase tracking-wider font-bold text-purple-500/70 dark:text-purple-400/50">
+            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
               Tổng chi
             </div>
           </div>
-          <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl border border-orange-100 dark:border-orange-800/50 text-center">
-            <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
+          <div className="bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 border-t-2 border-t-orange-500 shadow-sm text-center">
+            <div className="text-lg font-bold text-slate-900 dark:text-white">
               {actualVisitCount}
             </div>
-            <div className="text-[10px] uppercase tracking-wider font-bold text-orange-500/70 dark:text-orange-400/50">
+            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
               Lần đến
             </div>
           </div>
-          <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-100 dark:border-amber-800/50 text-center">
-            <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+          <div className="bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 border-t-2 border-t-amber-500 shadow-sm text-center">
+            <div className="text-lg font-bold text-slate-900 dark:text-white">
               ⭐ {actualLoyaltyPoints.toLocaleString()}
             </div>
-            <div className="text-[10px] uppercase tracking-wider font-bold text-amber-500/70 dark:text-amber-400/50">
+            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
               Điểm TL
             </div>
           </div>
@@ -392,7 +392,7 @@ const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
                                 >
                                   <div className="flex items-center gap-2">
                                     <span className="text-slate-500">{part.quantity} x</span>
-                                    <span className="font-medium text-slate-700 dark:text-slate-300">{part.name}</span>
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">{part.partName || part.name}</span>
                                   </div>
                                   <span className="font-bold text-slate-900 dark:text-slate-100">
                                     {formatCurrency(part.price * part.quantity)}
@@ -480,14 +480,18 @@ const classifyCustomer = (customer: Customer): Customer["segment"] => {
 
 const CustomerManager: React.FC = () => {
   // Lấy danh sách khách hàng từ Supabase
-  const { data: customers = [], isLoading, refetch } = useCustomers();
+  const { data: customers = [], refetch } = useCustomers();
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
   const deleteCustomer = useDeleteCustomer();
 
+  // Refetch customers khi component mount để đảm bảo data mới nhất
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
   // Lấy danh sách nhà cung cấp từ Supabase
   const { data: suppliers = [], isLoading: suppliersLoading } = useSuppliers();
-  const createSupplier = useCreateSupplier();
   const deleteSupplierMutation = useDeleteSupplier();
 
   // State cho Load More
@@ -512,6 +516,68 @@ const CustomerManager: React.FC = () => {
   const [search, setSearch] = useState("");
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
 
+  // Server search state - để tìm khách hàng từ database khi có search term
+  const [serverCustomers, setServerCustomers] = useState<Customer[]>([]);
+  const [isSearchingServer, setIsSearchingServer] = useState(false);
+  const debouncedSearch = useDebounce(search, 300);
+
+  // Fetch customers từ server khi có search term
+  useEffect(() => {
+    const searchFromServer = async () => {
+      const searchTerm = debouncedSearch.trim();
+      if (!searchTerm) {
+        setServerCustomers([]);
+        return;
+      }
+
+      setIsSearchingServer(true);
+      try {
+        const { data, error } = await supabase
+          .from("customers")
+          .select("*")
+          .or(
+            `name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,vehiclemodel.ilike.%${searchTerm}%,licenseplate.ilike.%${searchTerm}%`
+          )
+          .order("created_at", { ascending: false })
+          .limit(100);
+
+        if (!error && data) {
+          // Map database columns to camelCase
+          const mappedData = data.map((c: any) => ({
+            ...c,
+            totalSpent: c.totalSpent ?? c.totalspent ?? 0,
+            visitCount: c.visitCount ?? c.visitcount ?? 0,
+            lastVisit: c.lastVisit ?? c.lastvisit ?? null,
+            vehicleModel: c.vehicleModel ?? c.vehiclemodel ?? null,
+            licensePlate: c.licensePlate ?? c.licenseplate ?? null,
+            loyaltyPoints: c.loyaltyPoints ?? c.loyaltypoints ?? 0,
+          }));
+          setServerCustomers(mappedData);
+        }
+      } catch (err) {
+        console.error("Error searching customers from server:", err);
+      } finally {
+        setIsSearchingServer(false);
+      }
+    };
+
+    searchFromServer();
+  }, [debouncedSearch]);
+
+  // Merge customers từ react-query và server search (loại bỏ trùng lặp)
+  const allCustomers = useMemo(() => {
+    if (!debouncedSearch.trim()) {
+      return customers;
+    }
+    // Khi có search, ưu tiên dùng kết quả từ server
+    const customerMap = new Map<string, Customer>();
+    // Thêm customers từ context trước
+    customers.forEach(c => customerMap.set(c.id, c));
+    // Server customers sẽ override (có thể mới hơn)
+    serverCustomers.forEach(c => customerMap.set(c.id, c));
+    return Array.from(customerMap.values());
+  }, [customers, serverCustomers, debouncedSearch]);
+
   // STATE MỚI: Cho việc thêm Nhà cung cấp
   const [showSupplierModal, setShowSupplierModal] = useState(false);
 
@@ -524,6 +590,7 @@ const CustomerManager: React.FC = () => {
     useState<Customer | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showActionSheet, setShowActionSheet] = useState(false);
+  const [showMaintenanceVehicles, setShowMaintenanceVehicles] = useState(false);
 
   // Fetch sales and work orders for history
   const { data: allSales = [] } = useSalesRepo();
@@ -537,20 +604,13 @@ const CustomerManager: React.FC = () => {
   // Auto-open edit form if editCustomerId is in localStorage (from SalesManager)
   useEffect(() => {
     const editCustomerId = localStorage.getItem("editCustomerId");
-    console.log("[CustomerManager] Checking editCustomerId:", editCustomerId);
-    console.log("[CustomerManager] Customers loaded:", customers.length);
 
     if (editCustomerId && customers.length > 0) {
       const customerToEdit = customers.find((c) => c.id === editCustomerId);
-      console.log("[CustomerManager] Found customer to edit:", customerToEdit);
 
       if (customerToEdit) {
         setEditCustomer(customerToEdit);
         localStorage.removeItem("editCustomerId"); // Clear after using
-        console.log(
-          "[CustomerManager] Opened edit form for:",
-          customerToEdit.name
-        );
       }
     }
   }, [customers]);
@@ -559,23 +619,14 @@ const CustomerManager: React.FC = () => {
   useEffect(() => {
     const checkAndOpenEdit = () => {
       const editCustomerId = localStorage.getItem("editCustomerId");
-      console.log(
-        "[CustomerManager MOUNT] Checking editCustomerId:",
-        editCustomerId
-      );
 
       if (editCustomerId && customers.length > 0) {
         const customerToEdit = customers.find((c) => c.id === editCustomerId);
-        console.log("[CustomerManager MOUNT] Found customer:", customerToEdit);
 
         if (customerToEdit) {
           setTimeout(() => {
             setEditCustomer(customerToEdit);
             localStorage.removeItem("editCustomerId");
-            console.log(
-              "[CustomerManager MOUNT] Opened edit form for:",
-              customerToEdit.name
-            );
           }, 100);
         }
       }
@@ -651,11 +702,9 @@ const CustomerManager: React.FC = () => {
 
   // Auto-classify customers on mount only
   useEffect(() => {
-    let hasChanges = false;
     customers.forEach((customer) => {
       if (!customer.segment) {
         const newSegment = classifyCustomer(customer);
-        hasChanges = true;
         // Cập nhật segment lên Supabase
         updateCustomer.mutate({
           id: customer.id,
@@ -665,19 +714,105 @@ const CustomerManager: React.FC = () => {
     });
   }, [customers.length]);
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    let result = customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        (c.phone && c.phone.includes(q)) ||
-        (c.vehicles &&
-          c.vehicles.some((v: any) =>
-            v.licensePlate?.toLowerCase().includes(q)
-          ))
-    );
+  // Tính segment ĐỘNG từ giao dịch thực tế (không dùng giá trị lưu trong DB vì chưa được cập nhật)
+  const liveSegmentMap = useMemo(() => {
+    // Index sales theo customer id và phone để tra cứu O(1)
+    const salesById = new Map<string, typeof allSales>();
+    const salesByPhone = new Map<string, typeof allSales>();
+    allSales.forEach((s) => {
+      if (s.customer?.id) {
+        if (!salesById.has(s.customer.id)) salesById.set(s.customer.id, []);
+        salesById.get(s.customer.id)!.push(s);
+      }
+      if (s.customer?.phone) {
+        if (!salesByPhone.has(s.customer.phone)) salesByPhone.set(s.customer.phone, []);
+        salesByPhone.get(s.customer.phone)!.push(s);
+      }
+    });
+    // Index work orders theo phone
+    const woByPhone = new Map<string, typeof allWorkOrders>();
+    allWorkOrders.forEach((wo) => {
+      if (wo.customerPhone && wo.status !== "Đã hủy") {
+        if (!woByPhone.has(wo.customerPhone)) woByPhone.set(wo.customerPhone, []);
+        woByPhone.get(wo.customerPhone)!.push(wo);
+      }
+    });
 
-    // Apply segment filter
+    const map = new Map<string, Customer["segment"]>();
+    customers.forEach((customer) => {
+      // Gộp sales theo id + phone, loại trùng
+      const seen = new Set<string>();
+      const cSales = [
+        ...(customer.id ? salesById.get(customer.id) || [] : []),
+        ...(customer.phone ? salesByPhone.get(customer.phone) || [] : []),
+      ].filter((s) => { if (seen.has(s.id)) return false; seen.add(s.id); return true; });
+      const cWOs = customer.phone ? woByPhone.get(customer.phone) || [] : [];
+
+      const totalSpent =
+        cSales.reduce((sum, s) => sum + (s.total || 0), 0) +
+        cWOs.reduce((sum, wo) => sum + (wo.total || 0), 0);
+
+      const visitCount = new Set([
+        ...cSales.map((s) => new Date(s.date).toDateString()),
+        ...cWOs.map((wo) => new Date(wo.creationDate || wo.id).toDateString()),
+      ]).size;
+
+      const allDates = [
+        ...cSales.map((s) => new Date(s.date).getTime()),
+        ...cWOs.map((wo) => new Date(wo.creationDate || wo.id).getTime()),
+      ];
+      const lastVisit = allDates.length > 0
+        ? new Date(Math.max(...allDates)).toISOString()
+        : null;
+
+      const loyaltyPoints = Math.floor(totalSpent / 10000);
+      map.set(customer.id, classifyCustomer({ ...customer, totalSpent, visitCount, loyaltyPoints, lastVisit: lastVisit ?? undefined }));
+    });
+    return map;
+     
+  }, [customers, allSales, allWorkOrders]);
+
+  const filtered = useMemo(() => {
+    const searchTerm = search.trim();
+    if (!searchTerm) {
+      let result = allCustomers;
+      if (activeFilter !== "all") {
+        const segmentMap: Record<string, string> = {
+          vip: "VIP",
+          loyal: "Loyal",
+          potential: "Potential",
+          "at-risk": "At Risk",
+          lost: "Lost",
+          new: "New",
+        };
+        const targetSegment = segmentMap[activeFilter];
+        result = result.filter((c) => liveSegmentMap.get(c.id) === targetSegment);
+      }
+      return result;
+    }
+
+    // Normalize search text (bỏ dấu tiếng Việt)
+    const q = normalizeSearchText(searchTerm);
+    const qLower = searchTerm.toLowerCase();
+    const searchDigits = searchTerm.replace(/\D/g, "");
+
+    let result = allCustomers.filter((c) => {
+      if (searchDigits.length > 0 && c.phone) {
+        const phoneDigits = c.phone.replace(/\D/g, "");
+        if (phoneDigits.includes(searchDigits) || searchDigits.includes(phoneDigits)) return true;
+      }
+      if (normalizeSearchText(c.name).includes(q)) return true;
+      if (c.email?.toLowerCase().includes(qLower)) return true;
+      if (normalizeSearchText(c.vehicleModel || "").includes(q)) return true;
+      if (c.licensePlate?.toLowerCase().includes(qLower)) return true;
+      if (c.vehicles && c.vehicles.some((v: any) =>
+        normalizeSearchText(v.licensePlate || "").includes(q) ||
+        normalizeSearchText(v.model || "").includes(q) ||
+        v.licensePlate?.toLowerCase().includes(qLower)
+      )) return true;
+      return false;
+    });
+
     if (activeFilter !== "all") {
       const segmentMap: Record<string, string> = {
         vip: "VIP",
@@ -688,11 +823,11 @@ const CustomerManager: React.FC = () => {
         new: "New",
       };
       const targetSegment = segmentMap[activeFilter];
-      result = result.filter((c) => c.segment === targetSegment);
+      result = result.filter((c) => liveSegmentMap.get(c.id) === targetSegment);
     }
 
     return result;
-  }, [customers, search, activeFilter]);
+  }, [allCustomers, search, activeFilter, liveSegmentMap]);
 
   const displayedCustomers = useMemo(
     () => filtered.slice(0, displayCount),
@@ -706,7 +841,7 @@ const CustomerManager: React.FC = () => {
       map.set(customer.id, calculateCustomerStats(customer));
     });
     return map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [displayedCustomers, allSales, allWorkOrders]);
 
   const handleDelete = async (id: string) => {
@@ -727,10 +862,20 @@ const CustomerManager: React.FC = () => {
     }
   };
 
-  // Statistics calculations
+  // Statistics calculations — dùng liveSegmentMap để đếm chính xác
   const stats = useMemo(() => {
     const total = customers.length;
     const active = customers.filter((c) => c.status === "active").length;
+    let vip = 0, loyal = 0, potential = 0, atRisk = 0, lost = 0, newSeg = 0;
+    customers.forEach((c) => {
+      const seg = liveSegmentMap.get(c.id);
+      if (seg === "VIP") vip++;
+      else if (seg === "Loyal") loyal++;
+      else if (seg === "Potential") potential++;
+      else if (seg === "At Risk") atRisk++;
+      else if (seg === "Lost") lost++;
+      else newSeg++;
+    });
     return {
       total,
       active,
@@ -743,15 +888,11 @@ const CustomerManager: React.FC = () => {
           date.getFullYear() === now.getFullYear()
         );
       }).length,
-      revenue: 0, // Placeholder
-      vip: customers.filter((c) => c.segment === "VIP").length,
-      loyal: customers.filter((c) => c.segment === "Loyal").length,
-      potential: customers.filter((c) => c.segment === "Potential").length,
-      atRisk: customers.filter((c) => c.segment === "At Risk").length,
-      lost: customers.filter((c) => c.segment === "Lost").length,
-      new: customers.filter((c) => c.segment === "New").length,
+      revenue: 0,
+      vip, loyal, potential, atRisk, lost,
+      new: newSeg,
     };
-  }, [customers]);
+  }, [customers, liveSegmentMap]);
 
   // Vehicles needing maintenance for customer care team
   const vehiclesNeedingMaintenance = useMemo(() => {
@@ -941,7 +1082,7 @@ const CustomerManager: React.FC = () => {
           <button
             onClick={() => setActiveTab("customers")}
             className={`flex items-center gap-1.5 px-3 py-2 md:py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === "customers"
-              ? "border-blue-500 text-blue-600 dark:text-blue-400"
+              ? "border-blue-500 text-slate-900 dark:text-white"
               : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               }`}
           >
@@ -951,7 +1092,7 @@ const CustomerManager: React.FC = () => {
           <button
             onClick={() => setActiveTab("suppliers")}
             className={`flex items-center gap-1.5 px-3 py-2 md:py-3 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === "suppliers"
-              ? "border-blue-500 text-blue-600 dark:text-blue-400"
+              ? "border-blue-500 text-slate-900 dark:text-white"
               : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               }`}
           >
@@ -995,11 +1136,19 @@ const CustomerManager: React.FC = () => {
                 </svg>
                 <input
                   type="text"
-                  placeholder="Tìm theo tên, SĐT, biển số xe..."
+                  placeholder="Tìm theo tên, SĐT, biển số, dòng xe..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-9 pr-14 md:pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm text-sm"
                 />
+                {isSearchingServer && (
+                  <div className="absolute right-14 md:right-3 top-1/2 -translate-y-1/2">
+                    <svg className="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                )}
                 <button
                   onClick={() => setShowActionSheet(true)}
                   className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-sm transition-colors hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
@@ -1023,7 +1172,7 @@ const CustomerManager: React.FC = () => {
               <div className="hidden md:flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
                 <button
                   onClick={() => setShowImport(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm text-sm"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm text-sm"
                 >
                   <svg
                     className="w-4 h-4"
@@ -1041,7 +1190,7 @@ const CustomerManager: React.FC = () => {
                   <span>Tải lên DS</span>
                 </button>
                 <button
-                  className="flex items-center gap-1.5 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm text-sm"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm text-sm"
                   onClick={() => alert("Tính năng đang phát triển")}
                 >
                   <svg
@@ -1182,130 +1331,141 @@ const CustomerManager: React.FC = () => {
           {/* Maintenance Reminder Section for Customer Care Team */}
           {vehiclesNeedingMaintenance.length > 0 && (
             <div className="mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <AlertTriangle className="w-5 h-5 text-orange-500" />
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Xe cần bảo dưỡng ({vehiclesNeedingMaintenance.length})
-                </h2>
-              </div>
-              <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border border-orange-200 dark:border-orange-800 p-4">
-                <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:snap-none">
-                  {vehiclesNeedingMaintenance.slice(0, 9).map((item, index) => {
-                    if (!item.customer) return null;
-                    return (
-                      <div
-                        key={`${item.customer.id}-${item.vehicle.licensePlate}-${index}`}
-                        className="snap-start min-w-[280px] md:min-w-0 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 shadow-sm"
-                      >
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                              {item.customer.name || "Khách hàng"}
-                            </p>
-                            <a
-                              href={`tel:${item.customer.phone}`}
-                              className="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                            >
-                              {item.customer.phone}
-                            </a>
-                          </div>
-                          <div className="flex flex-col items-end gap-1.5">
-                            <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
-                              <Bike className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
-                              <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                                {item.vehicle.licensePlate}
-                              </span>
-                            </div>
-                            {/* Vehicle Type Badge */}
-                            {(() => {
-                              const model = (
-                                item.vehicle.model || ""
-                              ).toLowerCase();
-                              const isAutomatic =
-                                model.includes("sh") ||
-                                model.includes("vision") ||
-                                model.includes("air blade") ||
-                                model.includes("lead") ||
-                                model.includes("vario") ||
-                                model.includes("pcx") ||
-                                model.includes("freego") ||
-                                model.includes("janus") ||
-                                model.includes("grande") ||
-                                model.includes("medley") ||
-                                model.includes("liberty");
-                              return (
-                                <span
-                                  className={`text-[10px] font-medium px-2 py-0.5 rounded ${isAutomatic
-                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                                    : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                                    }`}
-                                >
-                                  {isAutomatic ? "🛵 Tay ga" : "🏍️ Xe số"}
-                                </span>
-                              );
-                            })()}
-                          </div>
-                        </div>
-
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                          Số km hiện tại:{" "}
-                          <span className="font-semibold text-slate-700 dark:text-slate-200">
-                            {(item.vehicle.currentKm || 0).toLocaleString()} km
-                          </span>
-                        </div>
-
-                        <div className="space-y-2">
-                          {item.warnings.map((warning, wIdx) => {
-                            const IconComponent =
-                              warning.type === "oilChange"
-                                ? Droplets
-                                : warning.type === "gearboxOil"
-                                  ? Cog
-                                  : Wind;
-                            return (
-                              <div
-                                key={wIdx}
-                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${warning.isOverdue
-                                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                                  : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                                  }`}
+              <button
+                onClick={() => setShowMaintenanceVehicles(!showMaintenanceVehicles)}
+                className="w-full flex items-center justify-between gap-2 p-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border border-orange-200 dark:border-orange-800 hover:border-orange-300 dark:hover:border-orange-700 transition-all group"
+              >
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    Xe cần bảo dưỡng ({vehiclesNeedingMaintenance.length})
+                  </h2>
+                </div>
+                <ChevronDown
+                  className={`w-5 h-5 text-orange-500 transition-transform duration-200 ${showMaintenanceVehicles ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
+              {showMaintenanceVehicles && (
+                <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border border-orange-200 dark:border-orange-800 p-4 mt-2">
+                  <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:snap-none">
+                    {vehiclesNeedingMaintenance.slice(0, 9).map((item, index) => {
+                      if (!item.customer) return null;
+                      return (
+                        <div
+                          key={`${item.customer.id}-${item.vehicle.licensePlate}-${index}`}
+                          className="snap-start min-w-[280px] md:min-w-0 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 shadow-sm"
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                                {item.customer.name || "Khách hàng"}
+                              </p>
+                              <a
+                                href={`tel:${item.customer.phone}`}
+                                className="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                               >
-                                <IconComponent className="w-4 h-4 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <span className="font-medium">
-                                    {warning.name}
-                                  </span>
-                                  <span className="ml-1">
-                                    {warning.isOverdue
-                                      ? `(quá ${Math.abs(
-                                        warning.kmUntilDue
-                                      ).toLocaleString()} km)`
-                                      : `(còn ${warning.kmUntilDue.toLocaleString()} km)`}
-                                  </span>
-                                </div>
-                                <span
-                                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${warning.isOverdue
-                                    ? "bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-100"
-                                    : "bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-100"
-                                    }`}
-                                >
-                                  {warning.isOverdue ? "QUÁ HẠN" : "SẮP ĐẾN"}
+                                {item.customer.phone}
+                              </a>
+                            </div>
+                            <div className="flex flex-col items-end gap-1.5">
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                                <Bike className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                                  {item.vehicle.licensePlate}
                                 </span>
                               </div>
-                            );
-                          })}
+                              {/* Vehicle Type Badge */}
+                              {(() => {
+                                const model = (
+                                  item.vehicle.model || ""
+                                ).toLowerCase();
+                                const isAutomatic =
+                                  model.includes("sh") ||
+                                  model.includes("vision") ||
+                                  model.includes("air blade") ||
+                                  model.includes("lead") ||
+                                  model.includes("vario") ||
+                                  model.includes("pcx") ||
+                                  model.includes("freego") ||
+                                  model.includes("janus") ||
+                                  model.includes("grande") ||
+                                  model.includes("medley") ||
+                                  model.includes("liberty");
+                                return (
+                                  <span
+                                    className={`text-[10px] font-medium px-2 py-0.5 rounded ${isAutomatic
+                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                                      : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                      }`}
+                                  >
+                                    {isAutomatic ? "🛵 Tay ga" : "🏍️ Xe số"}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          </div>
+
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                            Số km hiện tại:{" "}
+                            <span className="font-semibold text-slate-700 dark:text-slate-200">
+                              {(item.vehicle.currentKm || 0).toLocaleString()} km
+                            </span>
+                          </div>
+
+                          <div className="space-y-2">
+                            {item.warnings.map((warning, wIdx) => {
+                              const IconComponent =
+                                warning.type === "oilChange"
+                                  ? Droplets
+                                  : warning.type === "gearboxOil"
+                                    ? Cog
+                                    : Wind;
+                              return (
+                                <div
+                                  key={wIdx}
+                                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${warning.isOverdue
+                                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                                    }`}
+                                >
+                                  <IconComponent className="w-4 h-4 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="font-medium">
+                                      {warning.name}
+                                    </span>
+                                    <span className="ml-1">
+                                      {warning.isOverdue
+                                        ? `(quá ${Math.abs(
+                                          warning.kmUntilDue
+                                        ).toLocaleString()} km)`
+                                        : `(còn ${warning.kmUntilDue.toLocaleString()} km)`}
+                                    </span>
+                                  </div>
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${warning.isOverdue
+                                      ? "bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-100"
+                                      : "bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-100"
+                                      }`}
+                                  >
+                                    {warning.isOverdue ? "QUÁ HẠN" : "SẮP ĐẾN"}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                  {vehiclesNeedingMaintenance.length > 9 && (
+                    <p className="text-center text-sm text-orange-600 dark:text-orange-400 mt-3 font-medium">
+                      Và {vehiclesNeedingMaintenance.length - 9} xe khác cần bảo
+                      dưỡng...
+                    </p>
+                  )}
                 </div>
-                {vehiclesNeedingMaintenance.length > 9 && (
-                  <p className="text-center text-sm text-orange-600 dark:text-orange-400 mt-3 font-medium">
-                    Và {vehiclesNeedingMaintenance.length - 9} xe khác cần bảo
-                    dưỡng...
-                  </p>
-                )}
-              </div>
+              )}
             </div>
           )}
 
@@ -1336,8 +1496,9 @@ const CustomerManager: React.FC = () => {
               {viewMode === "grid" ? (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {displayedCustomers.map((customer) => {
+                    const liveSegment = liveSegmentMap.get(customer.id);
                     const config =
-                      (customer.segment && segmentStyles[customer.segment]) ||
+                      (liveSegment && segmentStyles[liveSegment]) ||
                       segmentStyles.default;
                     // Use cached stats for performance (consistent with CustomerHistoryModal)
                     const {
@@ -1356,8 +1517,6 @@ const CustomerManager: React.FC = () => {
                     const pointsPercent = Math.min((points / 10000) * 100, 100);
                     const vehicles =
                       (customer.vehicles as Vehicle[] | undefined) || [];
-                    const primaryVehicle =
-                      vehicles.find((v) => v.isPrimary) || vehicles[0];
                     const hasExtraVehicles = vehicles.length > 2;
 
                     return (
@@ -1480,20 +1639,20 @@ const CustomerManager: React.FC = () => {
                         <div className="mt-auto bg-slate-50/50 dark:bg-slate-900/20 p-4 flex items-center gap-2 border-t border-slate-100 dark:border-slate-700/50">
                           <button
                             onClick={() => setViewHistoryCustomer(customer)}
-                            className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-xs font-black text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-all active:scale-95"
+                            className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 shadow-sm"
                           >
-                            <History className="w-3.5 h-3.5" />
+                            <History className="w-3.5 h-3.5 text-blue-500" />
                             LỊCH SỬ
                           </button>
                           <button
                             onClick={() => setEditCustomer(customer)}
-                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-95"
+                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 shadow-sm"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(customer.id)}
-                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-95"
+                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95 shadow-sm"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -1519,8 +1678,8 @@ const CustomerManager: React.FC = () => {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                       {displayedCustomers.map((customer) => {
                         const config =
-                          (customer.segment &&
-                            segmentStyles[customer.segment]) ||
+                          (liveSegmentMap.get(customer.id) &&
+                            segmentStyles[liveSegmentMap.get(customer.id)!]) ||
                           segmentStyles.default;
                         const vehicles =
                           (customer.vehicles as Vehicle[] | undefined) || [];
@@ -1664,7 +1823,7 @@ const CustomerManager: React.FC = () => {
           {/* Floating Add Button for mobile */}
           <button
             onClick={() => setEditCustomer({} as Customer)}
-            className="md:hidden fixed bottom-28 right-5 z-40 inline-flex items-center justify-center rounded-full bg-blue-600 p-4 text-white shadow-lg transition hover:bg-blue-700"
+            className="md:hidden fixed bottom-28 right-5 z-40 inline-flex items-center justify-center rounded-full bg-white dark:bg-slate-800 p-4 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-lg transition hover:bg-slate-50 dark:hover:bg-slate-700"
           >
             <PlusIcon className="h-6 w-6" />
             <span className="sr-only">Thêm khách hàng</span>
@@ -1733,7 +1892,7 @@ const CustomerManager: React.FC = () => {
                       setShowActionSheet(false);
                       setEditCustomer({} as Customer);
                     }}
-                    className="flex w-full items-center gap-3 rounded-2xl bg-blue-600 px-4 py-3 text-left text-sm font-semibold text-white shadow-lg transition hover:bg-blue-700"
+                    className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                   >
                     <PlusIcon className="h-5 w-5" /> Thêm khách hàng
                   </button>
@@ -2262,7 +2421,7 @@ const SuppliersList: React.FC<{
         </div>
         <button
           onClick={onImport}
-          className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-colors shadow-sm text-sm"
         >
           <svg
             className="w-5 h-5"
@@ -2281,9 +2440,9 @@ const SuppliersList: React.FC<{
         </button>
         <button
           onClick={onAdd}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm text-sm"
         >
-          <PlusIcon className="w-5 h-5" />
+          <PlusIcon className="w-4 h-4" />
           <span>Thêm mới</span>
         </button>
       </div>
@@ -2426,8 +2585,8 @@ const SupplierModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         address: address.trim(),
       });
       onClose();
-    } catch (err: any) {
-      // Hook đã show toast error
+    } catch {
+      return;
     } finally {
       setSaving(false);
     }
