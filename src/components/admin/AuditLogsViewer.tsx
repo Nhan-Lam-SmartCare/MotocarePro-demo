@@ -234,7 +234,7 @@ function safeParse(data: unknown): unknown {
   }
 }
 
-function exportJSON(rows: unknown[]) {
+function exportJSON(rows: any[]) {
   try {
     const blob = new Blob([JSON.stringify(rows, null, 2)], {
       type: "application/json",
@@ -250,7 +250,7 @@ function exportJSON(rows: unknown[]) {
   }
 }
 
-function exportCSV(rows: unknown[]) {
+function exportCSV(rows: any[]) {
   try {
     const headers = [
       "created_at",
