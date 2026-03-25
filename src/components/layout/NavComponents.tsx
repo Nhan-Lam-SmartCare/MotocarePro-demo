@@ -18,6 +18,7 @@ export type ColorKey =
   | "amber"
   | "cyan"
   | "indigo"
+  | "pink"
   | "rose"
   | "orange"
   | "teal"
@@ -57,6 +58,11 @@ export const NAV_COLORS: Record<
     text: "text-indigo-600 dark:text-indigo-400",
     bg: "bg-indigo-50 dark:bg-indigo-900/30",
     hoverBg: "hover:bg-indigo-50 dark:hover:bg-indigo-900/20",
+  },
+  pink: {
+    text: "text-pink-600 dark:text-pink-400",
+    bg: "bg-pink-50 dark:bg-pink-900/30",
+    hoverBg: "hover:bg-pink-50 dark:hover:bg-pink-900/20",
   },
   rose: {
     text: "text-rose-600 dark:text-rose-400",
