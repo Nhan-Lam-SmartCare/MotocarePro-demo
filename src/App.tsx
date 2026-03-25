@@ -23,7 +23,6 @@ import { BottomNav, Nav } from "./components/layout";
 import { ShopLayout } from "./components/layout/ShopLayout";
 import Dashboard from "./components/dashboard/Dashboard";
 import RepoErrorPanel from "./components/common/RepoErrorPanel";
-import TetTheme from "./components/common/TetTheme";
 import { lazyImport } from "./utils/lazyImport";
 
 // Lazy load large components for code splitting
@@ -245,7 +244,6 @@ const MainLayout: React.FC = () => {
           />
         </div>
       )}
-      <TetTheme />
       {!isShopPage && <Nav />}
       <main
         className={`max-w-[1600px] mx-auto ${isSalesPage ? "p-0" : "p-0 md:p-6"

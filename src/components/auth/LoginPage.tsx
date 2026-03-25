@@ -7,6 +7,42 @@ import { supabase } from "../../supabaseClient";
 import { checkRateLimit, resetRateLimit } from "../../utils/security";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 
+const getFriendlyLoginError = (err: unknown): string => {
+  const defaultMessage = "Đăng nhập thất bại";
+  if (!(err instanceof Error)) return defaultMessage;
+
+  const lowerMessage = err.message.toLowerCase();
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const supabaseHost = supabaseUrl
+    ? (() => {
+        try {
+          return new URL(supabaseUrl).hostname;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
+  if (!navigator.onLine) {
+    return "Thiết bị đang offline. Vui lòng kiểm tra kết nối Internet.";
+  }
+
+  if (
+    lowerMessage.includes("failed to fetch") ||
+    lowerMessage.includes("authretryablefetcherror")
+  ) {
+    return supabaseHost
+      ? `Không thể kết nối máy chủ (${supabaseHost}). Vui lòng kiểm tra cấu hình Supabase/Vercel.`
+      : "Không thể kết nối máy chủ xác thực. Vui lòng thử lại sau.";
+  }
+
+  if (lowerMessage.includes("invalid login credentials")) {
+    return "Email hoặc mật khẩu không đúng.";
+  }
+
+  return err.message || defaultMessage;
+};
+
 export const LoginPage = () => {
   const navigate = useNavigate();
   const { signIn, completeMFAVerification, mfaRequired } = useAuth();
@@ -62,8 +98,7 @@ export const LoginPage = () => {
       navigate("/dashboard");
     } catch (err: unknown) {
       console.error("Login error:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Đăng nhập thất bại";
+      const errorMessage = getFriendlyLoginError(err);
 
       // Check remaining attempts
       const remainingCheck = checkRateLimit(rateLimitKey);

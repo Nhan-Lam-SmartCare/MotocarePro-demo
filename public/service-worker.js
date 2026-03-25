@@ -108,6 +108,10 @@ self.addEventListener('fetch', event => {
                     return response;
                 });
             })
+            .catch(() => {
+                // Avoid unhandled rejection when network is down and asset is uncached
+                return Response.error();
+            })
     );
 });
 

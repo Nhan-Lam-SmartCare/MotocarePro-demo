@@ -63,7 +63,6 @@ import WorkOrderModal from "../service/components/WorkOrderModal";
 import { ServiceManagerMobile } from "../service/ServiceManagerMobile";
 import PrintOrderPreviewModal from "../service/modals/PrintOrderPreviewModal";
 import StatusBadge from "../service/components/StatusBadge";
-import TetBanner from "../dashboard/components/TetBanner";
 import { getQuickStatusFilters } from "../service/components/QuickStatusFilters";
 import { getStatusSnapshotCards } from "../service/components/StatusSnapshotCards";
 import {
@@ -2242,7 +2241,6 @@ export default function ServiceManager() {
 
   return (
     <div className="space-y-3 container mx-auto">
-      <TetBanner compact />
       {/* Desktop insight cards */}
       <div className="grid gap-3 lg:grid-cols-[2fr,1fr]">
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
