@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../../contexts/AuthContext";
-import type { WorkOrder, Part, WorkOrderPart, Vehicle } from "../../../types";
+import type { WorkOrder, Part, WorkOrderPart, Vehicle, InventoryTransaction } from "../../../types";
 import { formatCurrency, formatWorkOrderId, normalizeSearchText } from "../../../utils/format";
 import { NumberInput } from "../../common/NumberInput";
 import { getCategoryColor } from "../../../utils/categoryColors";
@@ -18,6 +18,7 @@ import {
   validateDepositAmount,
 } from "../../../utils/validation";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
+import { POPULAR_MOTORCYCLES } from "../constants/service.constants";
 
 export interface StoreSettings {
   store_name?: string;
@@ -41,7 +42,7 @@ const WorkOrderModal: React.FC<{
   partsLoading: boolean;
   customers: any[];
   employees: any[];
-  upsertCustomer: (customer: any) => void;
+  upsertCustomer: (customer: any) => Promise<string> | void;
   setCashTransactions: (fn: (prev: any[]) => any[]) => void;
   setPaymentSources: (fn: (prev: any[]) => any[]) => void;
   paymentSources: any[];
@@ -64,271 +65,7 @@ const WorkOrderModal: React.FC<{
   storeSettings,
   invalidateWorkOrders,
 }) => {
-    // Popular motorcycle models in Vietnam
-    const POPULAR_MOTORCYCLES = [
-      // === HONDA ===
-      // Xe số
-      "Honda Wave Alpha",
-      "Honda Wave RSX",
-      "Honda Wave RSX FI",
-      "Honda Wave 110",
-      "Honda Wave S110",
-      "Honda Super Dream",
-      "Honda Dream",
-      "Honda Blade 110",
-      "Honda Future 125",
-      "Honda Future Neo",
-      // Xe côn tay
-      "Honda Winner X",
-      "Honda Winner 150",
-      "Honda CB150R",
-      "Honda CB150X",
-      "Honda CB300R",
-      "Honda CB500F",
-      "Honda CB650R",
-      "Honda CBR150R",
-      "Honda CBR250RR",
-      "Honda CBR500R",
-      "Honda CBR650R",
-      "Honda Rebel 300",
-      "Honda Rebel 500",
-      "Honda CRF150L",
-      "Honda CRF250L",
-      "Honda CRF300L",
-      "Honda XR150L",
-      // Xe tay ga
-      "Honda Vision",
-      "Honda Air Blade 125",
-      "Honda Air Blade 150",
-      "Honda Air Blade 160",
-      "Honda SH Mode 125",
-      "Honda SH 125i",
-      "Honda SH 150i",
-      "Honda SH 160i",
-      "Honda SH 350i",
-      "Honda Lead 125",
-      "Honda PCX 125",
-      "Honda PCX 160",
-      "Honda Vario 125",
-      "Honda Vario 150",
-      "Honda Vario 160",
-      "Honda ADV 150",
-      "Honda ADV 160",
-      "Honda ADV 350",
-      "Honda Forza 250",
-      "Honda Forza 300",
-      "Honda Forza 350",
-      "Honda Giorno",
-      "Honda Stylo 160",
-      // Xe cũ/ngưng sản xuất
-      "Honda @",
-      "Honda Click",
-      "Honda Dylan",
-      "Honda PS",
-      "Honda Spacy",
-      "Honda SCR",
-      "Honda NSR",
-      "Honda Astrea",
-      "Honda Cub 50",
-      "Honda Cub 70",
-      "Honda Cub 81",
-      "Honda Cub 82",
-      "Honda Cub 86",
-      "Honda Super Cub",
-      "Honda Dream II",
-      "Honda Dream Thái",
-
-      // === YAMAHA ===
-      // Xe số
-      "Yamaha Sirius",
-      "Yamaha Sirius FI",
-      "Yamaha Sirius RC",
-      "Yamaha Jupiter",
-      "Yamaha Jupiter FI",
-      "Yamaha Jupiter Finn",
-      "Yamaha Jupiter MX",
-      // Xe côn tay
-      "Yamaha Exciter 135",
-      "Yamaha Exciter 150",
-      "Yamaha Exciter 155",
-      "Yamaha FZ150i",
-      "Yamaha FZ155i",
-      "Yamaha MT-03",
-      "Yamaha MT-07",
-      "Yamaha MT-09",
-      "Yamaha MT-10",
-      "Yamaha MT-15",
-      "Yamaha R15",
-      "Yamaha R3",
-      "Yamaha R6",
-      "Yamaha R7",
-      "Yamaha XSR155",
-      "Yamaha XSR700",
-      "Yamaha XSR900",
-      "Yamaha WR155R",
-      "Yamaha TFX 150",
-      // Xe tay ga
-      "Yamaha Grande",
-      "Yamaha Grande Hybrid",
-      "Yamaha Janus",
-      "Yamaha FreeGo",
-      "Yamaha FreeGo S",
-      "Yamaha Latte",
-      "Yamaha NVX 125",
-      "Yamaha NVX 155",
-      "Yamaha NVX 155 VVA",
-      "Yamaha NMAX",
-      "Yamaha NMAX 155",
-      "Yamaha XMAX 300",
-      "Yamaha TMAX 530",
-      "Yamaha TMAX 560",
-      "Yamaha Lexi",
-      "Yamaha Aerox",
-      // Xe cũ/ngưng sản xuất
-      "Yamaha Nouvo",
-      "Yamaha Nouvo LX",
-      "Yamaha Nouvo SX",
-      "Yamaha Mio",
-      "Yamaha Mio Classico",
-      "Yamaha Mio Ultimo",
-      "Yamaha Taurus",
-      "Yamaha Spark",
-      "Yamaha Force",
-
-      // === SUZUKI ===
-      // Xe số
-      "Suzuki Axelo",
-      "Suzuki Viva",
-      "Suzuki Best",
-      "Suzuki Smash",
-      "Suzuki Sport",
-      "Suzuki Revo",
-      // Xe côn tay
-      "Suzuki Raider 150",
-      "Suzuki Raider R150",
-      "Suzuki Satria F150",
-      "Suzuki GSX-R150",
-      "Suzuki GSX-S150",
-      "Suzuki GSX-R1000",
-      "Suzuki GSX-S1000",
-      "Suzuki Gixxer 150",
-      "Suzuki Gixxer 250",
-      "Suzuki V-Strom 250",
-      "Suzuki V-Strom 650",
-      "Suzuki V-Strom 1050",
-      "Suzuki Intruder 150",
-      "Suzuki Bandit 150",
-      // Xe tay ga
-      "Suzuki Address",
-      "Suzuki Address 110",
-      "Suzuki Impulse",
-      "Suzuki Burgman Street",
-      "Suzuki Burgman 125",
-      "Suzuki Burgman 200",
-      "Suzuki Burgman 400",
-      "Suzuki Avenis",
-      // Xe cũ
-      "Suzuki GN125",
-      "Suzuki GD110",
-      "Suzuki EN150",
-      "Suzuki Hayate",
-      "Suzuki Sky Drive",
-      "Suzuki Sapphire",
-
-      // === SYM ===
-      "SYM Elegant",
-      "SYM Elite 50",
-      "SYM Attila",
-      "SYM Attila Venus",
-      "SYM Attila Elizabeth",
-      "SYM Angela",
-      "SYM Galaxy",
-      "SYM Star SR",
-      "SYM Shark",
-      "SYM Shark Mini",
-      "SYM Passing",
-      "SYM X-Pro",
-      "SYM Abela",
-      "SYM Husky",
-
-      // === PIAGGIO & VESPA ===
-      "Piaggio Liberty",
-      "Piaggio Liberty 50",
-      "Piaggio Liberty 125",
-      "Piaggio Liberty 150",
-      "Piaggio Medley",
-      "Piaggio Medley 125",
-      "Piaggio Medley 150",
-      "Piaggio Beverly",
-      "Piaggio MP3",
-      "Piaggio Zip",
-      "Vespa Sprint",
-      "Vespa Sprint 125",
-      "Vespa Sprint 150",
-      "Vespa Primavera",
-      "Vespa Primavera 125",
-      "Vespa Primavera 150",
-      "Vespa LX",
-      "Vespa S",
-      "Vespa GTS",
-      "Vespa GTS 125",
-      "Vespa GTS 300",
-      "Vespa GTV",
-      "Vespa Sei Giorni",
-
-      // === KYMCO ===
-      "Kymco Like",
-      "Kymco Like 125",
-      "Kymco Like 150",
-      "Kymco Many",
-      "Kymco Many 50",
-      "Kymco Many 110",
-      "Kymco Many 125",
-      "Kymco Jockey",
-      "Kymco Candy",
-      "Kymco People S",
-      "Kymco AK550",
-      "Kymco X-Town 300",
-      "Kymco Downtown",
-      "Kymco Visar",
-
-      // === VINFAST (Xe điện) ===
-      "VinFast Klara",
-      "VinFast Klara A1",
-      "VinFast Klara A2",
-      "VinFast Klara S",
-      "VinFast Ludo",
-      "VinFast Impes",
-      "VinFast Tempest",
-      "VinFast Vento",
-      "VinFast Evo200",
-      "VinFast Feliz",
-      "VinFast Feliz S",
-      "VinFast Theon",
-      "VinFast Theon S",
-
-      // === YADEA (Xe điện) ===
-      "Yadea Xmen Neo",
-      "Yadea Ulike",
-      "Yadea G5",
-      "Yadea Sunra X7",
-      "Yadea Odora",
-
-      // === PEGA (Xe điện) ===
-      "Pega eSH",
-      "Pega NewTech",
-      "Pega Cap A",
-      "Pega X-Men",
-      "Pega Aura",
-
-      // === Khác ===
-      "Xe điện khác",
-      "Xe 50cc khác",
-      "Xe nhập khẩu khác",
-      "Khác",
-    ];
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const queryClient = useQueryClient();
     const { profile } = useAuth();
     const { mutateAsync: createWorkOrderAtomicAsync } =
@@ -336,10 +73,65 @@ const WorkOrderModal: React.FC<{
     const { mutateAsync: updateWorkOrderAtomicAsync } =
       useUpdateWorkOrderAtomicRepo();
 
+    const WORK_ORDER_DRAFT_VERSION = 1 as const;
+    const WORK_ORDER_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+
+    const profileId = (profile as any)?.id || (profile as any)?.user_id || "anon";
+
+    const draftKey = useMemo(() => {
+      const orderKey = order?.id || "new";
+      return `workorder_draft_v${WORK_ORDER_DRAFT_VERSION}:${currentBranchId}:${profileId}:${orderKey}:desktop`;
+    }, [WORK_ORDER_DRAFT_VERSION, currentBranchId, order?.id, profileId]);
+
+    const draftCheckedRef = useRef(false);
+    useEffect(() => {
+      draftCheckedRef.current = false;
+    }, [draftKey]);
+
+    const loadDraft = () => {
+      try {
+        const raw = localStorage.getItem(draftKey);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as {
+          v: number;
+          updatedAt: number;
+          data: any;
+        };
+        if (parsed?.v !== WORK_ORDER_DRAFT_VERSION) return null;
+        if (!parsed?.updatedAt || Date.now() - parsed.updatedAt > WORK_ORDER_DRAFT_TTL_MS) {
+          localStorage.removeItem(draftKey);
+          return null;
+        }
+        return parsed.data;
+      } catch {
+        return null;
+      }
+    };
+
+    const saveDraft = (data: any) => {
+      try {
+        localStorage.setItem(
+          draftKey,
+          JSON.stringify({ v: WORK_ORDER_DRAFT_VERSION, updatedAt: Date.now(), data })
+        );
+      } catch {
+        // ignore quota / storage errors
+      }
+    };
+
+    const clearDraft = () => {
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        // ignore
+      }
+    };
+
     const [formData, setFormData] = useState<Partial<WorkOrder>>(() => {
       if (order?.id) return order;
       return {
         id: order?.id || "",
+        customerId: order?.customerId || "",
         customerName: order?.customerName || "",
         customerPhone: order?.customerPhone || "",
         vehicleModel: order?.vehicleModel || "",
@@ -360,7 +152,13 @@ const WorkOrderModal: React.FC<{
     });
 
     const [searchPart, setSearchPart] = useState("");
+    const [searchPartCategory, setSearchPartCategory] = useState<string>("");
     const [selectedParts, setSelectedParts] = useState<WorkOrderPart[]>([]);
+    const [inventoryTxs, setInventoryTxs] = useState<InventoryTransaction[]>([]);
+    const [inventoryTxLoading, setInventoryTxLoading] = useState(false);
+    const [inventoryTxError, setInventoryTxError] = useState<string | null>(null);
+    const [isDeductingInventory, setIsDeductingInventory] = useState(false);
+    const [showInventoryCheck, setShowInventoryCheck] = useState(false);
     const [showPartSearch, setShowPartSearch] = useState(false);
     const [partialPayment, setPartialPayment] = useState(0);
     const [showPartialPayment, setShowPartialPayment] = useState(false);
@@ -411,10 +209,58 @@ const WorkOrderModal: React.FC<{
     // This allows adding parts to a "paid" order if it's still being repaired
     const canEditPriceAndParts = (!isOrderPaid || formData.status !== "Trả máy") && !isOrderRefunded;
 
+    // Fresh customer fetched directly from Supabase when modal opens (ensures vehicles are up-to-date)
+    const [freshCustomer, setFreshCustomer] = useState<any>(null);
+
+    useEffect(() => {
+      const customerId = formData.customerId;
+      if (!customerId) {
+        setFreshCustomer(null);
+        return;
+      }
+      let cancelled = false;
+      supabase
+        .from("customers")
+        .select("*")
+        .eq("id", customerId)
+        .single()
+        .then(({ data }) => {
+          if (!cancelled && data) setFreshCustomer(data);
+        });
+      return () => { cancelled = true; };
+       
+    }, [formData.customerId]);
+
+    const allCustomers = useMemo(() => {
+      const allCandidates = [
+        ...(freshCustomer ? [freshCustomer] : []),
+        ...customers,
+        ...serverCustomers,
+      ];
+      return Array.from(new Map(allCandidates.map((c) => [c.id, c])).values());
+    }, [freshCustomer, customers, serverCustomers]);
+
     // Get customer's vehicles
-    const currentCustomer = customers.find(
-      (c) => c.phone === formData.customerPhone
-    );
+    // 🔹 FIX: Ưu tiên tìm theo customerId (unique), chỉ fallback sang phone khi không có ID
+    const customerById = formData.customerId
+      ? allCustomers.find((c) => c.id === formData.customerId)
+      : undefined;
+
+    // Chỉ tìm theo phone khi KHÔNG có customerId (tránh match nhầm)
+    const customerByPhone = !formData.customerId && formData.customerPhone
+      ? allCustomers.find((c) => {
+        if (!c.phone) return false;
+        const normalizePhone = (p: string) => p.replace(/\D/g, "");
+        const formPhone = normalizePhone(formData.customerPhone!);
+        const customerPhones = c.phone.split(",").map((p: string) => normalizePhone(p.trim()));
+        // Chỉ match khi phone khớp HOÀN TOÀN (không dùng includes để tránh match nhầm)
+        return customerPhones.some((cp: string) => cp === formPhone);
+      })
+      : undefined;
+
+    // Ưu tiên customerId, sau đó mới đến phone
+    // Nếu có customerId thì KHÔNG fallback sang phone (để tránh hiển thị nhầm xe)
+    const currentCustomer = customerById || customerByPhone || null;
     const customerVehicles = currentCustomer?.vehicles || [];
 
     // Discount state
@@ -460,11 +306,9 @@ const WorkOrderModal: React.FC<{
       }
 
       // Sync additional services (Báo giá)
-      console.log('[WorkOrderModal] Syncing additionalServices from order:', order?.additionalServices);
       if (order?.additionalServices && Array.isArray(order.additionalServices) && order.additionalServices.length > 0) {
         setAdditionalServices(order.additionalServices);
       } else {
-        console.log('[WorkOrderModal] Setting additionalServices to empty array');
         setAdditionalServices([]);
       }
 
@@ -496,6 +340,181 @@ const WorkOrderModal: React.FC<{
       setEditCustomerPhone("");
     }, [order]);
 
+    useEffect(() => {
+      let isMounted = true;
+      const fetchInventoryTxs = async () => {
+        if (!order?.id) return;
+        setInventoryTxLoading(true);
+        setInventoryTxError(null);
+        const { data, error } = await supabase
+          .from("inventory_transactions")
+          .select(
+            "id,type,partId,partName,quantity,date,unitPrice,totalPrice,branchId,notes,workOrderId"
+          )
+          .eq("workOrderId", order.id)
+          .eq("type", "Xuất kho")
+          .order("date", { ascending: false });
+
+        if (!isMounted) return;
+        if (error) {
+          setInventoryTxError(
+            (error as any)?.message || "Không thể tải lịch sử xuất kho"
+          );
+          setInventoryTxs([]);
+        } else {
+          setInventoryTxs((data || []) as InventoryTransaction[]);
+        }
+        setInventoryTxLoading(false);
+      };
+
+      fetchInventoryTxs();
+      return () => {
+        isMounted = false;
+      };
+    }, [order?.id]);
+
+    const exportQtyByPartId = useMemo(() => {
+      const map = new Map<string, number>();
+      inventoryTxs.forEach((tx) => {
+        map.set(tx.partId, (map.get(tx.partId) || 0) + (tx.quantity || 0));
+      });
+      return map;
+    }, [inventoryTxs]);
+
+    const handleRefreshInventoryTxs = async () => {
+      if (!order?.id) return;
+      setInventoryTxLoading(true);
+      setInventoryTxError(null);
+      const { data, error } = await supabase
+        .from("inventory_transactions")
+        .select(
+          "id,type,partId,partName,quantity,date,unitPrice,totalPrice,branchId,notes,workOrderId"
+        )
+        .eq("workOrderId", order.id)
+        .eq("type", "Xuất kho")
+        .order("date", { ascending: false });
+      if (error) {
+        setInventoryTxError(
+          (error as any)?.message || "Không thể tải lịch sử xuất kho"
+        );
+        setInventoryTxs([]);
+      } else {
+        setInventoryTxs((data || []) as InventoryTransaction[]);
+      }
+      setInventoryTxLoading(false);
+    };
+
+    const handleManualDeductInventory = async () => {
+      if (!order?.id) return;
+      if (formData.paymentStatus !== "paid") {
+        showToast.warning("Phiếu chưa thanh toán đủ nên chưa thể trừ kho");
+        return;
+      }
+      setIsDeductingInventory(true);
+      try {
+        const result = await completeWorkOrderPayment(
+          order.id,
+          formData.paymentMethod || "cash",
+          0
+        );
+        if (!result.ok) {
+          showToast.warning(
+            "Không thể trừ kho: " + (result.error.message || "Lỗi không xác định")
+          );
+        } else {
+          showToast.success("Đã trừ kho cho phiếu này");
+        }
+        await handleRefreshInventoryTxs();
+      } catch (err: any) {
+        showToast.error(err?.message || "Không thể trừ kho");
+      } finally {
+        setIsDeductingInventory(false);
+      }
+    };
+
+    // Auto-restore draft after syncing from `order`
+    useEffect(() => {
+      if (draftCheckedRef.current) return;
+      draftCheckedRef.current = true;
+
+      const draft = loadDraft();
+      if (!draft) return;
+
+      if (draft.formData && typeof draft.formData === "object") {
+        setFormData((prev) => ({
+          ...prev,
+          ...draft.formData,
+          branchId: currentBranchId,
+        }));
+      }
+      if (typeof draft.customerSearch === "string") setCustomerSearch(draft.customerSearch);
+      if (Array.isArray(draft.selectedParts)) setSelectedParts(draft.selectedParts);
+      if (Array.isArray(draft.additionalServices)) setAdditionalServices(draft.additionalServices);
+      if (typeof draft.depositAmount === "number") setDepositAmount(draft.depositAmount);
+      if (typeof draft.showDepositInput === "boolean") setShowDepositInput(draft.showDepositInput);
+      if (typeof draft.partialPayment === "number") setPartialPayment(draft.partialPayment);
+      if (typeof draft.showPartialPayment === "boolean") setShowPartialPayment(draft.showPartialPayment);
+      if (draft.discountType === "amount" || draft.discountType === "percent") {
+        setDiscountType(draft.discountType);
+      }
+      if (typeof draft.discountPercent === "number") setDiscountPercent(draft.discountPercent);
+    }, [draftKey, currentBranchId]);
+
+    // Auto-save draft while editing (debounced)
+    useEffect(() => {
+      if (!draftCheckedRef.current) return; // avoid overwriting before restore check
+
+      const hasMeaningfulData =
+        !!formData.customerName?.trim() ||
+        !!formData.customerPhone?.trim() ||
+        !!formData.issueDescription?.trim() ||
+        !!String(formData.currentKm ?? "").trim() ||
+        selectedParts.length > 0 ||
+        additionalServices.length > 0 ||
+        (depositAmount > 0 && showDepositInput) ||
+        (partialPayment > 0 && showPartialPayment) ||
+        (formData.laborCost || 0) > 0 ||
+        (formData.discount || 0) > 0;
+
+      const timer = setTimeout(() => {
+        if (!hasMeaningfulData) {
+          try {
+            localStorage.removeItem(draftKey);
+          } catch {
+            // ignore
+          }
+          return;
+        }
+
+        saveDraft({
+          formData,
+          customerSearch,
+          selectedParts,
+          additionalServices,
+          depositAmount,
+          showDepositInput,
+          partialPayment,
+          showPartialPayment,
+          discountType,
+          discountPercent,
+        });
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }, [
+      draftKey,
+      formData,
+      customerSearch,
+      selectedParts,
+      additionalServices,
+      depositAmount,
+      showDepositInput,
+      partialPayment,
+      showPartialPayment,
+      discountType,
+      discountPercent,
+    ]);
+
     // Search customers from Supabase when search term changes
     useEffect(() => {
       // Reset page when search term changes
@@ -516,11 +535,13 @@ const WorkOrderModal: React.FC<{
         const from = page * CUSTOMER_PAGE_SIZE;
         const to = from + CUSTOMER_PAGE_SIZE - 1;
 
-        // Use a simple OR query on name and phone
+        // Use a simple OR query on name, phone, vehicle model, license plate
         const { data, error, count } = await supabase
           .from("customers")
           .select("*", { count: "exact", head: false })
-          .or(`name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+          .or(
+            `name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,vehiclemodel.ilike.%${searchTerm}%,licenseplate.ilike.%${searchTerm}%`
+          )
           .range(from, to);
 
         if (!error && data) {
@@ -544,6 +565,7 @@ const WorkOrderModal: React.FC<{
         }
       } catch (err) {
         console.error("Error searching customers:", err);
+        showToast.error("Lỗi tìm kiếm khách hàng");
       } finally {
         setIsSearchingCustomer(false);
       }
@@ -569,29 +591,26 @@ const WorkOrderModal: React.FC<{
     };
 
     // Filter customers based on search - show all if search is empty
-    // COMBINE local customers and server results
     const filteredCustomers = useMemo(() => {
-      // Merge local customers and server customers, removing duplicates by ID
-      const allCandidates = [...customers, ...serverCustomers];
-      const uniqueCandidates = Array.from(new Map(allCandidates.map(c => [c.id, c])).values());
-
       if (!customerSearch.trim()) {
-        // Show all customers when no search term
-        return uniqueCandidates.slice(0, 10); // Limit to first 10 for performance
+        return allCustomers.slice(0, 10); // Limit to first 10 for performance
       }
 
       const q = normalizeSearchText(customerSearch);
-      return uniqueCandidates.filter(
+      return allCustomers.filter(
         (c) =>
           normalizeSearchText(c.name).includes(q) ||
           c.phone?.toLowerCase().includes(q) ||
+          normalizeSearchText(c.vehicleModel || "").includes(q) ||
+          normalizeSearchText(c.licensePlate || "").includes(q) ||
           (c.vehicles &&
             c.vehicles.some((v: any) =>
               normalizeSearchText(v.licensePlate).includes(q) ||
+              normalizeSearchText(v.model || "").includes(q) ||
               v.licensePlate?.toLowerCase().includes(q.toLowerCase())
             ))
       );
-    }, [customers, serverCustomers, customerSearch]);
+    }, [allCustomers, customerSearch]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -646,6 +665,9 @@ const WorkOrderModal: React.FC<{
         ...currentCustomer,
         vehicles: updatedVehicles,
       });
+
+      // Keep freshCustomer in sync so the vehicle list refreshes immediately
+      setFreshCustomer((prev: any) => prev ? { ...prev, vehicles: updatedVehicles } : prev);
 
       // Auto-select the newly added vehicle
       setFormData({
@@ -719,6 +741,9 @@ const WorkOrderModal: React.FC<{
           vehicles: updatedVehicles,
         });
 
+        // Keep freshCustomer in sync
+        setFreshCustomer((prev: any) => prev ? { ...prev, vehicles: updatedVehicles } : prev);
+
         // Update formData if this is the selected vehicle
         if (formData.vehicleId === editingVehicleId) {
           setFormData({
@@ -748,27 +773,34 @@ const WorkOrderModal: React.FC<{
       0
     );
     const subtotal = (formData.laborCost || 0) + partsTotal + servicesTotal;
-    const discount = formData.discount || 0;
+    // BUG fix: recompute discount from discountPercent whenever subtotal changes (like mobile useMemo)
+    // When discountType === "percent", discount must track the CURRENT subtotal, not a stale snapshot
+    const discount =
+      discountType === "percent"
+        ? Math.round((subtotal * discountPercent) / 100)
+        : (formData.discount || 0);
     const total = Math.max(0, subtotal - discount);
 
-    // Debug log
-    console.log("Tinh toan:", {
-      laborCost: formData.laborCost,
-      partsTotal,
-      servicesTotal,
-      subtotal,
-      discount,
-      total,
-    });
-
     // Calculate payment summary
-    const totalDeposit = depositAmount || order.depositAmount || 0;
-    // 🔹 FIX: Chỉ tính additionalPayment MỚI khi checkbox được check
-    // Không lấy giá trị cũ để tránh thanh toán 2 lần
-    // 🔹 CHỈ TÍNH THANH TOÁN KHI STATUS LÀ "TRẢ MÁY"
-    const totalAdditionalPayment =
-      formData.status === "Trả máy" && showPartialPayment ? partialPayment : 0;
-    const totalPaid = totalDeposit + totalAdditionalPayment;
+    const totalDeposit = depositAmount ?? order.depositAmount ?? 0;
+
+    // additionalPayment is treated as cumulative value on WorkOrder
+    const additionalPaymentCumulative =
+      formData.status === "Trả máy" && showPartialPayment
+        ? Math.max(0, partialPayment)
+        : 0;
+
+    const maxAdditionalPayment = Math.max(0, total - totalDeposit);
+    const additionalPaymentClamped = Math.min(
+      additionalPaymentCumulative,
+      maxAdditionalPayment
+    );
+
+    // Use clamped value to prevent recording overpayment in transactions
+    const totalAdditionalPayment = additionalPaymentClamped;
+
+    const totalPaid = totalDeposit + additionalPaymentClamped;
+
     const remainingAmount = Math.max(0, total - totalPaid);
 
     // Helper: Auto-create customer debt if there's remaining amount
@@ -780,15 +812,6 @@ const WorkOrderModal: React.FC<{
       paidAmount: number
     ) => {
       if (remainingAmount <= 0) return;
-
-      console.log("[createCustomerDebtIfNeeded] CALLED with:", {
-        workOrderId: workOrder.id,
-        totalAmount,
-        paidAmount,
-        remainingAmount,
-        customerName: workOrder.customerName,
-        timestamp: new Date().toISOString(),
-      });
 
       try {
         const safeCustomerId =
@@ -868,9 +891,7 @@ const WorkOrderModal: React.FC<{
           workOrderId: workOrder.id, // 🔹 Link debt với work order
         };
 
-        console.log("[ServiceManager] createCustomerDebt payload:", payload);
         const result = await createCustomerDebt.mutateAsync(payload as any);
-        console.log("[ServiceManager] createCustomerDebt result:", result);
         showToast.success(
           `Đã tạo/cập nhật công nợ ${remainingAmount.toLocaleString()}đ (Mã: ${result?.id || "N/A"
           })`
@@ -881,262 +902,88 @@ const WorkOrderModal: React.FC<{
       }
     };
 
-    // 🔹 Function to handle deposit (Đặt cọc để đặt hàng)
-    const handleDeposit = async () => {
-      // Validation
-      if (!formData.customerName?.trim()) {
-        showToast.error("Vui lòng nhập tên khách hàng");
-        return;
-      }
-      if (!formData.customerPhone?.trim()) {
-        showToast.error("Vui lòng nhập số điện thoại");
-        return;
-      }
-
-      // Validate phone number format using utility
-      const phoneValidation = validatePhoneNumber(formData.customerPhone);
-      if (!phoneValidation.ok) {
-        showToast.error(phoneValidation.error || "Số điện thoại không hợp lệ!");
-        return;
-      }
-
-      if (depositAmount <= 0) {
-        showToast.error("Vui lòng nhập số tiền đặt cọc");
-        return;
-      }
-
-      // Validate deposit amount using utility
-      const depositValidation = validateDepositAmount(depositAmount, total);
-      if (!depositValidation.ok) {
-        showToast.error(depositValidation.error || "Tiền đặt cọc không hợp lệ!");
-        return;
-      }
-
-      if (!formData.paymentMethod) {
-        showToast.error("Vui lòng chọn phương thức thanh toán");
-        return;
-      }
-
-      try {
-        const orderId =
-          formData.id ||
-          `${storeSettings?.work_order_prefix || "SC"}-${Date.now()}`;
-
-        // Prepare work order data with deposit
-        const workOrderData: WorkOrder = {
-          id: orderId,
-          customerName: formData.customerName || "",
-          customerPhone: formData.customerPhone || "",
-          vehicleId: formData.vehicleId,
-          vehicleModel: formData.vehicleModel || "",
-          licensePlate: formData.licensePlate || "",
-          currentKm: formData.currentKm,
-          issueDescription: formData.issueDescription || "",
-          technicianName: formData.technicianName || "",
-          status: formData.status || "Tiếp nhận",
-          laborCost: formData.laborCost || 0,
-          discount: discount,
-          partsUsed: selectedParts,
-          additionalServices:
-            additionalServices.length > 0 ? additionalServices : undefined,
-          total: total,
-          branchId: currentBranchId,
-          depositAmount: depositAmount,
-          depositDate: new Date().toISOString(),
-          paymentStatus: "partial",
-          paymentMethod: formData.paymentMethod,
-          totalPaid: depositAmount,
-          remainingAmount: total - depositAmount,
-          creationDate: formData.creationDate || new Date().toISOString(),
-        };
-
-        // Save to database using Supabase
-        if (formData.id) {
-          // Update existing work order
-          await supabase
-            .from("work_orders")
-            .update({
-              customername: workOrderData.customerName,
-              customerphone: workOrderData.customerPhone,
-              vehicleid: workOrderData.vehicleId,
-              vehiclemodel: workOrderData.vehicleModel,
-              licenseplate: workOrderData.licensePlate,
-              issuedescription: workOrderData.issueDescription,
-              technicianname: workOrderData.technicianName,
-              status: workOrderData.status,
-              laborcost: workOrderData.laborCost,
-              discount: workOrderData.discount,
-              partsused: workOrderData.partsUsed,
-              additionalservices: workOrderData.additionalServices,
-              total: workOrderData.total,
-              depositamount: workOrderData.depositAmount,
-              depositdate: workOrderData.depositDate,
-              paymentstatus: workOrderData.paymentStatus,
-              paymentmethod: workOrderData.paymentMethod,
-              totalpaid: workOrderData.totalPaid,
-              remainingamount: workOrderData.remainingAmount,
-            })
-            .eq("id", formData.id);
-        } else {
-          // Insert new work order
-          await supabase.from("work_orders").insert({
-            id: workOrderData.id,
-            customername: workOrderData.customerName,
-            customerphone: workOrderData.customerPhone,
-            vehicleid: workOrderData.vehicleId,
-            vehiclemodel: workOrderData.vehicleModel,
-            licenseplate: workOrderData.licensePlate,
-            issuedescription: workOrderData.issueDescription,
-            technicianname: workOrderData.technicianName,
-            status: workOrderData.status,
-            laborcost: workOrderData.laborCost,
-            discount: workOrderData.discount,
-            partsused: workOrderData.partsUsed,
-            additionalservices: workOrderData.additionalServices,
-            total: workOrderData.total,
-            branchid: workOrderData.branchId,
-            depositamount: workOrderData.depositAmount,
-            depositdate: workOrderData.depositDate,
-            paymentstatus: workOrderData.paymentStatus,
-            paymentmethod: workOrderData.paymentMethod,
-            totalpaid: workOrderData.totalPaid,
-            remainingamount: workOrderData.remainingAmount,
-            creationDate: workOrderData.creationDate,
-          });
-        }
-
-        // Create deposit cash transaction (Thu tiền cọc vào quỹ)
-        const depositTxId = `TX-${Date.now()}-${Math.random()
-          .toString(36)
-          .substr(2, 9)}-DEP`;
-        await supabase.from("cash_transactions").insert({
-          id: depositTxId,
-          type: "income",
-          category: "service_deposit",
-          amount: depositAmount,
-          date: new Date().toISOString(),
-          description: `Đặt cọc sửa chữa #${orderId.split("-").pop()} - ${formData.customerName
-            }`,
-          branchid: currentBranchId,
-          paymentsource: formData.paymentMethod,
-          reference: orderId,
-        });
-
-        // Create expense transaction (Phiếu chi để đặt hàng)
-        const expenseTxId = `TX-${Date.now()}-${Math.random()
-          .toString(36)
-          .substr(2, 9)}-EXP`;
-        await supabase.from("cash_transactions").insert({
-          id: expenseTxId,
-          type: "expense",
-          category: "parts_purchase",
-          amount: depositAmount,
-          date: new Date().toISOString(),
-          description: `Đặt hàng phụ tùng cho #${orderId.split("-").pop()} - ${formData.customerName
-            }`,
-          branchid: currentBranchId,
-          paymentsource: formData.paymentMethod,
-          reference: orderId,
-        });
-
-        // Update UI state
-        workOrderData.depositTransactionId = depositTxId;
-        onSave(workOrderData);
-
-        showToast.success(
-          "Đã đặt cọc thành công! Phiếu chi đặt hàng đã được tạo."
-        );
-        onClose();
-      } catch (error: any) {
-        console.error("Error processing deposit:", error);
-        showToast.error("Lỗi khi xử lý đặt cọc");
-      }
-    };
-
     // 🔹 Function to save work order without payment processing
     const handleSaveOnly = async () => {
-      // Validation
-      if (!formData.customerName?.trim()) {
-        showToast.error("Vui lòng nhập tên khách hàng");
+      // 🔹 PREVENT DUPLICATE SUBMISSIONS
+      if (submittingRef.current || isSubmitting) {
         return;
       }
-      if (!formData.customerPhone?.trim()) {
-        showToast.error("Vui lòng nhập số điện thoại");
-        return;
-      }
-
-      const phoneRegex = /^[0-9]{10,11}$/;
-      if (!phoneRegex.test(formData.customerPhone.trim())) {
-        showToast.error("Số điện thoại không hợp lệ! (cần 10-11 chữ số)");
-        return;
-      }
-
-      // Note: Không validate total > 0 vì có thể chỉ tiếp nhận thông tin, chưa báo giá
-
-      // Add/update customer
-      if (formData.customerName && formData.customerPhone) {
-        const existingCustomer = customers.find(
-          (c) => c.phone === formData.customerPhone
-        );
-
-        if (!existingCustomer) {
-          // Chỉ tạo khách hàng mới nếu SĐT chưa tồn tại
-          console.log(
-            `[WorkOrderModal] Creating new customer: ${formData.customerName} (${formData.customerPhone})`
-          );
-
-          const vehicleId = `VEH-${Date.now()}`;
-          const vehicles = [];
-          if (formData.vehicleModel || formData.licensePlate) {
-            vehicles.push({
-              id: vehicleId,
-              model: formData.vehicleModel || "",
-              licensePlate: formData.licensePlate || "",
-              isPrimary: true,
-            });
-          }
-
-          await upsertCustomer({
-            id: `CUST-${Date.now()}`,
-            name: formData.customerName,
-            phone: formData.customerPhone,
-            vehicles: vehicles.length > 0 ? vehicles : undefined,
-            vehicleModel: formData.vehicleModel,
-            licensePlate: formData.licensePlate,
-            created_at: new Date().toISOString(),
-          });
-        } else {
-          // Khách hàng đã tồn tại - chỉ cập nhật thông tin xe nếu cần
-          console.log(
-            `[WorkOrderModal] Customer exists: ${existingCustomer.name} (${existingCustomer.phone})`
-          );
-          if (
-            formData.vehicleModel &&
-            existingCustomer.vehicleModel !== formData.vehicleModel
-          ) {
-            await upsertCustomer({
-              ...existingCustomer,
-              vehicleModel: formData.vehicleModel,
-              licensePlate: formData.licensePlate,
-            });
-            console.log(
-              `[WorkOrderModal] Updated vehicle info for existing customer`
-            );
-          }
-        }
-      }
-
-      // Determine payment status based on existing payments only (not new ones)
-      let paymentStatus: "unpaid" | "paid" | "partial" = "unpaid";
-      const existingPaid =
-        (order?.depositAmount || 0) + (order?.additionalPayment || 0);
-      if (existingPaid >= total) {
-        paymentStatus = "paid";
-      } else if (existingPaid > 0) {
-        paymentStatus = "partial";
-      }
+      submittingRef.current = true;
+      setIsSubmitting(true);
 
       try {
+        // Validation
+        if (!formData.customerName?.trim()) {
+          showToast.error("Vui lòng nhập tên khách hàng");
+          return;
+        }
+        if (!formData.customerPhone?.trim()) {
+          showToast.error("Vui lòng nhập số điện thoại");
+          return;
+        }
+
+        const phoneRegex = /^[0-9]{10,11}$/;
+        if (!phoneRegex.test(formData.customerPhone.trim())) {
+          showToast.error("Số điện thoại không hợp lệ! (cần 10-11 chữ số)");
+          return;
+        }
+
+        // Note: Không validate total > 0 vì có thể chỉ tiếp nhận thông tin, chưa báo giá
+
+        // Add/update customer
+        if (formData.customerName && formData.customerPhone) {
+          const existingCustomer = customers.find(
+            (c) => c.phone === formData.customerPhone
+          );
+
+          if (!existingCustomer) {
+            // Chỉ tạo khách hàng mới nếu SĐT chưa tồn tại
+            const vehicleId = `VEH-${Date.now()}`;
+            const vehicles = [];
+            if (formData.vehicleModel || formData.licensePlate) {
+              vehicles.push({
+                id: vehicleId,
+                model: formData.vehicleModel || "",
+                licensePlate: formData.licensePlate || "",
+                isPrimary: true,
+              });
+            }
+
+            await upsertCustomer({
+              id: `CUST-${Date.now()}`,
+              name: formData.customerName,
+              phone: formData.customerPhone,
+              vehicles: vehicles.length > 0 ? vehicles : undefined,
+              vehicleModel: formData.vehicleModel,
+              licensePlate: formData.licensePlate,
+              created_at: new Date().toISOString(),
+            });
+          } else {
+            // Khách hàng đã tồn tại - chỉ cập nhật thông tin xe nếu cần
+            if (
+              formData.vehicleModel &&
+              existingCustomer.vehicleModel !== formData.vehicleModel
+            ) {
+              await upsertCustomer({
+                ...existingCustomer,
+                vehicleModel: formData.vehicleModel,
+                licensePlate: formData.licensePlate,
+              });
+            }
+          }
+        }
+
+        // Determine payment status based on existing payments only (not new ones)
+        // Use state `depositAmount` (from current UI) instead of stale `order?.depositAmount` prop
+        let paymentStatus: "unpaid" | "paid" | "partial" = "unpaid";
+        const existingPaid =
+          (depositAmount || 0) + (order?.additionalPayment || 0);
+        if (existingPaid >= total) {
+          paymentStatus = "paid";
+        } else if (existingPaid > 0) {
+          paymentStatus = "partial";
+        }
+
         const orderId =
           order?.id ||
           `${storeSettings?.work_order_prefix || "SC"}-${Date.now()}`;
@@ -1161,9 +1008,9 @@ const WorkOrderModal: React.FC<{
           branchid: currentBranchId,
           paymentstatus: paymentStatus,
           paymentmethod: formData.paymentMethod || null,
-          depositamount: order?.depositAmount || null,
+          depositamount: depositAmount || null, // use state value, not stale prop
           totalpaid: existingPaid > 0 ? existingPaid : null,
-          remainingamount: total - existingPaid,
+          remainingamount: Math.max(0, total - existingPaid),
           creationdate: order?.creationDate || new Date().toISOString(),
         };
 
@@ -1180,18 +1027,17 @@ const WorkOrderModal: React.FC<{
             console.error("[UPDATE ERROR]", error);
             throw error;
           }
-          console.log("[UPDATE SUCCESS]", data);
 
           // Update vehicle currentKm if km was provided
           if (
             formData.currentKm &&
             formData.vehicleId &&
-            formData.customerPhone
+            (formData.customerId || formData.customerPhone)
           ) {
-            console.log(
-              `[WorkOrderModal UPDATE] Attempting to update km ${formData.currentKm} for vehicle ${formData.vehicleId}`
-            );
-            const customer = customers.find(
+            // Find customer by ID first (more reliable), fallback to phone
+            const customer = (formData.customerId && customers.find(
+              (c) => c.id === formData.customerId
+            )) || customers.find(
               (c) => c.phone === formData.customerPhone
             );
             if (customer) {
@@ -1208,11 +1054,14 @@ const WorkOrderModal: React.FC<{
                     : v
                 );
 
+                // Use formData.customerId if available (more reliable from upsertCustomer)
+                const customerIdToUpdate = formData.customerId || customer.id;
+
                 // Save to Supabase database
                 const { error: updateError } = await supabase
                   .from("customers")
                   .update({ vehicles: updatedVehicles })
-                  .eq("id", customer.id);
+                  .eq("id", customerIdToUpdate);
 
                 if (updateError) {
                   console.error(
@@ -1220,33 +1069,18 @@ const WorkOrderModal: React.FC<{
                     updateError
                   );
                 } else {
-                  console.log(
-                    `[WorkOrderModal UPDATE] ✅ Updated km ${formData.currentKm} to DB for vehicle ${formData.vehicleId}`
-                  );
                   // Update local context
                   upsertCustomer({
                     ...customer,
+                    id: customerIdToUpdate, // Ensure correct ID is used
                     vehicles: updatedVehicles,
                   });
                 }
-              } else {
-                console.warn(
-                  `[WorkOrderModal UPDATE] ⚠️ Vehicle ${formData.vehicleId} not found in customer vehicles`
-                );
               }
-            } else {
-              console.warn(
-                `[WorkOrderModal UPDATE] ⚠️ Customer not found: ${formData.customerPhone}`
-              );
             }
-          } else {
-            console.log(
-              `[WorkOrderModal UPDATE] ⚠️ Skipping km update - currentKm: ${formData.currentKm}, vehicleId: ${formData.vehicleId}, phone: ${formData.customerPhone}`
-            );
           }
         } else {
           // Insert new
-          console.log("[INSERT] Attempting to insert:", workOrderData);
           const { data, error } = await supabase
             .from("work_orders")
             .insert(workOrderData)
@@ -1254,24 +1088,19 @@ const WorkOrderModal: React.FC<{
 
           if (error) {
             console.error("[INSERT ERROR]", error);
-            console.error(
-              "[INSERT ERROR DETAILS]",
-              JSON.stringify(error, null, 2)
-            );
             throw error;
           }
-          console.log("[INSERT SUCCESS]", data);
 
           // Update vehicle currentKm if km was provided
           if (
             formData.currentKm &&
             formData.vehicleId &&
-            formData.customerPhone
+            (formData.customerId || formData.customerPhone)
           ) {
-            console.log(
-              `[WorkOrderModal CREATE] Attempting to update km ${formData.currentKm} for vehicle ${formData.vehicleId}`
-            );
-            const customer = customers.find(
+            // Find customer by ID first (more reliable), fallback to phone
+            const customer = (formData.customerId && customers.find(
+              (c) => c.id === formData.customerId
+            )) || customers.find(
               (c) => c.phone === formData.customerPhone
             );
             if (customer) {
@@ -1299,11 +1128,14 @@ const WorkOrderModal: React.FC<{
                 updatedVehicles = [...existingVehicles, newVehicle];
               }
 
+              // Use formData.customerId if available (more reliable from upsertCustomer)
+              const customerIdToUpdate = formData.customerId || customer.id;
+
               // Save to Supabase database
               const { error: updateError } = await supabase
                 .from("customers")
                 .update({ vehicles: updatedVehicles })
-                .eq("id", customer.id);
+                .eq("id", customerIdToUpdate);
 
               if (updateError) {
                 console.error(
@@ -1311,26 +1143,14 @@ const WorkOrderModal: React.FC<{
                   updateError
                 );
               } else {
-                console.log(
-                  `[WorkOrderModal CREATE] ✅ ${vehicleExists ? "Updated" : "Added"
-                  } km ${formData.currentKm} to DB for vehicle ${formData.vehicleId
-                  }`
-                );
                 // Update local context
                 upsertCustomer({
                   ...customer,
+                  id: customerIdToUpdate, // Ensure correct ID is used
                   vehicles: updatedVehicles,
                 });
               }
-            } else {
-              console.warn(
-                `[WorkOrderModal CREATE] ⚠️ Customer not found: ${formData.customerPhone}`
-              );
             }
-          } else {
-            console.log(
-              `[WorkOrderModal CREATE] ⚠️ Skipping km update - currentKm: ${formData.currentKm}, vehicleId: ${formData.vehicleId}, phone: ${formData.customerPhone}`
-            );
           }
         }
 
@@ -1343,6 +1163,7 @@ const WorkOrderModal: React.FC<{
         showToast.success(
           order?.id ? "Đã cập nhật phiếu" : "Đã lưu phiếu thành công"
         );
+        clearDraft();
         onClose();
       } catch (error: any) {
         console.error("Error saving work order:", error);
@@ -1350,37 +1171,39 @@ const WorkOrderModal: React.FC<{
           "Lỗi khi lưu phiếu: " +
           (error.message || error.hint || "Không xác định")
         );
+      } finally {
+        // 🔹 FIX: Reset submitting guard for handleSaveOnly
+        submittingRef.current = false;
+        setIsSubmitting(false);
       }
     };
 
     // 🔹 Function to handle payment processing
     const handleSave = async () => {
-      // 🔹 DEBUG - Log order info
-      console.log(
-        "[handleSave] Starting - order:",
-        order?.id,
-        "formData.status:",
-        formData.status
-      );
-
       // 🔹 PREVENT DUPLICATE SUBMISSIONS (synchronous check with ref)
       if (submittingRef.current || isSubmitting) {
-        console.log("[handleSave] Already submitting, skipping...");
         return;
       }
       submittingRef.current = true; // Set immediately before async operations
-
       setIsSubmitting(true);
+
+      // Helper function to reset submitting state
+      const resetSubmitting = () => {
+        submittingRef.current = false;
+        setIsSubmitting(false);
+      };
 
       try {
         // 🔹 VALIDATION FRONTEND
         // 1. Validate customer name & phone required
         if (!formData.customerName?.trim()) {
           showToast.error("Vui lòng nhập tên khách hàng");
+          resetSubmitting();
           return;
         }
         if (!formData.customerPhone?.trim()) {
           showToast.error("Vui lòng nhập số điện thoại");
+          resetSubmitting();
           return;
         }
 
@@ -1388,12 +1211,40 @@ const WorkOrderModal: React.FC<{
         const phoneRegex = /^[0-9]{10,11}$/;
         if (!phoneRegex.test(formData.customerPhone.trim())) {
           showToast.error("Số điện thoại không hợp lệ! (cần 10-11 chữ số)");
+          resetSubmitting();
+          return;
+        }
+
+        // ✅ FIX: Validate deposit cannot exceed total amount
+        if (depositAmount > total && total > 0) {
+          showToast.error(`Số tiền đặt cọc (${formatCurrency(depositAmount)}) không được lớn hơn tổng tiền (${formatCurrency(total)})!`);
+          resetSubmitting();
+          return;
+        }
+
+        if (
+          formData.status === "Trả máy" &&
+          showPartialPayment &&
+          partialPayment > maxAdditionalPayment
+        ) {
+          showToast.error(
+            `Số tiền thanh toán thêm không được vượt quá ${formatCurrency(maxAdditionalPayment)}!`
+          );
+          resetSubmitting();
           return;
         }
 
         // 3. Validate total > 0 ONLY if status is "Trả máy"
         if (total <= 0 && formData.status === "Trả máy") {
           showToast.error("Tổng tiền phải lớn hơn 0 khi trả máy");
+          resetSubmitting();
+          return;
+        }
+
+        // 4. Validate payment method when there's a payment (deposit or additional payment)
+        if ((depositAmount > 0 || (formData.status === "Trả máy" && showPartialPayment && partialPayment > 0)) && !formData.paymentMethod) {
+          showToast.error("Vui lòng chọn phương thức thanh toán");
+          resetSubmitting();
           return;
         }
 
@@ -1406,10 +1257,6 @@ const WorkOrderModal: React.FC<{
           // 🔹 VALIDATE DUPLICATE PHONE
           if (!existingCustomer) {
             // Chỉ tạo khách hàng mới nếu SĐT chưa tồn tại
-            console.log(
-              `[WorkOrderModal] Creating new customer: ${formData.customerName} (${formData.customerPhone})`
-            );
-
             const vehicleId = `VEH-${Date.now()}`;
             const vehicles = [];
             if (formData.vehicleModel || formData.licensePlate) {
@@ -1432,9 +1279,6 @@ const WorkOrderModal: React.FC<{
             });
           } else {
             // Khách hàng đã tồn tại - chỉ cập nhật thông tin xe nếu cần
-            console.log(
-              `[WorkOrderModal] Customer exists: ${existingCustomer.name} (${existingCustomer.phone})`
-            );
             if (
               formData.vehicleModel &&
               existingCustomer.vehicleModel !== formData.vehicleModel
@@ -1444,9 +1288,6 @@ const WorkOrderModal: React.FC<{
                 vehicleModel: formData.vehicleModel,
                 licensePlate: formData.licensePlate,
               });
-              console.log(
-                `[WorkOrderModal] Updated vehicle info for existing customer`
-              );
             }
           }
         }
@@ -1479,14 +1320,17 @@ const WorkOrderModal: React.FC<{
               discount: discount,
               partsUsed: selectedParts,
               additionalServices:
-                additionalServices.length > 0 ? additionalServices : null,
+                additionalServices.length > 0 ? additionalServices : undefined,
               total: total,
               branchId: currentBranchId,
               paymentStatus: paymentStatus,
               paymentMethod: formData.paymentMethod,
               depositAmount: depositAmount > 0 ? depositAmount : undefined,
+              // Use clamped value: prevents recording additionalPayment > (total - deposit)
               additionalPayment:
-                totalAdditionalPayment > 0 ? totalAdditionalPayment : undefined,
+                additionalPaymentClamped > 0
+                  ? additionalPaymentClamped
+                  : undefined,
               totalPaid: totalPaid > 0 ? totalPaid : undefined,
               remainingAmount: remainingAmount,
               creationDate: new Date().toISOString(),
@@ -1521,7 +1365,9 @@ const WorkOrderModal: React.FC<{
               paymentStatus: paymentStatus,
               paymentMethod: formData.paymentMethod,
               additionalPayment:
-                totalAdditionalPayment > 0 ? totalAdditionalPayment : undefined,
+                additionalPaymentClamped > 0
+                  ? additionalPaymentClamped
+                  : undefined,
               totalPaid: totalPaid > 0 ? totalPaid : undefined,
               remainingAmount: remainingAmount,
               cashTransactionId: paymentTxId,
@@ -1530,40 +1376,9 @@ const WorkOrderModal: React.FC<{
             };
 
             // Update cash transactions in context (for UI consistency)
-            // 🔹 Also INSERT to database for persistence
+            // ✅ No need to INSERT - stored procedure already created the transaction
             if (depositTxId && depositAmount > 0) {
-              // INSERT deposit transaction to database
-              try {
-                const { error: depositDbError } = await supabase
-                  .from("cash_transactions")
-                  .insert({
-                    id: depositTxId,
-                    type: "income",
-                    category: "service_deposit",
-                    amount: depositAmount,
-                    date: new Date().toISOString(),
-                    description: `Dat coc sua chua #${(
-                      formatWorkOrderId(
-                        orderId,
-                        storeSettings?.work_order_prefix
-                      ) || ""
-                    )
-                      .split("-")
-                      .pop()} - ${formData.customerName}`,
-                    branchid: currentBranchId,
-                    paymentsource: formData.paymentMethod,
-                    workorderid: orderId,
-                  });
-                if (depositDbError) {
-                  console.error(
-                    "[WorkOrderModal] deposit insert error:",
-                    depositDbError
-                  );
-                }
-              } catch (e) {
-                console.error("[WorkOrderModal] deposit insert exception:", e);
-              }
-
+              // Just update local state for UI consistency
               setCashTransactions((prev: any[]) => [
                 ...prev,
                 {
@@ -1604,38 +1419,8 @@ const WorkOrderModal: React.FC<{
             }
 
             if (paymentTxId && totalAdditionalPayment > 0) {
-              // INSERT payment transaction to database
-              try {
-                const { error: paymentDbError } = await supabase
-                  .from("cash_transactions")
-                  .insert({
-                    id: paymentTxId,
-                    type: "income",
-                    category: "service_income",
-                    amount: totalAdditionalPayment,
-                    date: new Date().toISOString(),
-                    description: `Thu tien sua chua #${(
-                      formatWorkOrderId(
-                        orderId,
-                        storeSettings?.work_order_prefix
-                      ) || ""
-                    )
-                      .split("-")
-                      .pop()} - ${formData.customerName}`,
-                    branchid: currentBranchId,
-                    paymentsource: formData.paymentMethod,
-                    workorderid: orderId,
-                  });
-                if (paymentDbError) {
-                  console.error(
-                    "[WorkOrderModal] payment insert error:",
-                    paymentDbError
-                  );
-                }
-              } catch (e) {
-                console.error("[WorkOrderModal] payment insert exception:", e);
-              }
-
+              // ✅ No need to INSERT - stored procedure already created the transaction
+              // Just update local state for UI consistency
               setCashTransactions((prev: any[]) => [
                 ...prev,
                 {
@@ -1703,12 +1488,6 @@ const WorkOrderModal: React.FC<{
 
                 // Create expense transaction
                 try {
-                  console.log("[Outsourcing] Inserting expense transaction:", {
-                    id: outsourcingTxId,
-                    amount: -totalOutsourcingCost,
-                    branchid: currentBranchId,
-                  });
-
                   // Check if transaction already exists
                   const { data: existingTx } = await supabase
                     .from("cash_transactions")
@@ -1717,11 +1496,7 @@ const WorkOrderModal: React.FC<{
                     .eq("category", "outsourcing")
                     .maybeSingle();
 
-                  if (existingTx) {
-                    console.log(
-                      "[Outsourcing] Transaction already exists, skipping insert"
-                    );
-                  } else {
+                  if (!existingTx) {
                     const { error: expenseError } = await supabase
                       .from("cash_transactions")
                       .insert({
@@ -1746,7 +1521,6 @@ const WorkOrderModal: React.FC<{
                         `Lỗi tạo phiếu chi gia công: ${expenseError.message}`
                       );
                     } else {
-                      console.log("[Outsourcing] Insert SUCCESS");
                       // Update context
                       setCashTransactions((prev: any[]) => [
                         ...prev,
@@ -1802,12 +1576,6 @@ const WorkOrderModal: React.FC<{
                   .substr(2, 9)}`;
 
                 try {
-                  console.log("[Negative Sales] Inserting expense transaction:", {
-                    id: negativeSalesTxId,
-                    amount: -negativeSalesPayment,
-                    branchid: currentBranchId,
-                  });
-
                   const negativeServices = additionalServices.filter(
                     (s) => s.price < 0 && (s.costPrice || 0) === 0
                   );
@@ -1820,11 +1588,7 @@ const WorkOrderModal: React.FC<{
                     .eq("category", "refund")
                     .maybeSingle();
 
-                  if (existingNegTx) {
-                    console.log(
-                      "[Negative Sales] Transaction already exists, skipping insert"
-                    );
-                  } else {
+                  if (!existingNegTx) {
                     const { error: negExpenseError } = await supabase
                       .from("cash_transactions")
                       .insert({
@@ -1852,7 +1616,6 @@ const WorkOrderModal: React.FC<{
                         `Lỗi tạo phiếu chi (giá bán âm): ${negExpenseError.message}`
                       );
                     } else {
-                      console.log("[Negative Sales] Insert SUCCESS");
                       // Update context
                       setCashTransactions((prev: any[]) => [
                         ...prev,
@@ -1902,11 +1665,13 @@ const WorkOrderModal: React.FC<{
               }
             }
 
-            // Call onSave to update the workOrders state
-            onSave(finalOrder);
+            // 🔹 Invalidate queries để refresh danh sách ngay
+            if (invalidateWorkOrders) {
+              invalidateWorkOrders();
+            }
 
             // 🔹 FIX: Nếu tạo phiếu mới với paymentStatus = 'paid', gọi complete_payment để trừ kho
-            // FIXME: Đã cập nhật để kiểm tra flag inventoryDeducted từ response của atomic create
+            // Kiểm tra flag inventoryDeducted từ response của atomic create
             // Nếu atomic create đã trừ kho rồi (inventoryDeducted = true) thì KHÔNG gọi complete_payment nữa
             if (
               paymentStatus === "paid" &&
@@ -1914,9 +1679,6 @@ const WorkOrderModal: React.FC<{
               !responseData?.inventoryDeducted
             ) {
               try {
-                console.log(
-                  "[handleSave] New order is fully paid AND atomic create didn't deduct inventory. Calling completeWorkOrderPayment..."
-                );
                 const result = await completeWorkOrderPayment(
                   orderId,
                   formData.paymentMethod || "cash",
@@ -1938,13 +1700,6 @@ const WorkOrderModal: React.FC<{
 
             // 🔹 Auto-create customer debt ONLY when status is "Trả máy" and there's remaining amount
             if (formData.status === "Trả máy" && remainingAmount > 0) {
-              console.log("[handleSave] Creating debt with finalOrder:", {
-                id: finalOrder.id,
-                customerName: finalOrder.customerName,
-                customerPhone: finalOrder.customerPhone,
-                licensePlate: finalOrder.licensePlate,
-                vehicleModel: finalOrder.vehicleModel,
-              });
               await createCustomerDebtIfNeeded(
                 finalOrder,
                 remainingAmount,
@@ -1953,7 +1708,17 @@ const WorkOrderModal: React.FC<{
               );
             }
 
+            // 🔹 Call onSave AFTER all async operations complete (not before)
+            // to prevent modal unmount before completePayment finishes
+            onSave(finalOrder);
+
+            // 🔹 Invalidate queries trước khi đóng modal để đảm bảo data mới được fetch
+            if (invalidateWorkOrders) {
+              invalidateWorkOrders();
+            }
+
             // Close modal after successful save
+            clearDraft();
             onClose();
           } catch (error: any) {
             console.error("Error creating work order (atomic):", error);
@@ -1964,20 +1729,15 @@ const WorkOrderModal: React.FC<{
 
         // 🔹 If this is an UPDATE (with or without parts), use atomic RPC
         if (order?.id) {
-          console.log(
-            "[handleSave] UPDATE block - Order ID:",
-            order.id,
-            "Status:",
-            formData.status
-          );
           try {
-            console.log("[handleSave] Calling updateWorkOrderAtomicAsync...");
             const responseData = await updateWorkOrderAtomicAsync({
               id: order.id,
               customerName: formData.customerName || "",
               customerPhone: formData.customerPhone || "",
+              vehicleId: formData.vehicleId || "",
               vehicleModel: formData.vehicleModel || "",
               licensePlate: formData.licensePlate || "",
+              currentKm: formData.currentKm,
               issueDescription: formData.issueDescription || "",
               technicianName: formData.technicianName || "",
               status: formData.status || "Tiếp nhận",
@@ -1985,180 +1745,38 @@ const WorkOrderModal: React.FC<{
               discount: discount,
               partsUsed: selectedParts,
               additionalServices:
-                additionalServices.length > 0 ? additionalServices : null,
+                additionalServices.length > 0 ? additionalServices : undefined,
               total: total,
               branchId: currentBranchId,
               paymentStatus: paymentStatus,
               paymentMethod: formData.paymentMethod,
               depositAmount: depositAmount > 0 ? depositAmount : undefined,
+              // Use clamped value: prevents recording additionalPayment > (total - deposit)
               additionalPayment:
-                totalAdditionalPayment > 0 ? totalAdditionalPayment : undefined,
+                additionalPaymentClamped > 0
+                  ? additionalPaymentClamped
+                  : undefined,
               totalPaid: totalPaid > 0 ? totalPaid : undefined,
               remainingAmount: remainingAmount,
             } as any);
 
-            const workOrderRow = (responseData as any).workOrder;
+            // 🔹 FIX: responseData IS already the normalized WorkOrder (from normalizeWorkOrder in repo)
+            // No need for manual snake→camelCase conversion
             const depositTxId = responseData?.depositTransactionId;
             const paymentTxId = responseData?.paymentTransactionId;
 
-            // 🔹 Transform snake_case response to camelCase for WorkOrder interface
-            // If workOrderRow is undefined, build from formData + order
-            const finalOrder: WorkOrder = workOrderRow
-              ? {
-                id: (workOrderRow as any).id || order.id,
-                customerName:
-                  (workOrderRow as any).customername ||
-                  (workOrderRow as any).customerName ||
-                  order.customerName,
-                customerPhone:
-                  (workOrderRow as any).customerphone ||
-                  (workOrderRow as any).customerPhone ||
-                  order.customerPhone,
-                vehicleModel:
-                  (workOrderRow as any).vehiclemodel ||
-                  (workOrderRow as any).vehicleModel ||
-                  order.vehicleModel,
-                licensePlate:
-                  (workOrderRow as any).licenseplate ||
-                  (workOrderRow as any).licensePlate ||
-                  order.licensePlate,
-                issueDescription:
-                  (workOrderRow as any).issuedescription ||
-                  (workOrderRow as any).issueDescription ||
-                  order.issueDescription ||
-                  "",
-                technicianName:
-                  (workOrderRow as any).technicianname ||
-                  (workOrderRow as any).technicianName ||
-                  order.technicianName ||
-                  "",
-                status: (workOrderRow as any).status || order.status,
-                laborCost:
-                  (workOrderRow as any).laborcost ||
-                  (workOrderRow as any).laborCost ||
-                  order.laborCost ||
-                  0,
-                discount: (workOrderRow as any).discount || order.discount || 0,
-                partsUsed:
-                  (workOrderRow as any).partsused ||
-                  (workOrderRow as any).partsUsed ||
-                  order.partsUsed ||
-                  [],
-                additionalServices:
-                  additionalServices.length > 0 ? additionalServices : null,
-                total: (workOrderRow as any).total || order.total,
-                branchId:
-                  (workOrderRow as any).branchid ||
-                  (workOrderRow as any).branchId ||
-                  order.branchId,
-                depositAmount:
-                  (workOrderRow as any).depositamount ||
-                  (workOrderRow as any).depositAmount ||
-                  order.depositAmount,
-                depositDate:
-                  (workOrderRow as any).depositdate ||
-                  (workOrderRow as any).depositDate ||
-                  order.depositDate,
-                depositTransactionId: depositTxId || order.depositTransactionId,
-                paymentStatus:
-                  (workOrderRow as any).paymentstatus ||
-                  (workOrderRow as any).paymentStatus ||
-                  order.paymentStatus,
-                paymentMethod:
-                  (workOrderRow as any).paymentmethod ||
-                  (workOrderRow as any).paymentMethod ||
-                  order.paymentMethod,
-                additionalPayment:
-                  (workOrderRow as any).additionalpayment ||
-                  (workOrderRow as any).additionalPayment ||
-                  order.additionalPayment,
-                totalPaid:
-                  (workOrderRow as any).totalpaid ||
-                  (workOrderRow as any).totalPaid ||
-                  order.totalPaid,
-                remainingAmount:
-                  (workOrderRow as any).remainingamount ||
-                  (workOrderRow as any).remainingAmount ||
-                  order.remainingAmount,
-                cashTransactionId: paymentTxId || order.cashTransactionId,
-                paymentDate:
-                  (workOrderRow as any).paymentdate ||
-                  (workOrderRow as any).paymentDate ||
-                  order.paymentDate,
-                creationDate:
-                  (workOrderRow as any).creationdate ||
-                  (workOrderRow as any).creationDate ||
-                  order.creationDate,
-              }
-              : {
-                // Build from formData when workOrderRow is undefined
-                ...order,
-                customerName: formData.customerName || order.customerName,
-                customerPhone: formData.customerPhone || order.customerPhone,
-                vehicleModel: formData.vehicleModel || order.vehicleModel,
-                licensePlate: formData.licensePlate || order.licensePlate,
-                issueDescription:
-                  formData.issueDescription || order.issueDescription,
-                technicianName: formData.technicianName || order.technicianName,
-                status: formData.status || order.status,
-                laborCost: formData.laborCost || order.laborCost,
-                discount: discount,
-                partsUsed: selectedParts,
-                additionalServices:
-                  additionalServices.length > 0 ? additionalServices : null,
-                total: total,
-                depositAmount: depositAmount,
-                depositTransactionId: depositTxId || order.depositTransactionId,
-                paymentStatus: paymentStatus,
-                paymentMethod: formData.paymentMethod || order.paymentMethod,
-                additionalPayment: totalAdditionalPayment,
-                totalPaid: totalPaid,
-                remainingAmount: remainingAmount,
-                cashTransactionId: paymentTxId || order.cashTransactionId,
-                paymentDate: paymentTxId
-                  ? new Date().toISOString()
-                  : order.paymentDate,
-              };
+            const finalOrder: WorkOrder = {
+              ...(responseData as any),
+              // Override with local values that may not be in the RPC response
+              additionalServices:
+                additionalServices.length > 0 ? additionalServices : undefined,
+              depositTransactionId: depositTxId || order.depositTransactionId,
+              cashTransactionId: paymentTxId || order.cashTransactionId,
+            };
 
-            // Update cash transactions in context AND database if new transactions created
+            // Update cash transactions in context if new deposit transaction created
+            // ✅ No need to INSERT - stored procedure already created the transaction
             if (depositTxId && depositAmount > order.depositAmount!) {
-              const additionalDeposit =
-                depositAmount - (order.depositAmount || 0);
-              // INSERT additional deposit to database
-              try {
-                const { error: addDepositErr } = await supabase
-                  .from("cash_transactions")
-                  .insert({
-                    id: depositTxId,
-                    type: "income",
-                    category: "service_deposit",
-                    amount: additionalDeposit,
-                    date: new Date().toISOString(),
-                    description: `Dat coc bo sung #${(
-                      formatWorkOrderId(
-                        order.id,
-                        storeSettings?.work_order_prefix
-                      ) || ""
-                    )
-                      .split("-")
-                      .pop()} - ${formData.customerName}`,
-                    branchid: currentBranchId,
-                    paymentsource: formData.paymentMethod,
-                    workorderid: order.id,
-                  });
-                if (addDepositErr) {
-                  console.error(
-                    "[WorkOrderModal-update] additional deposit error:",
-                    addDepositErr
-                  );
-                }
-              } catch (e) {
-                console.error(
-                  "[WorkOrderModal-update] additional deposit exception:",
-                  e
-                );
-              }
-
               setCashTransactions((prev: any[]) => [
                 ...prev,
                 {
@@ -2249,17 +1867,199 @@ const WorkOrderModal: React.FC<{
               );
             }
 
-            console.log(
-              "[handleSave] updateWorkOrderAtomicAsync SUCCESS - Response:",
-              responseData
-            );
+            // 🔹 Update/Create outsourcing expense when editing PAID order (gia công/đặt hàng)
+            if (paymentStatus === "paid") {
+              const outsourcingTotal = (additionalServices || []).reduce(
+                (sum, service) =>
+                  sum + (service.costPrice || 0) * (service.quantity || 1),
+                0
+              );
+              const desiredAmount = -outsourcingTotal; // expense is negative
+
+              try {
+                const { data: existingTxs, error: fetchErr } = await supabase
+                  .from("cash_transactions")
+                  .select("id, amount, paymentsource, branchid, category")
+                  .eq("reference", order.id)
+                  .in("category", ["outsourcing", "outsourcing_expense", "service_cost"]);
+
+                if (fetchErr) {
+                  console.error(
+                    "[Outsourcing-update] fetch error:",
+                    fetchErr
+                  );
+                } else {
+                  const existingTx = Array.isArray(existingTxs)
+                    ? existingTxs[0]
+                    : undefined;
+                  const paymentSourceId =
+                    (existingTx as any)?.paymentsource || "cash";
+
+                  if (outsourcingTotal > 0) {
+                    if (!existingTx) {
+                      const outsourcingTxId = `EXPENSE-${Date.now()}-${Math.random()
+                        .toString(36)
+                        .substr(2, 9)}`;
+
+                      const { error: insertErr } = await supabase
+                        .from("cash_transactions")
+                        .insert({
+                          id: outsourcingTxId,
+                          type: "expense",
+                          category: "outsourcing",
+                          amount: desiredAmount,
+                          date: new Date().toISOString(),
+                          description: `Chi phí gia công bên ngoài - Phiếu #${order.id
+                            .split("-")
+                            .pop()} - ${additionalServices
+                              .map((s) => s.description)
+                              .join(", ")}`,
+                          branchid: currentBranchId,
+                          paymentsource: "cash",
+                          reference: order.id,
+                        });
+
+                      if (insertErr) {
+                        console.error(
+                          "[Outsourcing-update] insert error:",
+                          insertErr
+                        );
+                      } else {
+                        setCashTransactions((prev: any[]) => [
+                          ...prev,
+                          {
+                            id: outsourcingTxId,
+                            type: "expense",
+                            category: "outsourcing",
+                            amount: desiredAmount,
+                            date: new Date().toISOString(),
+                            description: `Chi phí gia công bên ngoài - Phiếu #${order.id
+                              .split("-")
+                              .pop()}`,
+                            branchId: currentBranchId,
+                            paymentSource: "cash",
+                            reference: order.id,
+                          },
+                        ]);
+
+                        setPaymentSources((prev: any[]) =>
+                          prev.map((ps) => {
+                            if (ps.id === "cash") {
+                              return {
+                                ...ps,
+                                balance: {
+                                  ...ps.balance,
+                                  [currentBranchId]:
+                                    (ps.balance[currentBranchId] || 0) -
+                                    outsourcingTotal,
+                                },
+                              };
+                            }
+                            return ps;
+                          })
+                        );
+                      }
+                    } else if (existingTx.amount !== desiredAmount) {
+                      const delta = desiredAmount - (existingTx.amount || 0);
+
+                      const { error: updateErr } = await supabase
+                        .from("cash_transactions")
+                        .update({
+                          amount: desiredAmount,
+                          description: `Chi phí gia công bên ngoài - Phiếu #${order.id
+                            .split("-")
+                            .pop()} - ${additionalServices
+                              .map((s) => s.description)
+                              .join(", ")}`,
+                        })
+                        .eq("id", existingTx.id);
+
+                      if (updateErr) {
+                        console.error(
+                          "[Outsourcing-update] update error:",
+                          updateErr
+                        );
+                      } else {
+                        setCashTransactions((prev: any[]) =>
+                          prev.map((tx) =>
+                            tx.id === existingTx.id
+                              ? {
+                                ...tx,
+                                amount: desiredAmount,
+                                description: `Chi phí gia công bên ngoài - Phiếu #${order.id
+                                  .split("-")
+                                  .pop()}`,
+                              }
+                              : tx
+                          )
+                        );
+
+                        if (delta !== 0) {
+                          setPaymentSources((prev: any[]) =>
+                            prev.map((ps) => {
+                              if (ps.id === paymentSourceId) {
+                                return {
+                                  ...ps,
+                                  balance: {
+                                    ...ps.balance,
+                                    [currentBranchId]:
+                                      (ps.balance[currentBranchId] || 0) + delta,
+                                  },
+                                };
+                              }
+                              return ps;
+                            })
+                          );
+                        }
+                      }
+                    }
+                  } else if (existingTx) {
+                    // If cost is cleared, remove existing expense
+                    const { error: deleteErr } = await supabase
+                      .from("cash_transactions")
+                      .delete()
+                      .eq("id", existingTx.id);
+
+                    if (deleteErr) {
+                      console.error(
+                        "[Outsourcing-update] delete error:",
+                        deleteErr
+                      );
+                    } else {
+                      setCashTransactions((prev: any[]) =>
+                        prev.filter((tx) => tx.id !== existingTx.id)
+                      );
+
+                      const refund = Math.abs(existingTx.amount || 0);
+                      if (refund > 0) {
+                        setPaymentSources((prev: any[]) =>
+                          prev.map((ps) => {
+                            if (ps.id === paymentSourceId) {
+                              return {
+                                ...ps,
+                                balance: {
+                                  ...ps.balance,
+                                  [currentBranchId]:
+                                    (ps.balance[currentBranchId] || 0) + refund,
+                                },
+                              };
+                            }
+                            return ps;
+                          })
+                        );
+                      }
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error("[Outsourcing-update] unexpected error:", err);
+              }
+            }
 
             // 🔹 Force invalidate queries để refresh data mới từ DB
             if (invalidateWorkOrders) {
               invalidateWorkOrders();
             }
-
-            onSave(finalOrder);
 
             // 🔹 FIX: Nếu cập nhật phiếu thành paymentStatus = 'paid', gọi complete_payment để trừ kho
             const wasUnpaidOrPartial = order.paymentStatus !== "paid";
@@ -2269,9 +2069,6 @@ const WorkOrderModal: React.FC<{
               selectedParts.length > 0
             ) {
               try {
-                console.log(
-                  "[handleSave] Order became fully paid, calling completeWorkOrderPayment to deduct inventory"
-                );
                 const result = await completeWorkOrderPayment(
                   order.id,
                   formData.paymentMethod || "cash",
@@ -2301,12 +2098,20 @@ const WorkOrderModal: React.FC<{
               );
             }
 
+            // 🔹 Call onSave AFTER all async operations complete (not before)
+            onSave(finalOrder);
+
             // Close modal after successful update
+            clearDraft();
             onClose();
           } catch (error: any) {
             console.error(
               "[handleSave] Error updating work order (atomic):",
               error
+            );
+            showToast.error(
+              "Lỗi khi cập nhật phiếu: " +
+              (error.message || error.hint || "Không xác định")
             );
           }
           return;
@@ -2353,50 +2158,100 @@ const WorkOrderModal: React.FC<{
       });
     }, [parts, currentBranchId]);
 
+    const availablePartCategories = useMemo(() => {
+      const unique = new Set<string>();
+      for (const part of availableParts) {
+        const c = part.category?.trim();
+        if (c) unique.add(c);
+      }
+      return Array.from(unique).sort((a, b) => a.localeCompare(b, "vi"));
+    }, [availableParts]);
+
     // Filter parts based on search - show all available parts if search is empty
     const filteredParts = useMemo(() => {
-      if (!searchPart.trim()) return availableParts;
+      const normalizedQuery = normalizeSearchText(searchPart.trim());
+      const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
 
-      return availableParts.filter(
-        (p) =>
-          p.name.toLowerCase().includes(searchPart.toLowerCase()) ||
-          p.sku?.toLowerCase().includes(searchPart.toLowerCase())
-      );
-    }, [availableParts, searchPart]);
+      return availableParts.filter((p) => {
+        if (searchPartCategory && (p.category || "") !== searchPartCategory) {
+          return false;
+        }
+        if (queryWords.length === 0) return true;
+        const combined = [
+          normalizeSearchText(p.name),
+          normalizeSearchText(p.category),
+          normalizeSearchText((p as any).description),
+          (p.sku || "").toLowerCase(),
+        ].join(" ");
+        return queryWords.every((word) => combined.includes(word));
+      });
+    }, [availableParts, searchPart, searchPartCategory]);
 
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
-        <div className="bg-white dark:bg-slate-800 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-5xl rounded-t-3xl md:rounded-xl shadow-2xl md:shadow-lg flex flex-col overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-6xl rounded-t-3xl md:rounded-xl shadow-2xl md:shadow-lg flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 md:px-6 md:py-4 flex items-center justify-between rounded-t-3xl md:rounded-t-xl flex-shrink-0">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-              {formData.id
-                ? `Chi tiết Phiếu sửa chữa - ${formatWorkOrderId(
-                  formData.id,
-                  storeSettings?.work_order_prefix
-                )}`
-                : "Tạo Phiếu sửa chữa mới"}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-              aria-label="Đóng"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+          <div className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 md:px-6 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              {/* Status Stepper */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-0.5 flex-1 mr-3">
+                {[
+                  { key: "Tiếp nhận", icon: "📋", color: "blue" },
+                  { key: "Đang sửa", icon: "🔧", color: "orange" },
+                  { key: "Đã sửa xong", icon: "✅", color: "purple" },
+                  { key: "Trả máy", icon: "🏍️", color: "green" },
+                ].map((step, idx, arr) => {
+                  const statuses = arr.map(s => s.key);
+                  const currentIdx = statuses.indexOf(formData.status || "Tiếp nhận");
+                  const stepIdx = idx;
+                  const isActive = stepIdx === currentIdx;
+                  const isPast = stepIdx < currentIdx;
+                  const colorMap: Record<string, string> = {
+                    blue: isActive ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30" : isPast ? "bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700" : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700",
+                    orange: isActive ? "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30" : isPast ? "bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700" : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700",
+                    purple: isActive ? "bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/30" : isPast ? "bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700" : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700",
+                    green: isActive ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30" : isPast ? "bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700" : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700",
+                  };
+                  return (
+                    <div key={step.key} className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, status: step.key as any })}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${colorMap[step.color]} ${isActive ? "shadow-sm" : ""}`}
+                      >
+                        <span className="text-sm">{step.icon}</span>
+                        <span className="hidden sm:inline">{step.key}</span>
+                      </button>
+                      {idx < arr.length - 1 && (
+                        <div className={`w-4 h-0.5 rounded-full ${isPast ? "bg-slate-300 dark:bg-slate-500" : "bg-slate-200 dark:bg-slate-700"}`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Right: Badge + Close Button */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {formData.id ? (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                    #{formatWorkOrderId(formData.id, storeSettings?.work_order_prefix)}
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
+                    Phiếu mới
+                  </span>
+                )}
+                <button
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  aria-label="Đóng"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* 🔹 Warning Banner for Paid Orders */}
@@ -2421,626 +2276,804 @@ const WorkOrderModal: React.FC<{
                     ⚠️ Phiếu đã thanh toán
                   </h4>
                   <p className="text-xs text-amber-700 dark:text-amber-400">
-                    <p className="text-xs text-amber-700 dark:text-amber-400">
-                      Phiếu đã thanh toán: Không thể thay đổi danh sách dịch vụ và giá bán (Revenue).
-                      <br className="mb-1" />
-                      Tuy nhiên, bạn chẫn có thể cập nhật <b>Giá vốn (Cost)</b> của các dịch vụ để tính lợi nhuận chính xác, cũng như thông tin khách hàng và ghi chú.
-                    </p>
+                    Phiếu đã thanh toán: Không thể thay đổi danh sách dịch vụ và giá bán (Revenue).
+                    <br className="mb-1" />
+                    Tuy nhiên, bạn vẫn có thể cập nhật <b>Giá vốn (Cost)</b> của các dịch vụ để tính lợi nhuận chính xác, cũng như thông tin khách hàng và ghi chú.
                   </p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Scrollable Content */}
-          <div className="px-4 py-5 md:px-6 md:py-6 space-y-6 overflow-y-auto flex-1 pb-24 md:pb-6">
-            {/* Customer & Vehicle Info */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Thông tin Khách hàng & Sự cố
-                </h3>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Khách hàng <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="flex-1 relative customer-search-container">
-                      <input
-                        type="text"
-                        placeholder="Tìm khách hàng..."
-                        value={customerSearch}
-                        onChange={(e) => {
-                          setCustomerSearch(e.target.value);
-                          setShowCustomerDropdown(true);
-                          setFormData({
-                            ...formData,
-                            customerName: e.target.value,
-                          });
-                        }}
-                        onFocus={() => setShowCustomerDropdown(true)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                      />
-
-                      {/* Customer Dropdown */}
-                      {showCustomerDropdown && (
-                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {filteredCustomers.length > 0 ? (
-                            <>
-                              {filteredCustomers.map((customer) => (
-                                <button
-                                  key={customer.id}
-                                  type="button"
-                                  onClick={() => {
-                                    // Find primary vehicle or first vehicle
-                                    const primaryVehicle =
-                                      customer.vehicles?.find(
-                                        (v: Vehicle) => v.isPrimary
-                                      ) || customer.vehicles?.[0];
-
-                                    setFormData({
-                                      ...formData,
-                                      customerName: customer.name,
-                                      customerPhone: customer.phone,
-                                      vehicleId: primaryVehicle?.id,
-                                      vehicleModel:
-                                        primaryVehicle?.model ||
-                                        customer.vehicleModel ||
-                                        "",
-                                      licensePlate:
-                                        primaryVehicle?.licensePlate ||
-                                        customer.licensePlate ||
-                                        "",
-                                    });
-                                    setCustomerSearch(customer.name);
-                                    setShowCustomerDropdown(false);
-                                  }}
-                                  className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-600 border-b border-slate-200 dark:border-slate-600 last:border-0"
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate">
-                                        {customer.name}
-                                      </div>
-                                      <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                                        🔹 {customer.phone}
-                                      </div>
-                                      {(customer.vehicleModel ||
-                                        customer.licensePlate ||
-                                        customer.vehicles?.length > 0) && (
-                                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
-                                            <svg
-                                              className="w-3 h-3"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              viewBox="0 0 24 24"
-                                            >
-                                              <circle cx="6" cy="17" r="2" />
-                                              <circle cx="18" cy="17" r="2" />
-                                              <path d="M4 17h2l4-6h2l2 3h4" />
-                                            </svg>
-                                            {(() => {
-                                              const primaryVehicle =
-                                                customer.vehicles?.find(
-                                                  (v: any) => v.isPrimary
-                                                ) || customer.vehicles?.[0];
-                                              const model =
-                                                primaryVehicle?.model ||
-                                                customer.vehicleModel;
-                                              const plate =
-                                                primaryVehicle?.licensePlate ||
-                                                customer.licensePlate;
-                                              return (
-                                                <>
-                                                  {model && <span>{model}</span>}
-                                                  {plate && (
-                                                    <span className="font-mono font-semibold text-yellow-600 dark:text-yellow-400">
-                                                      {model && " - "}
-                                                      {plate}
-                                                    </span>
-                                                  )}
-                                                  {customer.vehicles?.length > 1 && (
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">
-                                                      (+{customer.vehicles.length - 1}
-                                                      )
-                                                    </span>
-                                                  )}
-                                                </>
-                                              );
-                                            })()}
-                                          </div>
-                                        )}
-                                    </div>
-                                  </div>
-                                </button>
-                              ))}
-                              {hasMoreCustomers && customerSearch.trim() && (
-                                <button
-                                  type="button"
-                                  onClick={handleLoadMoreCustomers}
-                                  className="w-full text-center px-3 py-3 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 border-t border-slate-200 dark:border-slate-600"
-                                >
-                                  {isSearchingCustomer
-                                    ? "Đang tải..."
-                                    : "⬇️ Tải thêm khách hàng..."}
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            <div className="px-3 py-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                              {customers.length === 0
-                                ? "Chưa có khách hàng nào. Nhấn '+' để thêm khách hàng mới."
-                                : "Không tìm thấy khách hàng phù hợp"}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+          {formData.id && selectedParts.length > 0 && (
+            <div className="mx-4 mt-3 md:mx-6 p-3 bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-600 rounded-lg">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setShowInventoryCheck(!showInventoryCheck)}
+                onKeyDown={(e) => e.key === "Enter" && setShowInventoryCheck(!showInventoryCheck)}
+                className="w-full flex items-center justify-between gap-2 text-left hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <svg
+                    className={`w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform ${showInventoryCheck ? "rotate-90" : ""
+                      }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Kiểm tra trừ kho
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    ({inventoryTxs.length} dòng xuất kho)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={handleRefreshInventoryTxs}
+                    className="text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                    Làm mới
+                  </button>
+                  {formData.paymentStatus === "paid" && inventoryTxs.length === 0 && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowAddCustomerModal(true);
-                        // Pre-fill phone if search term looks like a phone number
-                        if (customerSearch && /^[0-9]+$/.test(customerSearch)) {
-                          setNewCustomer({
-                            ...newCustomer,
-                            phone: customerSearch,
-                          });
-                        }
-                      }}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-xl"
-                      title="Thêm khách hàng mới"
+                      onClick={handleManualDeductInventory}
+                      disabled={isDeductingInventory}
+                      className="text-xs px-2.5 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
                     >
-                      +
+                      {isDeductingInventory ? "Đang trừ..." : "Trừ kho ngay"}
                     </button>
+                  )}
+                  <span
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${(formData as any).inventory_deducted ||
+                      (formData as any).inventoryDeducted
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                      }`}
+                  >
+                    {(formData as any).inventory_deducted ||
+                      (formData as any).inventoryDeducted
+                      ? "Đã trừ kho"
+                      : "Chưa trừ kho"}
+                  </span>
+                </div>
+              </div>
+
+              {showInventoryCheck && (
+                <>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 pl-6">
+                    Xuất kho ghi nhận: {inventoryTxs.length} dòng
+                    {formData.paymentStatus !== "paid" && (
+                      <> • Chưa thanh toán đủ nên chưa trừ kho (chỉ giữ)</>
+                    )}
                   </div>
 
-                  {/* Display customer info after selection */}
-                  {formData.customerName && formData.customerPhone && (
-                    <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <div className="flex items-start justify-between">
-                        {/* View Mode */}
-                        {!isEditingCustomer ? (
-                          <>
-                            <div className="space-y-1">
-                              <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                                {formData.customerName}
+                  {inventoryTxLoading ? (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 pl-6">
+                      Đang tải lịch sử xuất kho...
+                    </div>
+                  ) : inventoryTxError ? (
+                    <div className="text-xs text-red-500 mt-2 pl-6">
+                      {inventoryTxError}
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-2 max-h-[40vh] overflow-auto pr-1 pl-6">
+                      {selectedParts.map((p) => {
+                        const exportedQty = exportQtyByPartId.get(p.partId) || 0;
+                        const missingQty = Math.max(0, p.quantity - exportedQty);
+                        return (
+                          <div
+                            key={p.partId}
+                            className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <div className="font-medium text-slate-800 dark:text-slate-100 truncate">
+                                {p.partName}
                               </div>
-                              <div className="text-xs text-slate-600 dark:text-slate-400">
-                                <span className="inline-flex items-center gap-1">
+                              <div className="text-slate-500 dark:text-slate-400">
+                                Dùng: {p.quantity} • Xuất: {exportedQty}
+                              </div>
+                            </div>
+                            <span
+                              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${missingQty === 0 && exportedQty > 0
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                : exportedQty > 0
+                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                                  : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                                }`}
+                            >
+                              {missingQty === 0 && exportedQty > 0
+                                ? "Đã trừ"
+                                : exportedQty > 0
+                                  ? `Thiếu ${missingQty}`
+                                  : "Chưa trừ"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Main Content: 2-Panel Layout */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left Panel - Scrollable Form */}
+            <div className="flex-1 px-4 py-5 md:px-6 md:py-5 space-y-5 overflow-y-auto pb-24 md:pb-6">
+              {/* Section 1: Customer & Vehicle Info */}
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">1</span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      Khách hàng & Xe
+                    </h3>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Khách hàng <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative customer-search-container">
+                        <input
+                          type="text"
+                          placeholder="Tìm khách hàng..."
+                          value={customerSearch}
+                          onChange={(e) => {
+                            setCustomerSearch(e.target.value);
+                            setShowCustomerDropdown(true);
+                            setFormData({
+                              ...formData,
+                              customerId: "",
+                              customerName: e.target.value,
+                              customerPhone: "",
+                              vehicleId: undefined,
+                              vehicleModel: "",
+                              licensePlate: "",
+                            });
+                          }}
+                          onFocus={() => setShowCustomerDropdown(true)}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                        />
+
+                        {/* Customer Dropdown */}
+                        {showCustomerDropdown && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {filteredCustomers.length > 0 ? (
+                              <>
+                                {filteredCustomers.map((customer) => (
+                                  <button
+                                    key={customer.id}
+                                    type="button"
+                                    onClick={() => {
+                                      // Find primary vehicle or first vehicle
+                                      const primaryVehicle =
+                                        customer.vehicles?.find(
+                                          (v: Vehicle) => v.isPrimary
+                                        ) || customer.vehicles?.[0];
+
+                                      setFormData({
+                                        ...formData,
+                                        customerId: customer.id,
+                                        customerName: customer.name,
+                                        customerPhone: customer.phone,
+                                        vehicleId: primaryVehicle?.id,
+                                        vehicleModel:
+                                          primaryVehicle?.model ||
+                                          customer.vehicleModel ||
+                                          "",
+                                        licensePlate:
+                                          primaryVehicle?.licensePlate ||
+                                          customer.licensePlate ||
+                                          "",
+                                      });
+                                      setCustomerSearch(customer.name);
+                                      setShowCustomerDropdown(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-600 border-b border-slate-200 dark:border-slate-600 last:border-0"
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate">
+                                          {customer.name}
+                                        </div>
+                                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                                          🔹 {customer.phone}
+                                        </div>
+                                        {(customer.vehicleModel ||
+                                          customer.licensePlate ||
+                                          customer.vehicles?.length > 0) && (
+                                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
+                                              <svg
+                                                className="w-3 h-3"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                              >
+                                                <circle cx="6" cy="17" r="2" />
+                                                <circle cx="18" cy="17" r="2" />
+                                                <path d="M4 17h2l4-6h2l2 3h4" />
+                                              </svg>
+                                              {(() => {
+                                                const primaryVehicle =
+                                                  customer.vehicles?.find(
+                                                    (v: any) => v.isPrimary
+                                                  ) || customer.vehicles?.[0];
+                                                const model =
+                                                  primaryVehicle?.model ||
+                                                  customer.vehicleModel;
+                                                const plate =
+                                                  primaryVehicle?.licensePlate ||
+                                                  customer.licensePlate;
+                                                return (
+                                                  <>
+                                                    {model && <span>{model}</span>}
+                                                    {plate && (
+                                                      <span className="font-mono font-semibold text-yellow-600 dark:text-yellow-400">
+                                                        {model && " - "}
+                                                        {plate}
+                                                      </span>
+                                                    )}
+                                                    {customer.vehicles?.length > 1 && (
+                                                      <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">
+                                                        (+{customer.vehicles.length - 1}
+                                                        )
+                                                      </span>
+                                                    )}
+                                                  </>
+                                                );
+                                              })()}
+                                            </div>
+                                          )}
+                                      </div>
+                                    </div>
+                                  </button>
+                                ))}
+                                {hasMoreCustomers && customerSearch.trim() && (
+                                  <button
+                                    type="button"
+                                    onClick={handleLoadMoreCustomers}
+                                    className="w-full text-center px-3 py-3 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 border-t border-slate-200 dark:border-slate-600"
+                                  >
+                                    {isSearchingCustomer
+                                      ? "Đang tải..."
+                                      : "⬇️ Tải thêm khách hàng..."}
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <div className="px-3 py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                                {customers.length === 0
+                                  ? "Chưa có khách hàng nào. Nhấn '+' để thêm khách hàng mới."
+                                  : "Không tìm thấy khách hàng phù hợp"}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddCustomerModal(true);
+                          // Pre-fill phone if search term looks like a phone number
+                          if (customerSearch && /^[0-9]+$/.test(customerSearch)) {
+                            setNewCustomer({
+                              ...newCustomer,
+                              phone: customerSearch,
+                            });
+                          }
+                        }}
+                        className="w-10 h-10 flex items-center justify-center border border-blue-500 text-blue-600 hover:bg-blue-50 dark:border-blue-500/30 dark:text-blue-400 dark:hover:bg-blue-500/10 rounded-lg text-xl"
+                        title="Thêm khách hàng mới"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Display customer info after selection */}
+                    {formData.customerName && formData.customerPhone && (
+                      <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-start justify-between">
+                          {/* View Mode */}
+                          {!isEditingCustomer ? (
+                            <>
+                              <div className="space-y-1">
+                                <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                  {formData.customerName}
+                                </div>
+                                <div className="text-xs text-slate-600 dark:text-slate-400">
+                                  <span className="inline-flex items-center gap-1">
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      className="w-3.5 h-3.5"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M2.25 6.75c0 8.284 6.716 15 15 15 .828 0 1.5-.672 1.5-1.5v-2.25a1.5 1.5 0 00-1.5-1.5h-1.158a1.5 1.5 0 00-1.092.468l-.936.996a1.5 1.5 0 01-1.392.444 12.035 12.035 0 01-7.29-7.29 1.5 1.5 0 01.444-1.392l.996-.936a1.5 1.5 0 00.468-1.092V6.75A1.5 1.5 0 006.75 5.25H4.5c-.828 0-1.5.672-1.5 1.5z"
+                                      />
+                                    </svg>
+                                    {formData.customerPhone}
+                                  </span>
+                                </div>
+                                {(formData.vehicleModel ||
+                                  formData.licensePlate) && (
+                                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                                      <span className="inline-flex items-center gap-1">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          className="w-3.5 h-3.5"
+                                        >
+                                          <circle cx="6" cy="17" r="2" />
+                                          <circle cx="18" cy="17" r="2" />
+                                          <path d="M4 17h2l4-6h2l2 3h4" />
+                                        </svg>
+                                        {formData.vehicleModel}{" "}
+                                        {formData.licensePlate &&
+                                          `- ${formData.licensePlate}`}
+                                      </span>
+                                    </div>
+                                  )}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {/* Save Customer Button - Only show if customer not in DB yet */}
+                                {!currentCustomer && (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (!formData.customerName?.trim() || !formData.customerPhone?.trim()) {
+                                        showToast.error("Vui lòng nhập đầy đủ tên và số điện thoại");
+                                        return;
+                                      }
+
+                                      // Validate phone
+                                      const phoneValidation = validatePhoneNumber(formData.customerPhone);
+                                      if (!phoneValidation.ok) {
+                                        showToast.error(phoneValidation.error || "Số điện thoại không hợp lệ");
+                                        return;
+                                      }
+
+                                      try {
+                                        const tempCustomerId = `CUST-${Date.now()}`;
+                                        const newCustomerData = {
+                                          id: tempCustomerId,
+                                          name: formData.customerName.trim(),
+                                          phone: formData.customerPhone.trim(),
+                                          created_at: new Date().toISOString(),
+                                        };
+
+                                        // Call upsertCustomer and get the real customer ID (new or existing)
+                                        const realCustomerId = (await upsertCustomer(newCustomerData)) || tempCustomerId;
+
+                                        // Update formData with the real customerId
+                                        setFormData({
+                                          ...formData,
+                                          customerId: realCustomerId,
+                                        });
+
+                                        // Invalidate customers query to refresh data
+                                        queryClient.invalidateQueries({ queryKey: ["customers"] });
+                                      } catch (error: any) {
+                                        console.error("Error saving customer:", error);
+
+                                        // Check if it's a duplicate phone error
+                                        const isDuplicatePhone = error?.code === '23505' || error?.message?.includes('customers_phone_unique');
+
+                                        if (isDuplicatePhone) {
+                                          // Phone already exists, find the existing customer
+                                          const normalizePhone = (p: string) => p.replace(/\D/g, "");
+                                          const searchPhoneDigits = normalizePhone(formData.customerPhone);
+
+                                          const existingCustomer = allCustomers.find(c => {
+                                            if (!c.phone) return false;
+                                            const phones = c.phone.split(",").map((p: string) => normalizePhone(p.trim()));
+                                            return phones.some((p: string) => p === searchPhoneDigits);
+                                          });
+
+                                          if (existingCustomer) {
+                                            setFormData({
+                                              ...formData,
+                                              customerId: existingCustomer.id,
+                                              customerName: existingCustomer.name,
+                                              customerPhone: existingCustomer.phone,
+                                            });
+                                            setCustomerSearch(existingCustomer.name);
+                                            showToast.info(`Số điện thoại đã tồn tại. Đã chọn khách hàng: ${existingCustomer.name}`);
+                                          } else {
+                                            showToast.error("Số điện thoại đã tồn tại trong hệ thống!");
+                                          }
+                                        } else {
+                                          showToast.error("Không thể lưu khách hàng");
+                                        }
+                                      }
+                                    }}
+                                    className="text-green-500 hover:text-green-600 text-sm flex items-center gap-1 px-2 py-1 rounded border border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                    title="Lưu khách hàng vào hệ thống"
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      className="w-4 h-4"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+                                      />
+                                    </svg>
+                                    <span className="text-xs font-medium">Lưu KH</span>
+                                  </button>
+                                )}
+                                {/* Edit Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditCustomerName(
+                                      formData.customerName || ""
+                                    );
+                                    setEditCustomerPhone(
+                                      formData.customerPhone || ""
+                                    );
+                                    setIsEditingCustomer(true);
+                                  }}
+                                  className="text-slate-400 hover:text-blue-500 text-sm flex items-center"
+                                  title="Sửa thông tin khách hàng"
+                                >
                                   <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     viewBox="0 0 24 24"
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="2"
-                                    className="w-3.5 h-3.5"
+                                    className="w-4 h-4"
+                                    aria-hidden="true"
                                   >
                                     <path
                                       strokeLinecap="round"
                                       strokeLinejoin="round"
-                                      d="M2.25 6.75c0 8.284 6.716 15 15 15 .828 0 1.5-.672 1.5-1.5v-2.25a1.5 1.5 0 00-1.5-1.5h-1.158a1.5 1.5 0 00-1.092.468l-.936.996a1.5 1.5 0 01-1.392.444 12.035 12.035 0 01-7.29-7.29 1.5 1.5 0 01.444-1.392l.996-.936a1.5 1.5 0 00.468-1.092V6.75A1.5 1.5 0 006.75 5.25H4.5c-.828 0-1.5.672-1.5 1.5z"
+                                      d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
                                     />
                                   </svg>
-                                  {formData.customerPhone}
-                                </span>
+                                </button>
+                                {/* Delete Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCustomerSearch("");
+                                    setFormData({
+                                      ...formData,
+                                      customerName: "",
+                                      customerPhone: "",
+                                      customerId: "",
+                                      vehicleId: undefined,
+                                      vehicleModel: "",
+                                      licensePlate: "",
+                                    });
+                                  }}
+                                  className="text-slate-400 hover:text-red-500 text-sm flex items-center"
+                                  title="Xóa khách hàng"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    className="w-4 h-4"
+                                    aria-hidden="true"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                </button>
                               </div>
-                              {(formData.vehicleModel ||
-                                formData.licensePlate) && (
-                                  <div className="text-xs text-slate-600 dark:text-slate-400">
-                                    <span className="inline-flex items-center gap-1">
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        className="w-3.5 h-3.5"
-                                      >
-                                        <circle cx="6" cy="17" r="2" />
-                                        <circle cx="18" cy="17" r="2" />
-                                        <path d="M4 17h2l4-6h2l2 3h4" />
-                                      </svg>
-                                      {formData.vehicleModel}{" "}
-                                      {formData.licensePlate &&
-                                        `- ${formData.licensePlate}`}
-                                    </span>
-                                  </div>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {/* Edit Button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditCustomerName(
-                                    formData.customerName || ""
-                                  );
-                                  setEditCustomerPhone(
-                                    formData.customerPhone || ""
-                                  );
-                                  setIsEditingCustomer(true);
-                                }}
-                                className="text-slate-400 hover:text-blue-500 text-sm flex items-center"
-                                title="Sửa thông tin khách hàng"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  className="w-4 h-4"
-                                  aria-hidden="true"
+                            </>
+                          ) : (
+                            /* Edit Mode */
+                            <div className="w-full space-y-2">
+                              <div>
+                                <label className="text-xs text-slate-500 dark:text-slate-400">
+                                  Tên khách hàng
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editCustomerName}
+                                  onChange={(e) =>
+                                    setEditCustomerName(e.target.value)
+                                  }
+                                  className="w-full px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                                  placeholder="Nhập tên khách hàng"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 dark:text-slate-400">
+                                  Số điện thoại
+                                </label>
+                                <input
+                                  type="tel"
+                                  value={editCustomerPhone}
+                                  onChange={(e) =>
+                                    setEditCustomerPhone(e.target.value)
+                                  }
+                                  className="w-full px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                                  placeholder="Nhập số điện thoại"
+                                />
+                              </div>
+                              <div className="flex gap-2 justify-end pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setIsEditingCustomer(false)}
+                                  className="px-3 py-1 text-xs bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-                                  />
-                                </svg>
-                              </button>
-                              {/* Delete Button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCustomerSearch("");
-                                  setFormData({
-                                    ...formData,
-                                    customerName: "",
-                                    customerPhone: "",
-                                    vehicleId: undefined,
-                                    vehicleModel: "",
-                                    licensePlate: "",
-                                  });
-                                }}
-                                className="text-slate-400 hover:text-red-500 text-sm flex items-center"
-                                title="Xóa khách hàng"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  className="w-4 h-4"
-                                  aria-hidden="true"
+                                  Hủy
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleSaveEditedCustomer}
+                                  className="px-3 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                  />
-                                </svg>
-                              </button>
+                                  Lưu
+                                </button>
+                              </div>
                             </div>
-                          </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Vehicle Selection & Add Vehicle - Hiển thị khi đã có thông tin khách hàng */}
+                    {(currentCustomer || formData.customerName) && (
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            {customerVehicles.length > 0
+                              ? "Chọn xe"
+                              : "Xe của khách hàng"}
+                            {customerVehicles.length > 0 && (
+                              <span className="text-xs text-slate-500 ml-1">
+                                ({customerVehicles.length} xe)
+                              </span>
+                            )}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setShowAddVehicleModal(true)}
+                            className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium"
+                            title="Thêm xe mới"
+                          >
+                            + Thêm xe
+                          </button>
+                        </div>
+
+                        {customerVehicles.length > 0 ? (
+                          <div className="space-y-2">
+                            {customerVehicles.map((vehicle: Vehicle) => {
+                              const isSelected = formData.vehicleId === vehicle.id;
+                              const isPrimary = vehicle.isPrimary;
+                              const isEditing = editingVehicleId === vehicle.id;
+
+                              return (
+                                <div
+                                  key={vehicle.id}
+                                  className={`w-full rounded-lg border-2 transition-all ${isSelected
+                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                                    : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700"
+                                    }`}
+                                >
+                                  {isEditing ? (
+                                    // Edit mode
+                                    <div className="p-3 space-y-2">
+                                      <div>
+                                        <label className="text-xs text-slate-500 dark:text-slate-400">
+                                          Dòng xe
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={editVehicleModel}
+                                          onChange={(e) =>
+                                            setEditVehicleModel(e.target.value)
+                                          }
+                                          className="w-full px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                                          placeholder="Nhập dòng xe"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="text-xs text-slate-500 dark:text-slate-400">
+                                          Biển số
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={editVehicleLicensePlate}
+                                          onChange={(e) =>
+                                            setEditVehicleLicensePlate(
+                                              e.target.value.toUpperCase()
+                                            )
+                                          }
+                                          className="w-full px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                                          placeholder="Nhập biển số"
+                                        />
+                                      </div>
+                                      <div className="flex gap-2 justify-end pt-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setEditingVehicleId(null);
+                                            setEditVehicleModel("");
+                                            setEditVehicleLicensePlate("");
+                                          }}
+                                          className="px-3 py-1 text-xs bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500"
+                                        >
+                                          Hủy
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={handleSaveEditedVehicle}
+                                          className="px-3 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                                        >
+                                          Lưu
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    // Display mode
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSelectVehicle(vehicle)}
+                                      className="w-full text-left px-3 py-2.5"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {isPrimary && (
+                                          <span
+                                            className="text-yellow-500"
+                                            title="Xe chính"
+                                          >
+                                            ⭐
+                                          </span>
+                                        )}
+                                        <div className="flex-1">
+                                          <div className="font-medium text-sm text-slate-900 dark:text-slate-100">
+                                            {vehicle.model}
+                                          </div>
+                                          <div className="text-xs font-mono text-slate-600 dark:text-slate-400 mt-0.5">
+                                            {vehicle.licensePlate}
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditingVehicleId(vehicle.id);
+                                              setEditVehicleModel(
+                                                vehicle.model || ""
+                                              );
+                                              setEditVehicleLicensePlate(
+                                                vehicle.licensePlate || ""
+                                              );
+                                            }}
+                                            className="text-slate-400 hover:text-blue-500 p-1"
+                                            title="Sửa thông tin xe"
+                                          >
+                                            <svg
+                                              xmlns="http://www.w3.org/2000/svg"
+                                              viewBox="0 0 24 24"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              strokeWidth="2"
+                                              className="w-4 h-4"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                              />
+                                            </svg>
+                                          </button>
+                                          {isSelected && (
+                                            <svg
+                                              className="w-5 h-5 text-blue-500"
+                                              fill="currentColor"
+                                              viewBox="0 0 20 20"
+                                            >
+                                              <path
+                                                fillRule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                clipRule="evenodd"
+                                              />
+                                            </svg>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         ) : (
-                          /* Edit Mode */
-                          <div className="w-full space-y-2">
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400">
-                                Tên khách hàng
-                              </label>
-                              <input
-                                type="text"
-                                value={editCustomerName}
-                                onChange={(e) =>
-                                  setEditCustomerName(e.target.value)
-                                }
-                                className="w-full px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                                placeholder="Nhập tên khách hàng"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400">
-                                Số điện thoại
-                              </label>
-                              <input
-                                type="tel"
-                                value={editCustomerPhone}
-                                onChange={(e) =>
-                                  setEditCustomerPhone(e.target.value)
-                                }
-                                className="w-full px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                                placeholder="Nhập số điện thoại"
-                              />
-                            </div>
-                            <div className="flex gap-2 justify-end pt-1">
-                              <button
-                                type="button"
-                                onClick={() => setIsEditingCustomer(false)}
-                                className="px-3 py-1 text-xs bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500"
-                              >
-                                Hủy
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleSaveEditedCustomer}
-                                className="px-3 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                              >
-                                Lưu
-                              </button>
-                            </div>
+                          <div className="text-center py-4 px-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-dashed border-slate-300 dark:border-slate-600">
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Chưa có xe nào. Nhấn "+ Thêm xe" để thêm.
+                            </p>
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
-                  {/* Vehicle Selection & Add Vehicle (for selected customer) */}
-                  {currentCustomer && (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                          {customerVehicles.length > 0
-                            ? "Chọn xe"
-                            : "Xe của khách hàng"}
-                          {customerVehicles.length > 0 && (
-                            <span className="text-xs text-slate-500 ml-1">
-                              ({customerVehicles.length} xe)
-                            </span>
-                          )}
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setShowAddVehicleModal(true)}
-                          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium"
-                          title="Thêm xe mới"
-                        >
-                          + Thêm xe
-                        </button>
-                      </div>
-
-                      {customerVehicles.length > 0 ? (
-                        <div className="space-y-2">
-                          {customerVehicles.map((vehicle: Vehicle) => {
-                            const isSelected = formData.vehicleId === vehicle.id;
-                            const isPrimary = vehicle.isPrimary;
-                            const isEditing = editingVehicleId === vehicle.id;
-
-                            return (
-                              <div
-                                key={vehicle.id}
-                                className={`w-full rounded-lg border-2 transition-all ${isSelected
-                                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
-                                  : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700"
-                                  }`}
-                              >
-                                {isEditing ? (
-                                  // Edit mode
-                                  <div className="p-3 space-y-2">
-                                    <div>
-                                      <label className="text-xs text-slate-500 dark:text-slate-400">
-                                        Dòng xe
-                                      </label>
-                                      <input
-                                        type="text"
-                                        value={editVehicleModel}
-                                        onChange={(e) =>
-                                          setEditVehicleModel(e.target.value)
-                                        }
-                                        className="w-full px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                                        placeholder="Nhập dòng xe"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="text-xs text-slate-500 dark:text-slate-400">
-                                        Biển số
-                                      </label>
-                                      <input
-                                        type="text"
-                                        value={editVehicleLicensePlate}
-                                        onChange={(e) =>
-                                          setEditVehicleLicensePlate(
-                                            e.target.value
-                                          )
-                                        }
-                                        className="w-full px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                                        placeholder="Nhập biển số"
-                                      />
-                                    </div>
-                                    <div className="flex gap-2 justify-end pt-1">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingVehicleId(null);
-                                          setEditVehicleModel("");
-                                          setEditVehicleLicensePlate("");
-                                        }}
-                                        className="px-3 py-1 text-xs bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500"
-                                      >
-                                        Hủy
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={handleSaveEditedVehicle}
-                                        className="px-3 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                                      >
-                                        Lưu
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  // Display mode
-                                  <button
-                                    type="button"
-                                    onClick={() => handleSelectVehicle(vehicle)}
-                                    className="w-full text-left px-3 py-2.5"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      {isPrimary && (
-                                        <span
-                                          className="text-yellow-500"
-                                          title="Xe chính"
-                                        >
-                                          ⭐
-                                        </span>
-                                      )}
-                                      <div className="flex-1">
-                                        <div className="font-medium text-sm text-slate-900 dark:text-slate-100">
-                                          {vehicle.model}
-                                        </div>
-                                        <div className="text-xs font-mono text-slate-600 dark:text-slate-400 mt-0.5">
-                                          {vehicle.licensePlate}
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditingVehicleId(vehicle.id);
-                                            setEditVehicleModel(
-                                              vehicle.model || ""
-                                            );
-                                            setEditVehicleLicensePlate(
-                                              vehicle.licensePlate || ""
-                                            );
-                                          }}
-                                          className="text-slate-400 hover:text-blue-500 p-1"
-                                          title="Sửa thông tin xe"
-                                        >
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            className="w-4 h-4"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                            />
-                                          </svg>
-                                        </button>
-                                        {isSelected && (
-                                          <svg
-                                            className="w-5 h-5 text-blue-500"
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                          >
-                                            <path
-                                              fillRule="evenodd"
-                                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                              clipRule="evenodd"
-                                            />
-                                          </svg>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 px-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-dashed border-slate-300 dark:border-slate-600">
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Chưa có xe nào. Nhấn "+ Thêm xe" để thêm.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Số KM hiện tại
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="15000"
-                    value={formData.currentKm || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        currentKm: e.target.value
-                          ? parseInt(e.target.value)
-                          : undefined,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Mô tả sự cố
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="Bảo dưỡng định kỳ, thay nhớt..."
-                    value={formData.issueDescription || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        issueDescription: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Chi tiết Dịch vụ
-                </h3>
-
-                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Trạng thái
+                      Số KM hiện tại
                     </label>
-                    <select
-                      value={formData.status || "Tiếp nhận"}
+                    <input
+                      type="number"
+                      placeholder="15000"
+                      value={formData.currentKm || ""}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          status: e.target.value as any,
+                          currentKm: e.target.value
+                            ? parseInt(e.target.value)
+                            : undefined,
                         })
                       }
-                      className={`w-full px-3 py-2 border rounded-lg font-medium ${formData.status === "Tiếp nhận"
-                        ? "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300"
-                        : formData.status === "Đang sửa"
-                          ? "bg-orange-100 dark:bg-orange-900/30 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300"
-                          : formData.status === "Đã sửa xong"
-                            ? "bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300"
-                            : "bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300"
-                        }`}
-                    >
-                      <option
-                        value="Tiếp nhận"
-                        className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                      >
-                        Tiếp nhận
-                      </option>
-                      <option
-                        value="Đang sửa"
-                        className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                      >
-                        Đang sửa
-                      </option>
-                      <option
-                        value="Đã sửa xong"
-                        className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                      >
-                        Đã sửa xong
-                      </option>
-                      <option
-                        value="Trả máy"
-                        className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                      >
-                        Trả máy
-                      </option>
-                    </select>
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                    />
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Mô tả sự cố
+                    </label>
+                    <textarea
+                      rows={4}
+                      placeholder="Bảo dưỡng định kỳ, thay nhớt..."
+                      value={formData.issueDescription || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          issueDescription: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">2</span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      Chi tiết Dịch vụ
+                    </h3>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Kỹ thuật viên
@@ -3070,254 +3103,454 @@ const WorkOrderModal: React.FC<{
                         ))}
                     </select>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Phí dịch vụ (Công thợ)
-                    {!canEditPriceAndParts && (
-                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
-                        (Không thể sửa)
-                      </span>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Phí dịch vụ (Công thợ)
+                      {!canEditPriceAndParts && (
+                        <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
+                          (Không thể sửa)
+                        </span>
+                      )}
+                    </label>
+                    <NumberInput
+                      placeholder="100.000"
+                      value={formData.laborCost || ""}
+                      onChange={(val) =>
+                        setFormData({
+                          ...formData,
+                          laborCost: val,
+                        })
+                      }
+                      disabled={!canEditPriceAndParts}
+                      className={`w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 ${!canEditPriceAndParts ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Ghi chú nội bộ
+                    </label>
+                    <textarea
+                      rows={4}
+                      placeholder="VD: Khách yêu cầu kiểm tra thêm hệ thống điện"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Parts Used */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">3</span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      Phụ tùng sử dụng
+                    </h3>
+                    {selectedParts.length > 0 && (
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">{selectedParts.length}</span>
                     )}
-                  </label>
-                  <NumberInput
-                    placeholder="100.000"
-                    value={formData.laborCost || ""}
-                    onChange={(val) =>
-                      setFormData({
-                        ...formData,
-                        laborCost: val,
-                      })
-                    }
+                  </div>
+                  <button
+                    onClick={() => setShowPartSearch(!showPartSearch)}
                     disabled={!canEditPriceAndParts}
-                    className={`w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 ${!canEditPriceAndParts ? "opacity-50 cursor-not-allowed" : ""
+                    className={`px-3 py-1.5 rounded text-sm flex items-center gap-1 ${canEditPriceAndParts
+                      ? "border border-blue-500 text-blue-500 hover:bg-blue-50 dark:border-blue-500/30 dark:text-blue-400 dark:hover:bg-blue-500/10"
+                      : "bg-slate-400 dark:bg-slate-600 text-white cursor-not-allowed opacity-50"
                       }`}
-                  />
+                    title={
+                      canEditPriceAndParts
+                        ? "Thêm phụ tùng"
+                        : "Không thể thêm phụ tùng cho phiếu đã thanh toán"
+                    }
+                  >
+                    + Thêm phụ tùng
+                  </button>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Ghi chú nội bộ
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="VD: Khách yêu cầu kiểm tra thêm hệ thống điện"
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 resize-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Parts Used */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Phụ tùng sử dụng
-                </h3>
-                <button
-                  onClick={() => setShowPartSearch(!showPartSearch)}
-                  disabled={!canEditPriceAndParts}
-                  className={`px-3 py-1.5 text-white rounded text-sm flex items-center gap-1 ${canEditPriceAndParts
-                    ? "bg-blue-500 hover:bg-blue-600"
-                    : "bg-slate-400 dark:bg-slate-600 cursor-not-allowed opacity-50"
-                    }`}
-                  title={
-                    canEditPriceAndParts
-                      ? "Thêm phụ tùng"
-                      : "Không thể thêm phụ tùng cho phiếu đã thanh toán"
-                  }
-                >
-                  + Thêm phụ tùng
-                </button>
-              </div>
-
-              {showPartSearch && (
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Tìm kiếm phụ tùng theo tên hoặc SKU..."
-                    value={searchPart}
-                    onChange={(e) => setSearchPart(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                    autoFocus
-                  />
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
-                    {partsLoading ? (
-                      <div className="px-4 py-3 text-sm text-slate-500">
-                        Đang tải phụ tùng...
-                      </div>
-                    ) : filteredParts.length === 0 ? (
-                      <div className="px-4 py-3 text-sm text-slate-500">
-                        Không tìm thấy phụ tùng
-                      </div>
-                    ) : (
-                      <>
-                        {filteredParts.slice(0, 50).map((part) => {
-                          const stock = part.stock?.[currentBranchId] || 0;
-                          return (
-                            <button
-                              key={part.id}
-                              onClick={() => {
-                                if (stock <= 0) {
-                                  showToast.error("Sản phẩm đã hết hàng!");
-                                  return;
-                                }
-                                handleAddPart(part);
-                              }}
-                              className="w-full px-4 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-600 flex items-center justify-between border-b border-slate-100 dark:border-slate-600 last:border-b-0"
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                                  {part.name}
+                {showPartSearch && (
+                  <div className="relative">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm phụ tùng theo tên hoặc SKU..."
+                        value={searchPart}
+                        onChange={(e) => setSearchPart(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                        autoFocus
+                      />
+                      <select
+                        value={searchPartCategory}
+                        onChange={(e) => setSearchPartCategory(e.target.value)}
+                        className="w-48 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                        aria-label="Danh mục phụ tùng"
+                      >
+                        <option value="">Tất cả danh mục</option>
+                        {availablePartCategories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
+                      {partsLoading ? (
+                        <div className="px-4 py-3 text-sm text-slate-500">
+                          Đang tải phụ tùng...
+                        </div>
+                      ) : filteredParts.length === 0 ? (
+                        <div className="px-4 py-3 text-sm text-slate-500">
+                          Không tìm thấy phụ tùng
+                        </div>
+                      ) : (
+                        <>
+                          {filteredParts.slice(0, 50).map((part) => {
+                            const stock = part.stock?.[currentBranchId] || 0;
+                            return (
+                              <button
+                                key={part.id}
+                                onClick={() => {
+                                  if (stock <= 0) {
+                                    showToast.error("Sản phẩm đã hết hàng!");
+                                    return;
+                                  }
+                                  handleAddPart(part);
+                                }}
+                                className="w-full px-4 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-600 flex items-center justify-between border-b border-slate-100 dark:border-slate-600 last:border-b-0"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                    {part.name}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">
+                                      {part.sku}
+                                    </span>
+                                    <span className="text-[10px] text-orange-600 dark:text-orange-400 font-medium">
+                                      Tồn: {stock}
+                                    </span>
+                                    {part.category && (
+                                      <span
+                                        className={`inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-medium ${getCategoryColor(part.category).bg
+                                          } ${getCategoryColor(part.category).text}`}
+                                      >
+                                        {part.category}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2 mt-0.5">
+                                <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                                  {formatCurrency(
+                                    part.retailPrice[currentBranchId] || 0
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                          {filteredParts.length > 50 && (
+                            <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-center text-xs text-slate-500 italic border-t border-slate-100 dark:border-slate-600">
+                              Đang hiển thị 50/{filteredParts.length} kết quả. Vui lòng tìm kiếm chi tiết hơn.
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-slate-50 dark:bg-slate-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-600 dark:text-slate-300">
+                          Tên
+                        </th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
+                          SL
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
+                          Đ.Giá
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
+                          T.Tiền
+                        </th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-600">
+                      {selectedParts.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            className="px-4 py-6 text-center text-sm text-slate-400"
+                          >
+                            Chưa có phụ tùng nào
+                          </td>
+                        </tr>
+                      ) : (
+                        selectedParts.map((part, idx) => (
+                          <tr key={idx} className="bg-white dark:bg-slate-800">
+                            <td className="px-4 py-2">
+                              <div className="text-sm text-slate-900 dark:text-slate-100 font-medium">
+                                {part.partName}
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {part.sku && (
                                   <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">
                                     {part.sku}
                                   </span>
-                                  <span className="text-[10px] text-orange-600 dark:text-orange-400 font-medium">
-                                    Tồn: {stock}
+                                )}
+                                {part.category && (
+                                  <span
+                                    className={`inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-medium ${getCategoryColor(part.category).bg
+                                      } ${getCategoryColor(part.category).text}`}
+                                  >
+                                    {part.category}
                                   </span>
-                                  {part.category && (
-                                    <span
-                                      className={`inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-medium ${getCategoryColor(part.category).bg
-                                        } ${getCategoryColor(part.category).text}`}
-                                    >
-                                      {part.category}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                                {formatCurrency(
-                                  part.retailPrice[currentBranchId] || 0
                                 )}
                               </div>
-                            </button>
-                          );
-                        })}
-                        {filteredParts.length > 50 && (
-                          <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-center text-xs text-slate-500 italic border-t border-slate-100 dark:border-slate-600">
-                            Đang hiển thị 50/{filteredParts.length} kết quả. Vui lòng tìm kiếm chi tiết hơn.
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-slate-50 dark:bg-slate-700">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-600 dark:text-slate-300">
-                        Tên
-                      </th>
-                      <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
-                        SL
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-                        Đ.Giá
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-                        T.Tiền
-                      </th>
-                      <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-600">
-                    {selectedParts.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="px-4 py-6 text-center text-sm text-slate-400"
-                        >
-                          Chưa có phụ tùng nào
-                        </td>
-                      </tr>
-                    ) : (
-                      selectedParts.map((part, idx) => (
-                        <tr key={idx} className="bg-white dark:bg-slate-800">
-                          <td className="px-4 py-2">
-                            <div className="text-sm text-slate-900 dark:text-slate-100 font-medium">
-                              {part.partName}
-                            </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              {part.sku && (
-                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">
-                                  {part.sku}
-                                </span>
-                              )}
-                              {part.category && (
-                                <span
-                                  className={`inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-medium ${getCategoryColor(part.category).bg
-                                    } ${getCategoryColor(part.category).text}`}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <input
+                                type="number"
+                                min="1"
+                                value={part.quantity}
+                                disabled={!canEditPriceAndParts}
+                                onChange={(e) => {
+                                  const newQty = Number(e.target.value);
+                                  setSelectedParts(
+                                    selectedParts.map((p, i) =>
+                                      i === idx ? { ...p, quantity: newQty } : p
+                                    )
+                                  );
+                                }}
+                                className={`w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 ${!canEditPriceAndParts
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
+                                  }`}
+                              />
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              <NumberInput
+                                placeholder="Đơn giá"
+                                value={part.price || ""}
+                                onChange={(val) => {
+                                  setSelectedParts(
+                                    selectedParts.map((p, i) =>
+                                      i === idx ? { ...p, price: val } : p
+                                    )
+                                  );
+                                }}
+                                disabled={!canEditPriceAndParts}
+                                className={`w-28 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm ${!canEditPriceAndParts
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
+                                  }`}
+                              />
+                            </td>
+                            <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
+                              {formatCurrency(part.price * part.quantity)}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <button
+                                onClick={() =>
+                                  setSelectedParts(
+                                    selectedParts.filter((_, i) => i !== idx)
+                                  )
+                                }
+                                disabled={!canEditPriceAndParts}
+                                className={`${canEditPriceAndParts
+                                  ? "text-red-500 hover:text-red-700"
+                                  : "text-slate-400 cursor-not-allowed"
+                                  }`}
+                                aria-label="Xóa phụ tùng"
+                                title={
+                                  canEditPriceAndParts
+                                    ? "Xóa phụ tùng"
+                                    : "Không thể xóa phụ tùng cho phiếu đã thanh toán"
+                                }
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  className="w-4 h-4"
                                 >
-                                  {part.category}
-                                </span>
-                              )}
-                            </div>
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M3 6h18M9 6V4h6v2m-7 4v8m4-8v8m4-8v8"
+                                  />
+                                </svg>
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Quote/Estimate Section */}
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">4</span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Báo giá (Gia công, Đặt hàng)
+                  </h3>
+                  {additionalServices.length > 0 && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">{additionalServices.length}</span>
+                  )}
+                </div>
+
+                <div className="border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-slate-50 dark:bg-slate-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-600 dark:text-slate-300">
+                          Mô tả
+                        </th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
+                          SL
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
+                          Giá nhập
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
+                          Đơn giá
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
+                          Thành tiền
+                        </th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
+                          <button
+                            onClick={() => {
+                              if (newService.description) {
+                                setAdditionalServices([
+                                  ...additionalServices,
+                                  { ...newService, id: `SRV-${Date.now()}` },
+                                ]);
+                                setNewService({
+                                  description: "",
+                                  quantity: 1,
+                                  price: 0,
+                                  costPrice: 0,
+                                });
+                              }
+                            }}
+                            className="px-2 py-1 border border-blue-500 text-blue-500 hover:bg-blue-50 dark:border-blue-500/30 dark:text-blue-400 dark:hover:bg-blue-500/10 rounded text-xs"
+                          >
+                            Thêm
+                          </button>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Existing services */}
+                      {additionalServices.map((service) => (
+                        <tr
+                          key={service.id}
+                          className="border-b border-slate-200 dark:border-slate-700"
+                        >
+                          <td className="px-4 py-2 text-sm text-slate-900 dark:text-slate-100">
+                            {service.description}
                           </td>
-                          <td className="px-4 py-2 text-center">
+                          <td className="px-4 py-2 text-center text-sm text-slate-900 dark:text-slate-100">
                             <input
                               type="number"
+                              value={service.quantity}
                               min="1"
-                              value={part.quantity}
-                              disabled={!canEditPriceAndParts}
                               onChange={(e) => {
-                                const newQty = Number(e.target.value);
-                                setSelectedParts(
-                                  selectedParts.map((p, i) =>
-                                    i === idx ? { ...p, quantity: newQty } : p
+                                const newQty = Math.max(1, Number(e.target.value));
+                                setAdditionalServices(
+                                  additionalServices.map((s) =>
+                                    s.id === service.id
+                                      ? { ...s, quantity: newQty }
+                                      : s
                                   )
                                 );
                               }}
-                              className={`w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 ${!canEditPriceAndParts
-                                ? "opacity-50 cursor-not-allowed"
-                                : ""
-                                }`}
+                              className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 focus:border-blue-500 focus:outline-none"
+                            />
+                          </td>
+                          <td className="px-4 py-2 text-right relative">
+                            <NumberInput
+                              value={service.costPrice ?? 0}
+                              onChange={(val) =>
+                                setAdditionalServices(
+                                  additionalServices.map((s) => {
+                                    if (s.id === service.id) {
+                                      // If cost price changes, automatically calculate price = costPrice * 1.4 (+40%)
+                                      // Only auto-update if price was 0 or user hasn't explicitly set a different price
+                                      // (For simplicity, we just overwrite it when costPrice changes like requested)
+                                      return { ...s, costPrice: val, price: val ? Math.round(val * 1.4) : s.price };
+                                    }
+                                    return s;
+                                  })
+                                )
+                              }
+                              // Always allow editing cost price for internal tracking
+                              disabled={false}
+                              className="w-full px-2 py-1 border border-orange-200 dark:border-orange-800 rounded text-right bg-orange-50 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400 focus:border-orange-500 focus:bg-white dark:focus:bg-slate-700 transition-colors text-sm"
+                              placeholder="0"
                             />
                           </td>
                           <td className="px-4 py-2 text-right">
                             <NumberInput
-                              placeholder="Đơn giá"
-                              value={part.price || ""}
-                              onChange={(val) => {
-                                setSelectedParts(
-                                  selectedParts.map((p, i) =>
-                                    i === idx ? { ...p, price: val } : p
+                              value={service.price}
+                              onChange={(val) =>
+                                setAdditionalServices(
+                                  additionalServices.map((s) =>
+                                    s.id === service.id
+                                      ? { ...s, price: val }
+                                      : s
                                   )
-                                );
-                              }}
-                              disabled={!canEditPriceAndParts}
-                              className={`w-28 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm ${!canEditPriceAndParts
-                                ? "opacity-50 cursor-not-allowed"
-                                : ""
-                                }`}
-                            />
-                          </td>
-                          <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            {formatCurrency(part.price * part.quantity)}
-                          </td>
-                          <td className="px-4 py-2 text-center">
-                            <button
-                              onClick={() =>
-                                setSelectedParts(
-                                  selectedParts.filter((_, i) => i !== idx)
                                 )
                               }
                               disabled={!canEditPriceAndParts}
-                              className={`${canEditPriceAndParts
-                                ? "text-red-500 hover:text-red-700"
-                                : "text-slate-400 cursor-not-allowed"
+                              className={`w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none text-sm ${!canEditPriceAndParts
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
                                 }`}
-                              aria-label="Xóa phụ tùng"
-                              title={
-                                canEditPriceAndParts
-                                  ? "Xóa phụ tùng"
-                                  : "Không thể xóa phụ tùng cho phiếu đã thanh toán"
-                              }
+                              placeholder="0"
+                            />
+                          </td>
+                          <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            {formatCurrency(service.price * service.quantity)}
+                          </td>
+                          <td className="px-4 py-2 text-center">
+                            <button
+                              onClick={async () => {
+                                const newServices = additionalServices.filter(
+                                  (s) => s.id !== service.id
+                                );
+                                setAdditionalServices(newServices);
+
+                                // 🔹 FIX: Nếu xóa hết services VÀ đang edit order có sẵn → Update DB ngay
+                                if (newServices.length === 0 && order?.id) {
+                                  try {
+                                    await supabase
+                                      .from('work_orders')
+                                      .update({ additionalservices: null })
+                                      .eq('id', order.id);
+                                    showToast.success('Đã xóa phần gia công/đặt hàng');
+                                  } catch (error) {
+                                    console.error('[WorkOrderModal] Error clearing additionalServices:', error);
+                                    showToast.error('Lỗi khi xóa phần gia công/đặt hàng');
+                                  }
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                              aria-label="Xóa dịch vụ"
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -3336,588 +3569,194 @@ const WorkOrderModal: React.FC<{
                             </button>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                      ))}
 
-            {/* Quote/Estimate Section */}
-            <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
-                Báo giá (Gia công, Đặt hàng)
-              </h3>
-
-              <div className="border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-slate-50 dark:bg-slate-700">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-600 dark:text-slate-300">
-                        Mô tả
-                      </th>
-                      <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
-                        SL
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-                        Giá nhập
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-                        Đơn giá
-                      </th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-                        Thành tiền
-                      </th>
-                      <th className="px-4 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-300">
-                        <button
-                          onClick={() => {
-                            if (newService.description) {
-                              setAdditionalServices([
-                                ...additionalServices,
-                                { ...newService, id: `SRV-${Date.now()}` },
-                              ]);
+                      {/* Input row */}
+                      <tr className="bg-white dark:bg-slate-800">
+                        <td className="px-4 py-2">
+                          <input
+                            type="text"
+                            placeholder="Mô tả..."
+                            value={newService.description}
+                            onChange={(e) =>
                               setNewService({
-                                description: "",
-                                quantity: 1,
-                                price: 0,
-                                costPrice: 0,
-                              });
+                                ...newService,
+                                description: e.target.value,
+                              })
                             }
-                          }}
-                          className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs"
-                        >
-                          Thêm
-                        </button>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* Existing services */}
-                    {additionalServices.map((service) => (
-                      <tr
-                        key={service.id}
-                        className="border-b border-slate-200 dark:border-slate-700"
-                      >
-                        <td className="px-4 py-2 text-sm text-slate-900 dark:text-slate-100">
-                          {service.description}
+                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                          />
                         </td>
-                        <td className="px-4 py-2 text-center text-sm text-slate-900 dark:text-slate-100">
+                        <td className="px-4 py-2">
                           <input
                             type="number"
-                            value={service.quantity}
-                            min="1"
-                            onChange={(e) => {
-                              const newQty = Math.max(1, Number(e.target.value));
-                              setAdditionalServices(
-                                additionalServices.map((s) =>
-                                  s.id === service.id
-                                    ? { ...s, quantity: newQty }
-                                    : s
-                                )
-                              );
+                            value={newService.quantity}
+                            onChange={(e) =>
+                              setNewService({
+                                ...newService,
+                                quantity: Number(e.target.value),
+                              })
+                            }
+                            className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <NumberInput
+                            placeholder="Giá nhập"
+                            value={newService.costPrice ?? ""}
+                            onChange={(val) => {
+                              const newCostPrice = Math.max(0, val);
+                              setNewService({
+                                ...newService,
+                                costPrice: newCostPrice, // Chỉ cho phép >= 0
+                                price: newCostPrice > 0 ? Math.round(newCostPrice * 1.4) : newService.price,
+                              });
                             }}
-                            className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 focus:border-blue-500 focus:outline-none"
+                            className="w-full px-2 py-1 border border-orange-300 dark:border-orange-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
                           />
                         </td>
-                        <td className="px-4 py-2 text-right relative">
+                        <td className="px-4 py-2">
                           <NumberInput
-                            value={service.costPrice ?? 0}
+                            placeholder="Đơn giá"
+                            value={newService.price ?? ""}
                             onChange={(val) =>
-                              setAdditionalServices(
-                                additionalServices.map((s) =>
-                                  s.id === service.id
-                                    ? { ...s, costPrice: val }
-                                    : s
-                                )
-                              )
+                              setNewService({
+                                ...newService,
+                                price: val, // Cho phép số âm
+                              })
                             }
-                            // Always allow editing cost price for internal tracking
-                            disabled={false}
-                            className="w-full px-2 py-1 border border-orange-200 dark:border-orange-800 rounded text-right bg-orange-50 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400 focus:border-orange-500 focus:bg-white dark:focus:bg-slate-700 transition-colors text-sm"
-                            placeholder="0"
+                            allowNegative={true}
+                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
                           />
                         </td>
-                        <td className="px-4 py-2 text-right">
-                          <NumberInput
-                            value={service.price}
-                            onChange={(val) =>
-                              setAdditionalServices(
-                                additionalServices.map((s) =>
-                                  s.id === service.id
-                                    ? { ...s, price: val }
-                                    : s
-                                )
-                              )
-                            }
-                            disabled={!canEditPriceAndParts}
-                            className={`w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none text-sm ${!canEditPriceAndParts
-                              ? "opacity-50 cursor-not-allowed"
-                              : ""
-                              }`}
-                            placeholder="0"
-                          />
-                        </td>
-                        <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {formatCurrency(service.price * service.quantity)}
+                        <td className="px-4 py-2 text-right text-sm text-slate-400">
+                          {newService.price > 0
+                            ? formatCurrency(newService.price * newService.quantity)
+                            : "Thành tiền"}
                         </td>
                         <td className="px-4 py-2 text-center">
-                          <button
-                            onClick={async () => {
-                              const newServices = additionalServices.filter(
-                                (s) => s.id !== service.id
-                              );
-                              setAdditionalServices(newServices);
-                              
-                              // 🔹 FIX: Nếu xóa hết services VÀ đang edit order có sẵn → Update DB ngay
-                              if (newServices.length === 0 && order?.id) {
-                                try {
-                                  console.log('[WorkOrderModal] Xóa hết additionalServices, update DB ngay');
-                                  await supabase
-                                    .from('work_orders')
-                                    .update({ additionalservices: null })
-                                    .eq('id', order.id);
-                                  showToast.success('Đã xóa phần gia công/đặt hàng');
-                                } catch (error) {
-                                  console.error('[WorkOrderModal] Error clearing additionalServices:', error);
-                                }
-                              }
-                            }}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                            aria-label="Xóa dịch vụ"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              className="w-4 h-4"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M3 6h18M9 6V4h6v2m-7 4v8m4-8v8m4-8v8"
-                              />
-                            </svg>
-                          </button>
+                          {/* Empty for add row */}
                         </td>
                       </tr>
-                    ))}
-
-                    {/* Input row */}
-                    <tr className="bg-white dark:bg-slate-800">
-                      <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          placeholder="Mô tả..."
-                          value={newService.description}
-                          onChange={(e) =>
-                            setNewService({
-                              ...newService,
-                              description: e.target.value,
-                            })
-                          }
-                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <input
-                          type="number"
-                          value={newService.quantity}
-                          onChange={(e) =>
-                            setNewService({
-                              ...newService,
-                              quantity: Number(e.target.value),
-                            })
-                          }
-                          className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-center bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <NumberInput
-                          placeholder="Giá nhập"
-                          value={newService.costPrice ?? ""}
-                          onChange={(val) =>
-                            setNewService({
-                              ...newService,
-                              costPrice: Math.max(0, val), // Chỉ cho phép >= 0
-                            })
-                          }
-                          className="w-full px-2 py-1 border border-orange-300 dark:border-orange-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <NumberInput
-                          placeholder="Đơn giá"
-                          value={newService.price ?? ""}
-                          onChange={(val) =>
-                            setNewService({
-                              ...newService,
-                              price: val, // Cho phép số âm
-                            })
-                          }
-                          allowNegative={true}
-                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
-                        />
-                      </td>
-                      <td className="px-4 py-2 text-right text-sm text-slate-400">
-                        {newService.price > 0
-                          ? formatCurrency(newService.price * newService.quantity)
-                          : "Thành tiền"}
-                      </td>
-                      <td className="px-4 py-2 text-center">
-                        {/* Empty for add row */}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
               </div>
+              {/* END Left Panel */}
             </div>
 
-            {/* Payment Section */}
-            <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
-              <div className="grid gap-6 lg:grid-cols-2">
-                {/* Left: Payment Options */}
-                <div className="space-y-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Thanh toán
-                  </h3>
+            {/* Right Panel - Sticky Sidebar */}
+            <div className="hidden lg:flex lg:flex-col lg:w-80 xl:w-96 border-l border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 overflow-y-auto flex-shrink-0">
+              <div className="p-4 space-y-4 flex flex-col h-full">
+                {/* Summary Card */}
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      Tổng kết
+                    </h3>
+                  </div>
 
-                  <div className="space-y-3">
-                    {/* Deposit checkbox */}
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={showDepositInput}
-                        onChange={(e) => {
-                          setShowDepositInput(e.target.checked);
-                          if (!e.target.checked) setDepositAmount(0);
-                        }}
-                        disabled={!!order?.depositAmount} // Disable if already deposited
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm text-slate-700 dark:text-slate-300">
-                        Đặt cọc{" "}
-                        {order?.depositAmount
-                          ? `(Đã cọc: ${formatCurrency(order.depositAmount)})`
-                          : ""}
-                      </span>
-                    </label>
-
-                    {/* Deposit input - only show when checkbox is checked and not already deposited */}
-                    {showDepositInput && !order?.depositAmount && (
-                      <div className="pl-6">
-                        <NumberInput
-                          placeholder="Số tiền đặt cọc"
-                          value={depositAmount || ""}
-                          onChange={(val) => setDepositAmount(val)}
-                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                        />
-                      </div>
-                    )}
-
-                    <div className="border-t border-slate-200 dark:border-slate-700 pt-3"></div>
-
-                    {/* Payment method selection */}
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
-                        Phương thức thanh toán:
-                      </label>
-                      <div className="flex items-center gap-4 pl-2">
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            value="cash"
-                            checked={formData.paymentMethod === "cash"}
-                            onChange={(e) =>
-                              setFormData({ ...formData, paymentMethod: "cash" })
-                            }
-                            className="w-4 h-4"
-                          />
-                          <span className="inline-flex items-center gap-1 text-sm text-slate-700 dark:text-slate-300">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              className="w-4 h-4"
-                            >
-                              <rect
-                                x="2"
-                                y="6"
-                                width="20"
-                                height="12"
-                                rx="2"
-                                ry="2"
-                              />
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                            Tiền mặt
-                          </span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            value="bank"
-                            checked={formData.paymentMethod === "bank"}
-                            onChange={(e) =>
-                              setFormData({ ...formData, paymentMethod: "bank" })
-                            }
-                            className="w-4 h-4"
-                          />
-                          <span className="inline-flex items-center gap-1 text-sm text-slate-700 dark:text-slate-300">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              className="w-4 h-4"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M3 21h18M3 10h18M7 6h10l2 4H5l2-4Zm2 4v11m6-11v11"
-                              />
-                            </svg>
-                            Chuyển khoản
-                          </span>
-                        </label>
-                      </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Phí dịch vụ</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">{formatCurrency(formData.laborCost || 0)}</span>
                     </div>
-
-                    <div className="border-t border-slate-200 dark:border-slate-700 pt-3"></div>
-
-                    {/* Partial payment checkbox - only show if status is "Trả máy" */}
-                    {formData.status === "Trả máy" && (
-                      <>
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={showPartialPayment}
-                            onChange={(e) => {
-                              setShowPartialPayment(e.target.checked);
-                              if (!e.target.checked) setPartialPayment(0);
-                            }}
-                            className="w-4 h-4"
-                          />
-                          <span className="text-sm text-slate-700 dark:text-slate-300">
-                            Thanh toán khi trả xe
-                          </span>
-                        </label>
-
-                        {/* Partial Payment Input - only show when checkbox is checked */}
-                        {showPartialPayment && (
-                          <div className="pl-6 space-y-2">
-                            <label className="text-xs text-slate-600 dark:text-slate-400">
-                              Số tiền thanh toán thêm:
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <NumberInput
-                                placeholder="0"
-                                value={partialPayment || ""}
-                                onChange={(val) => setPartialPayment(val)}
-                                className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                              />
-                              <button
-                                onClick={() => setPartialPayment(0)}
-                                className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 rounded text-xs font-medium"
-                              >
-                                0%
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setPartialPayment(
-                                    Math.round(remainingAmount * 0.5)
-                                  )
-                                }
-                                className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 rounded text-xs font-medium"
-                              >
-                                50%
-                              </button>
-                              <button
-                                onClick={() => setPartialPayment(remainingAmount)}
-                                className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 rounded text-xs font-medium"
-                              >
-                                100%
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Phụ tùng</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">{formatCurrency(partsTotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Gia công/Đặt hàng</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">{formatCurrency(servicesTotal)}</span>
+                    </div>
                   </div>
 
-                  {formData.status !== "Trả máy" && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 italic">
-                      * Thanh toán khi trả xe chỉ khả dụng khi trạng thái là "Trả
-                      máy"
-                    </p>
-                  )}
-                </div>
-
-                {/* Right: Summary */}
-                <div className="space-y-3 bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    Tổng kết
-                  </h3>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600 dark:text-slate-400">
-                      Phí dịch vụ:
-                    </span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">
-                      {formatCurrency(formData.laborCost || 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600 dark:text-slate-400">
-                      Tiền phụ tùng:
-                    </span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">
-                      {formatCurrency(partsTotal)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600 dark:text-slate-400">
-                      Gia công/Đặt hàng:
-                    </span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">
-                      {formatCurrency(servicesTotal)}
-                    </span>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-300 dark:border-slate-600">
+                  {/* Discount */}
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-red-600 font-medium">Giảm giá:</span>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          placeholder="0"
-                          value={
-                            discountType === "amount"
-                              ? formData.discount || ""
-                              : discountPercent
-                          }
-                          onChange={(e) => {
-                            const value = Number(e.target.value) || 0;
+                      <span className="text-red-500 font-medium">Giảm giá</span>
+                      <div className="flex items-center gap-1.5">
+                        <NumberInput
+                          value={discountType === "amount" ? formData.discount || "" : discountPercent}
+                          onChange={(val) => {
                             if (discountType === "amount") {
-                              const maxDiscount = subtotal;
-                              setFormData({
-                                ...formData,
-                                discount: Math.min(value, maxDiscount),
-                              });
+                              setFormData({ ...formData, discount: Math.min(val, subtotal) });
                             } else {
-                              const percent = Math.min(value, 100);
+                              const percent = Math.min(val, 100);
                               setDiscountPercent(percent);
-                              setFormData({
-                                ...formData,
-                                discount: Math.round((subtotal * percent) / 100),
-                              });
+                              setFormData({ ...formData, discount: Math.round((subtotal * percent) / 100) });
                             }
                           }}
-                          className="w-20 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
-                          min="0"
+                          allowNegative={false}
+                          allowDecimal={false}
+                          className="w-24 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-right bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-xs"
+                          min={0}
                           max={discountType === "amount" ? subtotal : 100}
+                          placeholder="0"
                         />
                         <select
                           value={discountType}
                           onChange={(e) => {
-                            const newType = e.target.value as
-                              | "amount"
-                              | "percent";
-                            setDiscountType(newType);
-                            setFormData({
-                              ...formData,
-                              discount: 0,
-                            });
+                            setDiscountType(e.target.value as "amount" | "percent");
+                            setFormData({ ...formData, discount: 0 });
                             setDiscountPercent(0);
                           }}
-                          className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                          className="px-1.5 py-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-xs"
                         >
                           <option value="amount">đ</option>
                           <option value="percent">%</option>
                         </select>
                       </div>
                     </div>
-
-                    {/* Quick percent buttons */}
                     {discountType === "percent" && (
-                      <div className="flex gap-1 justify-end mt-2">
+                      <div className="flex gap-1 justify-end mt-1.5">
                         {[5, 10, 15, 20].map((percent) => (
                           <button
                             key={percent}
                             onClick={() => {
                               setDiscountPercent(percent);
-                              setFormData({
-                                ...formData,
-                                discount: Math.round((subtotal * percent) / 100),
-                              });
+                              setFormData({ ...formData, discount: Math.round((subtotal * percent) / 100) });
                             }}
-                            className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-300 rounded transition-colors"
+                            className={`px-2 py-0.5 text-[10px] rounded transition-colors ${discountPercent === percent ? 'bg-blue-500 text-white' : 'bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-slate-600 dark:text-slate-300'}`}
                           >
                             {percent}%
                           </button>
                         ))}
                       </div>
                     )}
-
-                    {/* Show amount if percent mode */}
                     {discountType === "percent" && discountPercent > 0 && (
-                      <div className="text-xs text-slate-500 dark:text-slate-400 text-right mt-1">
-                        = {formatCurrency(formData.discount || 0)}
-                      </div>
+                      <div className="text-[10px] text-slate-400 text-right mt-1">= {formatCurrency(formData.discount || 0)}</div>
                     )}
                   </div>
 
-                  <div className="pt-2 border-t-2 border-slate-400 dark:border-slate-500">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                        Tổng cộng:
-                      </span>
-                      <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                        {formatCurrency(total)}
-                      </span>
+                  {/* Total */}
+                  <div className="pt-3 border-t-2 border-blue-200 dark:border-blue-800">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-slate-900 dark:text-slate-100">Tổng cộng</span>
+                      <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(total)}</span>
                     </div>
-
-                    {/* Show payment breakdown if there's deposit or partial payment */}
                     {(totalDeposit > 0 || totalAdditionalPayment > 0) && (
-                      <div className="space-y-1 pt-2 border-t border-slate-300 dark:border-slate-600">
+                      <div className="space-y-1 pt-2 mt-2 border-t border-slate-200 dark:border-slate-700">
                         {totalDeposit > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-green-600 dark:text-green-400">
-                              Đã đặt cọc:
-                            </span>
-                            <span className="font-medium text-green-600 dark:text-green-400">
-                              -{formatCurrency(totalDeposit)}
-                            </span>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-green-600 dark:text-green-400">Đã đặt cọc</span>
+                            <span className="font-medium text-green-600 dark:text-green-400">-{formatCurrency(totalDeposit)}</span>
                           </div>
                         )}
                         {totalAdditionalPayment > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-green-600 dark:text-green-400">
-                              Thanh toán thêm:
-                            </span>
-                            <span className="font-medium text-green-600 dark:text-green-400">
-                              -{formatCurrency(totalAdditionalPayment)}
-                            </span>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-green-600 dark:text-green-400">TT thêm</span>
+                            <span className="font-medium text-green-600 dark:text-green-400">-{formatCurrency(totalAdditionalPayment)}</span>
                           </div>
                         )}
-                        <div className="flex justify-between items-center pt-2 border-t border-slate-300 dark:border-slate-600">
-                          <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                            {remainingAmount > 0
-                              ? "Còn phải thu:"
-                              : "Đã thanh toán đủ"}
+                        <div className="flex justify-between items-center pt-1.5 border-t border-slate-200 dark:border-slate-700">
+                          <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                            {remainingAmount > 0 ? "Còn phải thu" : "Đã thanh toán đủ"}
                           </span>
-                          <span
-                            className={`text-lg font-bold ${remainingAmount > 0
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-green-600 dark:text-green-400"
-                              }`}
-                          >
+                          <span className={`text-base font-bold ${remainingAmount > 0 ? "text-red-500" : "text-green-500"}`}>
                             {formatCurrency(remainingAmount)}
                           </span>
                         </div>
@@ -3925,69 +3764,206 @@ const WorkOrderModal: React.FC<{
                     )}
                   </div>
                 </div>
+
+                {/* Payment Options Card */}
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Thanh toán</h3>
+                  </div>
+
+                  {/* Deposit */}
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={showDepositInput}
+                      onChange={(e) => { setShowDepositInput(e.target.checked); if (!e.target.checked) setDepositAmount(0); }}
+                      disabled={!!order?.depositAmount}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span className="text-sm text-slate-700 dark:text-slate-300">
+                      Đặt cọc {order?.depositAmount ? `(Đã cọc: ${formatCurrency(order.depositAmount)})` : ""}
+                    </span>
+                  </label>
+                  {showDepositInput && !order?.depositAmount && (
+                    <div className="pl-6">
+                      <NumberInput
+                        placeholder="Số tiền đặt cọc"
+                        value={depositAmount || ""}
+                        onChange={(val) => setDepositAmount(val)}
+                        className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                      />
+                    </div>
+                  )}
+
+                  <div className="border-t border-slate-200 dark:border-slate-700"></div>
+
+                  {/* Payment Method */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 block uppercase tracking-wide">Phương thức</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, paymentMethod: "cash" })}
+                        className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${formData.paymentMethod === "cash" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300" : "border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300"}`}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <rect x="2" y="6" width="20" height="12" rx="2" ry="2" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        Tiền mặt
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, paymentMethod: "bank" })}
+                        className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${formData.paymentMethod === "bank" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300" : "border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300"}`}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M7 6h10l2 4H5l2-4Zm2 4v11m6-11v11" />
+                        </svg>
+                        Chuyển khoản
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Partial payment - Trả máy only */}
+                  {formData.status === "Trả máy" && (
+                    <>
+                      <div className="border-t border-slate-200 dark:border-slate-700"></div>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={showPartialPayment}
+                          onChange={(e) => { setShowPartialPayment(e.target.checked); if (e.target.checked) setPartialPayment(maxAdditionalPayment); else setPartialPayment(0); }}
+                          className="w-4 h-4 rounded"
+                        />
+                        <span className="text-sm text-slate-700 dark:text-slate-300">Thanh toán khi trả xe</span>
+                      </label>
+                      {showPartialPayment && (
+                        <div className="pl-6 space-y-2">
+                          <label className="text-xs text-slate-500 dark:text-slate-400">Số tiền thanh toán thêm:</label>
+                          <div className="flex items-center gap-1.5">
+                            <NumberInput
+                              placeholder="0"
+                              value={partialPayment || ""}
+                              onChange={(val) => setPartialPayment(val)}
+                              className="flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                            />
+                          </div>
+                          <div className="flex gap-1">
+                            <button onClick={() => setPartialPayment(0)} className="px-2 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded text-xs">0%</button>
+                            <button onClick={() => setPartialPayment(Math.round(maxAdditionalPayment * 0.5))} className="px-2 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded text-xs">50%</button>
+                            <button onClick={() => setPartialPayment(maxAdditionalPayment)} className="px-2 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded text-xs">100%</button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {formData.status !== "Trả máy" && (
+                    <p className="text-[10px] text-slate-400 italic leading-relaxed">
+                      * Thanh toán khi trả xe chỉ khả dụng khi trạng thái là "Trả máy"
+                    </p>
+                  )}
+                </div>
+
+                {/* Action Buttons - Sticky at bottom */}
+                <div className="mt-auto pt-3 space-y-2">
+                  <button
+                    onClick={handleSaveOnly}
+                    disabled={isSubmitting}
+                    className={`w-full px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all ${isSubmitting ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-200 dark:border-slate-700' : 'bg-transparent border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    {isSubmitting ? 'Đang lưu...' : 'Lưu Phiếu'}
+                  </button>
+
+                  {formData.status !== "Trả máy" && showDepositInput && (
+                    <button
+                      onClick={handleSave}
+                      disabled={isSubmitting}
+                      className={`w-full px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all ${isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-200 dark:shadow-blue-900'} text-white`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Đặt cọc
+                    </button>
+                  )}
+
+                  {formData.status === "Trả máy" && (
+                    <button
+                      onClick={handleSave}
+                      disabled={isSubmitting}
+                      className={`w-full px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all ${isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-200 dark:shadow-blue-900'} text-white`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Thanh toán
+                    </button>
+                  )}
+
+                  <button
+                    onClick={onClose}
+                    className="w-full px-4 py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile-only: Payment & Summary Section (shown below form on mobile) */}
+            <div className="lg:hidden px-4 py-5 space-y-4 border-t border-slate-200 dark:border-slate-700">
+              {/* Mobile Summary */}
+              <div className="bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-2">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2">Tổng kết</h3>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Phí dịch vụ</span>
+                  <span className="font-medium">{formatCurrency(formData.laborCost || 0)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Phụ tùng</span>
+                  <span className="font-medium">{formatCurrency(partsTotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Gia công</span>
+                  <span className="font-medium">{formatCurrency(servicesTotal)}</span>
+                </div>
+                <div className="pt-2 border-t-2 border-blue-200 dark:border-blue-800">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-900 dark:text-slate-100">Tổng cộng</span>
+                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(total)}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Footer Actions */}
-          <div className="border-t border-slate-200 dark:border-slate-700 px-4 py-4 md:px-6 flex items-center justify-end gap-3 bg-white md:bg-slate-50 dark:bg-slate-800/70 md:dark:bg-slate-800/50 rounded-b-3xl md:rounded-b-xl flex-shrink-0">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg"
-            >
+          {/* Mobile-only Footer */}
+          <div className="lg:hidden border-t border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-end gap-2 bg-white dark:bg-slate-800 flex-shrink-0">
+            <button onClick={onClose} className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-transparent rounded-lg text-sm transition-colors">
               Hủy
             </button>
-
-            {/* Always show "Lưu Phiếu" */}
             <button
               onClick={handleSaveOnly}
-              className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg font-medium"
+              disabled={isSubmitting}
+              className={`px-5 py-2 rounded-lg font-medium text-sm transition-all ${isSubmitting ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-200 dark:border-slate-700' : 'bg-transparent border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
             >
-              Lưu Phiếu
+              {isSubmitting ? 'Đang lưu...' : 'Lưu Phiếu'}
             </button>
-
-            {/* Show "Đặt cọc" button only when status is NOT "Trả máy" and deposit input is shown */}
             {formData.status !== "Trả máy" && showDepositInput && (
-              <button
-                onClick={handleSave}
-                className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium flex items-center gap-2"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+              <button onClick={handleSave} disabled={isSubmitting} className={`px-5 py-2 rounded-lg font-medium text-sm transition-all ${isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white`}>
                 Đặt cọc
               </button>
             )}
-
-            {/* Show "Thanh toán" button only when status is "Trả máy" */}
             {formData.status === "Trả máy" && (
-              <button
-                onClick={handleSave}
-                className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium flex items-center gap-2"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
+              <button onClick={handleSave} disabled={isSubmitting} className={`px-5 py-2 rounded-lg font-medium text-sm transition-all ${isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white`}>
                 Thanh toán
               </button>
             )}
@@ -4120,7 +4096,7 @@ const WorkOrderModal: React.FC<{
                       onChange={(e) =>
                         setNewCustomer({
                           ...newCustomer,
-                          licensePlate: e.target.value,
+                          licensePlate: e.target.value.toUpperCase(),
                         })
                       }
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
@@ -4154,11 +4130,6 @@ const WorkOrderModal: React.FC<{
 
                       if (!existingCustomer) {
                         // Customer doesn't exist - create new one
-                        console.log(
-                          "[WorkOrderModal] Creating new customer from modal:",
-                          newCustomer.phone
-                        );
-
                         const customerId = `CUST-${Date.now()}`;
                         const vehicleId = `VEH-${Date.now()}`;
                         const vehicles = [];
@@ -4187,6 +4158,7 @@ const WorkOrderModal: React.FC<{
                         // Set the new customer to the form AND search field
                         setFormData({
                           ...formData,
+                          customerId: customerId,
                           customerName: newCustomer.name,
                           customerPhone: newCustomer.phone,
                           vehicleId: vehicles.length > 0 ? vehicleId : undefined,
@@ -4195,12 +4167,6 @@ const WorkOrderModal: React.FC<{
                         });
                       } else {
                         // Customer exists - just use existing customer and optionally update vehicle
-                        console.log(
-                          "[WorkOrderModal] Customer already exists from modal:",
-                          existingCustomer.id,
-                          existingCustomer.phone
-                        );
-
                         const hasVehicleChange =
                           (newCustomer.vehicleModel &&
                             newCustomer.vehicleModel !==
@@ -4212,9 +4178,6 @@ const WorkOrderModal: React.FC<{
                         let vehicleIdToUse = existingCustomer.vehicles?.[0]?.id;
 
                         if (hasVehicleChange) {
-                          console.log(
-                            "[WorkOrderModal] Updating vehicle info for existing customer from modal"
-                          );
                           const vehicleId = `VEH-${Date.now()}`;
                           const vehicles = [...(existingCustomer.vehicles || [])];
 
@@ -4264,6 +4227,7 @@ const WorkOrderModal: React.FC<{
                         // Set the existing customer to the form
                         setFormData({
                           ...formData,
+                          customerId: existingCustomer.id,
                           customerName: existingCustomer.name,
                           customerPhone: existingCustomer.phone,
                           vehicleId: vehicleIdToUse,
@@ -4372,7 +4336,7 @@ const WorkOrderModal: React.FC<{
                     onChange={(e) =>
                       setNewVehicle({
                         ...newVehicle,
-                        licensePlate: e.target.value,
+                        licensePlate: e.target.value.toUpperCase(),
                       })
                     }
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"

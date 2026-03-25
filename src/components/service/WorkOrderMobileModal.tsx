@@ -1,10 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   X,
-  Plus,
-  Minus,
   Check,
-  ChevronDown,
   Search,
   AlertTriangle,
   Printer,
@@ -16,26 +13,23 @@ import {
   CheckCircle,
   Clock,
   Edit2,
-  Trash2,
-  Smartphone,
   PhoneCall,
   ChevronRight,
   TrendingUp,
   UserPlus,
-  CreditCard,
   Banknote,
   MessageSquare,
   Package,
   ScanBarcode,
 } from "lucide-react";
 import BarcodeScannerModal from "../common/BarcodeScannerModal";
+import { triggerHaptic } from "../../utils/haptics";
 import { formatCurrency, formatWorkOrderId, normalizeSearchText } from "../../utils/format";
 import { getCategoryColor } from "../../utils/categoryColors";
 import type { WorkOrder, Part, Customer, Vehicle, Employee } from "../../types";
 import {
   checkVehicleMaintenance,
   formatKm,
-  getWarningBadgeColor,
   type MaintenanceWarning,
 } from "../../utils/maintenanceReminder";
 import { WORK_ORDER_STATUS, type WorkOrderStatus } from "../../constants";
@@ -43,28 +37,36 @@ import { NumberInput } from "../common/NumberInput";
 import { showToast } from "../../utils/toast";
 import { supabase } from "../../supabaseClient";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { useInputHistory } from "../../hooks/useInputHistory";
+import { useAuth } from "../../contexts/AuthContext";
+import { CustomerInfoSection } from "./components/mobile/CustomerInfoSection";
+import { VehicleInfoSection } from "./components/mobile/VehicleInfoSection";
+import { PartsListSection } from "./components/mobile/PartsListSection";
+import { POPULAR_MOTORCYCLES } from "./constants/service.constants";
+import { ServiceListSection } from "./components/mobile/ServiceListSection";
+import { PaymentSection } from "./components/mobile/PaymentSection";
 
 interface WorkOrderMobileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (workOrderData: any) => Promise<void> | void;
+  onPrintWorkOrder?: (workOrder: WorkOrder) => void;
   workOrder?: WorkOrder | null;
   customers: Customer[];
   parts: Part[];
   employees: Employee[];
   currentBranchId: string;
-  upsertCustomer?: (customer: any) => void;
+  upsertCustomer?: (customer: any) => Promise<string> | void;
   viewMode?: boolean; // true = xem chi tiết, false = chỉnh sửa
   onSwitchToEdit?: () => void; // callback khi bấm nút chỉnh sửa từ view mode
+  isOwner?: boolean; // true = chủ shop, có thể xem lợi nhuận
 }
-
-// Local type for status options if needed, or just use the one from constants
-type LocalWorkOrderStatus = "Tiếp nhận" | "Đang sửa" | "Đã sửa xong" | "Trả máy";
 
 export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onPrintWorkOrder,
   workOrder,
   customers,
   parts,
@@ -73,149 +75,32 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
   upsertCustomer,
   viewMode = false,
   onSwitchToEdit,
+  isOwner = false,
 }) => {
-  // Popular motorcycle models in Vietnam - same as desktop
-  const POPULAR_MOTORCYCLES = [
-    // === HONDA ===
-    "Honda Wave Alpha",
-    "Honda Wave RSX",
-    "Honda Wave RSX FI",
-    "Honda Wave 110",
-    "Honda Wave S110",
-    "Honda Super Dream",
-    "Honda Dream",
-    "Honda Blade 110",
-    "Honda Future 125",
-    "Honda Future Neo",
-    "Honda Winner X",
-    "Honda Winner 150",
-    "Honda CB150R",
-    "Honda CB150X",
-    "Honda CB300R",
-    "Honda Vision",
-    "Honda Air Blade 125",
-    "Honda Air Blade 150",
-    "Honda Air Blade 160",
-    "Honda SH Mode 125",
-    "Honda SH 125i",
-    "Honda SH 150i",
-    "Honda SH 160i",
-    "Honda SH 350i",
-    "Honda Lead 125",
-    "Honda PCX 125",
-    "Honda PCX 160",
-    "Honda Vario 125",
-    "Honda Vario 150",
-    "Honda Vario 160",
-    "Honda ADV 150",
-    "Honda ADV 160",
-    "Honda ADV 350",
-    "Honda Forza 250",
-    "Honda Forza 300",
-    "Honda Forza 350",
-    "Honda Giorno",
-    "Honda Stylo 160",
-    "Honda Click",
-    "Honda Super Cub",
-    "Honda Dream II",
-    // === YAMAHA ===
-    "Yamaha Sirius",
-    "Yamaha Sirius FI",
-    "Yamaha Sirius RC",
-    "Yamaha Jupiter",
-    "Yamaha Jupiter FI",
-    "Yamaha Jupiter Finn",
-    "Yamaha Exciter 135",
-    "Yamaha Exciter 150",
-    "Yamaha Exciter 155",
-    "Yamaha FZ150i",
-    "Yamaha MT-15",
-    "Yamaha R15",
-    "Yamaha Grande",
-    "Yamaha Grande Hybrid",
-    "Yamaha Janus",
-    "Yamaha FreeGo",
-    "Yamaha FreeGo S",
-    "Yamaha Latte",
-    "Yamaha NVX 125",
-    "Yamaha NVX 155",
-    "Yamaha NMAX",
-    "Yamaha NMAX 155",
-    "Yamaha XMAX 300",
-    "Yamaha Nouvo",
-    "Yamaha Nouvo LX",
-    "Yamaha Mio",
-    "Yamaha Mio Classico",
-    // === SUZUKI ===
-    "Suzuki Axelo",
-    "Suzuki Viva",
-    "Suzuki Smash",
-    "Suzuki Revo",
-    "Suzuki Raider 150",
-    "Suzuki Raider R150",
-    "Suzuki Satria F150",
-    "Suzuki GSX-R150",
-    "Suzuki GSX-S150",
-    "Suzuki Address",
-    "Suzuki Address 110",
-    "Suzuki Impulse",
-    "Suzuki Burgman Street",
-    // === SYM ===
-    "SYM Elegant",
-    "SYM Attila",
-    "SYM Attila Venus",
-    "SYM Angela",
-    "SYM Galaxy",
-    "SYM Star SR",
-    "SYM Shark",
-    // === PIAGGIO & VESPA ===
-    "Piaggio Liberty",
-    "Piaggio Liberty 125",
-    "Piaggio Liberty 150",
-    "Piaggio Medley",
-    "Piaggio Medley 125",
-    "Vespa Sprint",
-    "Vespa Sprint 125",
-    "Vespa Sprint 150",
-    "Vespa Primavera",
-    "Vespa Primavera 125",
-    "Vespa LX",
-    "Vespa S",
-    "Vespa GTS",
-    "Vespa GTS 125",
-    "Vespa GTS 300",
-    // === KYMCO ===
-    "Kymco Like",
-    "Kymco Like 125",
-    "Kymco Like 150",
-    "Kymco Many",
-    "Kymco Many 110",
-    "Kymco Many 125",
-    // === VINFAST ===
-    "VinFast Klara",
-    "VinFast Klara S",
-    "VinFast Ludo",
-    "VinFast Impes",
-    "VinFast Tempest",
-    "VinFast Vento",
-    "VinFast Evo200",
-    "VinFast Feliz",
-    "VinFast Feliz S",
-    "VinFast Theon",
-    // === KHÁC ===
-    "Xe điện khác",
-    "Xe 50cc khác",
-    "Xe nhập khẩu khác",
-    "Khác",
-  ];
+  const { profile } = useAuth();
+  const profileId = (profile as any)?.id || (profile as any)?.user_id || "anon";
+  
+  const WORK_ORDER_DRAFT_VERSION = 1 as const;
+  const WORK_ORDER_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
   // Find customer and vehicle from workOrder data
   const initialCustomer = useMemo(() => {
     if (!workOrder) return null;
-    const foundCustomer = customers.find(
-      (c) =>
-        c.phone === workOrder.customerPhone || c.name === workOrder.customerName
-    );
+    
+    // 🔹 FIX: Ưu tiên tìm theo customerId (unique), sau đó phone (unique), cuối cùng mới name
+    let foundCustomer = workOrder.customerId
+      ? customers.find((c) => c.id === workOrder.customerId)
+      : undefined;
+    
+    // Nếu không tìm thấy theo ID, thử tìm theo phone (chính xác)
+    if (!foundCustomer && workOrder.customerPhone) {
+      foundCustomer = customers.find((c) => c.phone === workOrder.customerPhone);
+    }
+    
+    // Cuối cùng mới tìm theo name (không tin cậy vì có thể trùng)
+    if (!foundCustomer && workOrder.customerName) {
+      foundCustomer = customers.find((c) => c.name === workOrder.customerName);
+    }
 
     // If not found, create a temporary customer object from workOrder data
     if (!foundCustomer && workOrder.customerName) {
@@ -312,11 +197,39 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
   // Update selectedCustomer and selectedVehicle when workOrder changes
   useEffect(() => {
-    console.log("[WorkOrderMobileModal] workOrder:", workOrder);
-    console.log("[WorkOrderMobileModal] initialCustomer:", initialCustomer);
-    console.log("[WorkOrderMobileModal] initialVehicle:", initialVehicle);
-
     if (workOrder) {
+      setStatus((workOrder.status as WorkOrderStatus) || WORK_ORDER_STATUS.RECEIVED);
+      setSelectedTechnicianId(
+        employees.find((e) => e.name === workOrder?.technicianName)?.id || ""
+      );
+      setIssueDescription(workOrder.issueDescription || "");
+      setLaborCost(workOrder.laborCost || 0);
+      setDiscount(workOrder.discount || 0);
+      // BUG 7/10 note: discountType is NOT stored in the DB (WorkOrder type has no `discountType` field).
+      // When reloading, workOrder.discount is always the absolute computed value.
+      // We reset discountType to "amount" so the UI shows the correct absolute number.
+      // To fully fix this, add a `discountType` column to the work_orders table.
+      setDiscountType("amount");
+      setSelectedParts(
+        workOrder.partsUsed?.map((p) => ({
+          partId: p.partId || "",
+          partName: p.partName,
+          quantity: p.quantity,
+          sellingPrice: p.price || 0,
+          costPrice: p.costPrice || 0,
+          sku: p.sku || "",
+          category: p.category || "",
+        })) || []
+      );
+      setAdditionalServices(
+        workOrder.additionalServices?.map((s) => ({
+          id: s.id || `srv-${Date.now()}-${Math.random()}`,
+          name: s.description || "",
+          quantity: s.quantity || 1,
+          costPrice: s.costPrice || 0,
+          sellingPrice: s.price || 0,
+        })) || []
+      );
       setSelectedCustomer(initialCustomer);
       setSelectedVehicle(initialVehicle);
       // Load currentKm: ưu tiên từ workOrder, nếu không có thì từ vehicle
@@ -324,6 +237,9 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
         setCurrentKm(workOrder.currentKm.toString());
       } else if (initialVehicle?.currentKm) {
         setCurrentKm(initialVehicle.currentKm.toString());
+      }
+      if (workOrder.paymentMethod === "cash" || workOrder.paymentMethod === "bank") {
+        setPaymentMethod(workOrder.paymentMethod);
       }
       // Nếu đang edit và có initialCustomer, ẩn form tìm kiếm
       setShowCustomerSearch(!initialCustomer);
@@ -336,15 +252,82 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
         setDepositAmount(0);
         setIsDeposit(false);
       }
+
+      if (workOrder.additionalPayment && workOrder.additionalPayment > 0) {
+        setPartialAmount(workOrder.additionalPayment);
+        setShowPaymentInput(true);
+      } else {
+        setPartialAmount(0);
+        setShowPaymentInput(false);
+      }
     } else {
+      setStatus(WORK_ORDER_STATUS.RECEIVED);
+      setSelectedTechnicianId("");
+      setIssueDescription("");
+      setLaborCost(0);
+      setDiscount(0);
+      setDiscountType("amount");
+      setSelectedParts([]);
+      setAdditionalServices([]);
       setSelectedCustomer(null);
       setSelectedVehicle(null);
       setCurrentKm("");
       setShowCustomerSearch(true);
       setDepositAmount(0);
       setIsDeposit(false);
+      setPartialAmount(0);
+      setShowPaymentInput(false);
     }
-  }, [workOrder, initialCustomer, initialVehicle]);
+  }, [workOrder, initialCustomer, initialVehicle, employees]);
+
+  const draftKey = useMemo(() => {
+    const orderKey = workOrder?.id || "new";
+    return `workorder_draft_v${WORK_ORDER_DRAFT_VERSION}:${currentBranchId}:${profileId}:${orderKey}:mobile`;
+  }, [WORK_ORDER_DRAFT_VERSION, currentBranchId, profileId, workOrder?.id]);
+
+  const draftCheckedRef = useRef(false);
+  useEffect(() => {
+    draftCheckedRef.current = false;
+  }, [draftKey]);
+
+  const loadDraft = () => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as {
+        v: number;
+        updatedAt: number;
+        data: any;
+      };
+      if (parsed?.v !== WORK_ORDER_DRAFT_VERSION) return null;
+      if (!parsed?.updatedAt || Date.now() - parsed.updatedAt > WORK_ORDER_DRAFT_TTL_MS) {
+        localStorage.removeItem(draftKey);
+        return null;
+      }
+      return parsed.data;
+    } catch {
+      return null;
+    }
+  };
+
+  const saveDraft = (data: any) => {
+    try {
+      localStorage.setItem(
+        draftKey,
+        JSON.stringify({ v: WORK_ORDER_DRAFT_VERSION, updatedAt: Date.now(), data })
+      );
+    } catch {
+      // ignore quota / storage errors
+    }
+  };
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      // ignore
+    }
+  };
 
   const [currentKm, setCurrentKm] = useState(
     workOrder?.currentKm?.toString() || ""
@@ -401,6 +384,142 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
   const [showPaymentInput, setShowPaymentInput] = useState(false);
   const [partialAmount, setPartialAmount] = useState(0);
 
+  // Auto-restore draft (new/edit) when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    if (draftCheckedRef.current) return;
+    draftCheckedRef.current = true;
+
+    const draft = loadDraft();
+    if (!draft) return;
+
+    // Restore primitives
+    if (draft.status) setStatus(draft.status);
+    if (typeof draft.selectedTechnicianId === "string") {
+      setSelectedTechnicianId(draft.selectedTechnicianId);
+    }
+    if (typeof draft.currentKm === "string") setCurrentKm(draft.currentKm);
+    if (typeof draft.issueDescription === "string") setIssueDescription(draft.issueDescription);
+    if (Array.isArray(draft.selectedParts)) setSelectedParts(draft.selectedParts);
+    if (Array.isArray(draft.additionalServices)) setAdditionalServices(draft.additionalServices);
+    if (typeof draft.laborCost === "number") setLaborCost(draft.laborCost);
+    if (typeof draft.discount === "number") setDiscount(draft.discount);
+    if (draft.discountType === "amount" || draft.discountType === "percent") {
+      setDiscountType(draft.discountType);
+    }
+    if (typeof draft.isDeposit === "boolean") setIsDeposit(draft.isDeposit);
+    if (typeof draft.depositAmount === "number") setDepositAmount(draft.depositAmount);
+    if (draft.paymentMethod === "cash" || draft.paymentMethod === "bank") {
+      setPaymentMethod(draft.paymentMethod);
+    }
+    if (typeof draft.showPaymentInput === "boolean") setShowPaymentInput(draft.showPaymentInput);
+    if (typeof draft.partialAmount === "number") setPartialAmount(draft.partialAmount);
+
+    // Restore customer/vehicle (best-effort)
+    if (draft.customer) {
+      const foundCustomer = customers.find(
+        (c) => c.id === draft.customer.id || c.phone === draft.customer.phone
+      );
+      setSelectedCustomer(foundCustomer || draft.customer);
+      setShowCustomerSearch(false);
+    }
+    if (draft.vehicle) {
+      const current = draft.customer
+        ? customers.find((c) => c.id === draft.customer.id || c.phone === draft.customer.phone)
+        : null;
+      const vehicles = current?.vehicles || [];
+      const foundVehicle = vehicles.find(
+        (v: any) => v.id === draft.vehicle.id || v.licensePlate === draft.vehicle.licensePlate
+      );
+      setSelectedVehicle(foundVehicle || draft.vehicle);
+    }
+  }, [isOpen, customers, draftKey]);
+
+  // Auto-save draft while editing (debounced)
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!draftCheckedRef.current) return; // avoid overwriting before restore check
+    if (viewMode) return;
+
+    const hasMeaningfulData =
+      !!selectedCustomer ||
+      !!selectedVehicle ||
+      !!currentKm.trim() ||
+      !!issueDescription.trim() ||
+      selectedParts.length > 0 ||
+      additionalServices.length > 0 ||
+      laborCost > 0 ||
+      discount > 0 ||
+      (isDeposit && depositAmount > 0) ||
+      (showPaymentInput && partialAmount > 0);
+
+    const timer = setTimeout(() => {
+      if (!hasMeaningfulData) {
+        try {
+          localStorage.removeItem(draftKey);
+        } catch {
+          // ignore
+        }
+        return;
+      }
+
+      saveDraft({
+        status,
+        selectedTechnicianId,
+        customer: selectedCustomer
+          ? {
+            id: (selectedCustomer as any).id,
+            name: (selectedCustomer as any).name,
+            phone: (selectedCustomer as any).phone,
+          }
+          : null,
+        vehicle: selectedVehicle
+          ? {
+            id: (selectedVehicle as any).id,
+            licensePlate: (selectedVehicle as any).licensePlate,
+            model: (selectedVehicle as any).model,
+            currentKm: (selectedVehicle as any).currentKm,
+            customerId: (selectedVehicle as any).customerId,
+          }
+          : null,
+        currentKm,
+        issueDescription,
+        selectedParts,
+        additionalServices,
+        laborCost,
+        discount,
+        discountType,
+        isDeposit,
+        depositAmount,
+        paymentMethod,
+        showPaymentInput,
+        partialAmount,
+      });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [
+    isOpen,
+    viewMode,
+    draftKey,
+    status,
+    selectedTechnicianId,
+    selectedCustomer,
+    selectedVehicle,
+    currentKm,
+    issueDescription,
+    selectedParts,
+    additionalServices,
+    laborCost,
+    discount,
+    discountType,
+    isDeposit,
+    depositAmount,
+    paymentMethod,
+    showPaymentInput,
+    partialAmount,
+  ]);
+
   // UI States - khởi tạo showCustomerSearch dựa trên initialCustomer để đảm bảo đúng khi edit
   const [showCustomerSearch, setShowCustomerSearch] = useState(
     !initialCustomer
@@ -415,6 +534,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
   const CUSTOMER_PAGE_SIZE = 20;
   const [showPartSearch, setShowPartSearch] = useState(false);
   const [partSearchTerm, setPartSearchTerm] = useState("");
+  const [partCategoryFilter, setPartCategoryFilter] = useState<string>("");
   const [isScanning, setIsScanning] = useState(false);
 
   // Ref for part search results scrolling
@@ -445,19 +565,152 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
   // State for preventing duplicate submissions
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
-  // Helper functions for number formatting
-  const formatNumberWithDots = (value: number | string): string => {
-    if (value === 0 || value === "0") return "0";
-    if (!value) return "";
-    const numStr = value.toString().replace(/\D/g, "");
-    if (!numStr) return "";
-    return numStr.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  // Input history for auto-complete
+  const customerNameHistory = useInputHistory('customer_name');
+  const licensePlateHistory = useInputHistory('license_plate');
+  const phoneHistory = useInputHistory('phone');
+
+  // Tab navigation state
+  type TabType = 'info' | 'parts' | 'payment';
+  const [activeTab, setActiveTabRaw] = useState<TabType>('info');
+  const setActiveTab = (tab: TabType) => {
+    triggerHaptic("selection");
+    setActiveTabRaw(tab);
   };
 
-  const parseFormattedNumber = (value: string): number => {
-    const cleaned = value.replace(/\./g, "");
-    return cleaned ? Number(cleaned) : 0;
+  // --- KEYBOARD & VIEWPORT HANDLING ---
+  // Fix for mobile keyboard covering the Save button
+  // We use window.visualViewport to detect the actual visible height
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleResize = () => {
+      if (window.visualViewport) {
+        setViewportHeight(window.visualViewport.height);
+      }
+    };
+
+    window.visualViewport?.addEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("scroll", handleResize);
+
+    // Initial set
+    handleResize();
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("scroll", handleResize);
+    };
+  }, [isOpen]);
+
+  // Handle Save with Haptics and Validation
+  const handleSaveInternal = async () => {
+    // Prevent duplicate taps before React state is flushed
+    if (submittingRef.current || isSubmitting) {
+      return;
+    }
+
+    // Basic validation
+    if (!selectedVehicle && !newVehiclePlate) {
+      showToast.error("Vui lòng chọn hoặc thêm xe");
+      triggerHaptic("error");
+      return;
+    }
+
+    try {
+      submittingRef.current = true;
+      setIsSubmitting(true);
+      const transformedParts = selectedParts.map((p) => ({
+        partId: p.partId,
+        partName: p.partName,
+        quantity: p.quantity,
+        price: p.sellingPrice,
+        costPrice: p.costPrice || 0,
+        sku: p.sku || "",
+        category: p.category || "",
+      }));
+
+      const transformedServices = additionalServices.map((s) => ({
+        id: s.id,
+        description: s.name,
+        quantity: s.quantity,
+        price: s.sellingPrice,
+        costPrice: s.costPrice,
+      }));
+
+      // BUG 9 fix: also validate deposit when total === 0 (no charge but deposit was set)
+      if (isDeposit && depositAmount > 0 && total === 0) {
+        showToast.error("Tổng tiền bằng 0, không cần đặt cọc");
+        setIsSubmitting(false);
+        return;
+      }
+      if (isDeposit && depositAmount > total && total > 0) {
+        showToast.error("Số tiền đặt cọc không được lớn hơn tổng tiền");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const totalDeposit = isDeposit ? depositAmount : 0;
+      // BUG 8 fix: remove auto-fill of full remaining payment when status="Trả máy".
+      // Staff must explicitly toggle payment input. Matches desktop behavior.
+      let additionalPayment = showPaymentInput ? partialAmount : 0;
+
+      // additionalPayment is cumulative; clamp to valid range
+      const maxAdditionalPayment = Math.max(0, total - totalDeposit);
+      additionalPayment = Math.min(
+        Math.max(0, additionalPayment),
+        maxAdditionalPayment
+      );
+
+      const totalPaid = totalDeposit + additionalPayment;
+      const remainingAmount = Math.max(0, total - totalPaid);
+
+      // Wait for onSave to complete (it might throw if invalid)
+      await onSave({
+        ...workOrder,
+        customer: selectedCustomer,
+        vehicle: selectedVehicle,
+        parts: transformedParts,
+        partsUsed: transformedParts,
+        additionalServices: transformedServices,
+        laborCost,
+        discount: discountAmount,
+        discountType,
+        total,
+        isDeposit,
+        depositAmount,
+        paymentMethod,
+        currentKm,
+        issueDescription,
+        status,
+        technicianId: selectedTechnicianId,
+        partialAmount: showPaymentInput ? partialAmount : 0,
+        totalPaid,
+        remainingAmount,
+      });
+      triggerHaptic("success");
+      clearDraft();
+
+      // Save to input history for future auto-complete
+      if (selectedCustomer?.name) {
+        customerNameHistory.addToHistory(selectedCustomer.name);
+      }
+      if (selectedCustomer?.phone) {
+        phoneHistory.addToHistory(selectedCustomer.phone);
+      }
+      if (selectedVehicle?.licensePlate) {
+        licensePlateHistory.addToHistory(selectedVehicle.licensePlate);
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      triggerHaptic("error");
+    } finally {
+      setIsSubmitting(false);
+      submittingRef.current = false;
+    }
   };
 
   // Combined fetch function
@@ -472,11 +725,24 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
       const from = page * CUSTOMER_PAGE_SIZE;
       const to = from + CUSTOMER_PAGE_SIZE - 1;
 
-      // Use a simple OR query on name and phone
+      // Extract digits for better phone search (supports multiple phone numbers)
+      const searchDigits = searchTerm.replace(/\D/g, "");
+      const isPhoneSearch = searchDigits.length >= 10; // Chỉ tìm SĐT khi đủ 10 số
+
+      // Build OR query - only include phone search if digits >= 10
+      const orConditions = [
+        `name.ilike.%${searchTerm}%`,
+        `vehiclemodel.ilike.%${searchTerm}%`,
+        `licenseplate.ilike.%${searchTerm}%`
+      ];
+      if (isPhoneSearch) {
+        orConditions.push(`phone.ilike.%${searchDigits}%`);
+      }
+
       const { data, error, count } = await supabase
         .from("customers")
         .select("*", { count: "exact", head: false })
-        .or(`name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+        .or(orConditions.join(","))
         .range(from, to);
 
       if (!error && data) {
@@ -540,25 +806,53 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
       (c) =>
         normalizeSearchText(c.name).includes(term) ||
         c.phone?.toLowerCase().includes(term) ||
+        normalizeSearchText(c.vehicleModel || "").includes(term) ||
+        normalizeSearchText(c.licensePlate || "").includes(term) ||
         (c.vehicles &&
           c.vehicles.some((v: any) =>
             normalizeSearchText(v.licensePlate).includes(term) ||
+            normalizeSearchText(v.model || "").includes(term) ||
             v.licensePlate?.toLowerCase().includes(term.toLowerCase())
           ))
     );
     return filtered;
   }, [customers, serverCustomers, customerSearchTerm]);
 
-  // Filtered parts
+  // Filtered parts - first filter by stock > 0 (matching desktop behavior)
+  const availableParts = useMemo(() => {
+    return parts.filter((part) => {
+      const stock = part.stock?.[currentBranchId] || 0;
+      return stock > 0;
+    });
+  }, [parts, currentBranchId]);
+
   const filteredParts = useMemo(() => {
-    if (!partSearchTerm) return parts;
-    const term = partSearchTerm.toLowerCase();
-    return parts.filter(
-      (p) =>
-        p.name.toLowerCase().includes(term) ||
-        p.sku?.toLowerCase().includes(term)
-    );
-  }, [parts, partSearchTerm]);
+    const normalizedQuery = normalizeSearchText(partSearchTerm.trim());
+    const queryWords = normalizedQuery.split(/\s+/).filter(Boolean);
+
+    return availableParts.filter((p) => {
+      if (partCategoryFilter && (p.category || "") !== partCategoryFilter) {
+        return false;
+      }
+      if (queryWords.length === 0) return true;
+      const combined = [
+        normalizeSearchText(p.name),
+        normalizeSearchText(p.category),
+        normalizeSearchText((p as any).description),
+        (p.sku || "").toLowerCase(),
+      ].join(" ");
+      return queryWords.every((word) => combined.includes(word));
+    });
+  }, [availableParts, partSearchTerm, partCategoryFilter]);
+
+  const availablePartCategories = useMemo(() => {
+    const unique = new Set<string>();
+    for (const part of availableParts) {
+      const c = part.category?.trim();
+      if (c) unique.add(c);
+    }
+    return Array.from(unique).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [availableParts]);
 
   // Auto-scroll to top of part results when search term changes and has results
   useEffect(() => {
@@ -624,12 +918,15 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
   const discountAmount = useMemo(() => {
     if (discountType === "percent") {
-      return (subtotal * discount) / 100;
+      return Math.round((subtotal * discount) / 100);
     }
     return discount;
   }, [subtotal, discount, discountType]);
 
   const total = Math.max(0, subtotal - discountAmount);
+
+  const isOrderPaid = workOrder?.paymentStatus === "paid" && (workOrder?.status === "Trả máy" || status === "Trả máy");
+  const canEditPriceAndParts = !isOrderPaid;
 
   // Handlers
   const handleSelectCustomer = (customer: Customer) => {
@@ -645,14 +942,14 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
   };
 
   // Handle save edited customer info
-  const handleSaveEditedCustomer = () => {
+  const handleSaveEditedCustomer = async () => {
     if (!selectedCustomer) return;
     if (!editCustomerName.trim()) {
-      alert("Vui lòng nhập tên khách hàng");
+      showToast.error("Vui lòng nhập tên khách hàng");
       return;
     }
     if (!editCustomerPhone.trim()) {
-      alert("Vui lòng nhập số điện thoại");
+      showToast.error("Vui lòng nhập số điện thoại");
       return;
     }
 
@@ -664,7 +961,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
     // Save to database if upsertCustomer is available
     if (upsertCustomer) {
-      upsertCustomer(updatedCustomer);
+      await upsertCustomer(updatedCustomer);
     }
 
     // Update local state
@@ -745,7 +1042,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
     setAdditionalServices(additionalServices.filter((s) => s.id !== id));
   };
 
-  const handleAddVehicle = () => {
+  const handleAddVehicle = async () => {
     if (!newVehiclePlate || !newVehicleName) return;
     const newVehicle: Vehicle = {
       id: `veh-${Date.now()}`,
@@ -768,7 +1065,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
       // Save to database via upsertCustomer
       if (upsertCustomer) {
-        upsertCustomer(updatedCustomer);
+        await upsertCustomer(updatedCustomer);
       }
 
       // Update local state
@@ -781,10 +1078,10 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
     setShowAddVehicle(false);
   };
 
-  const handleAddNewCustomer = () => {
+  const handleAddNewCustomer = async () => {
     if (!newCustomerName || !newCustomerPhone) return;
 
-    const customerId = `CUST-${Date.now()}`;
+    const tempCustomerId = `CUST-${Date.now()}`;
     const vehicleId = `VEH-${Date.now()}`;
 
     // Create vehicles array if vehicle info provided
@@ -800,7 +1097,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
 
     // Create new customer object
     const newCustomerObj: Customer = {
-      id: customerId,
+      id: tempCustomerId,
       name: newCustomerName,
       phone: newCustomerPhone,
       vehicles: vehicles,
@@ -816,12 +1113,14 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
     };
 
     // Save to database if upsertCustomer is available
+    // Get the real customer ID (could be existing customer with same phone)
+    let realCustomerId = tempCustomerId;
     if (upsertCustomer) {
-      upsertCustomer(newCustomerObj);
+      realCustomerId = (await upsertCustomer(newCustomerObj)) || tempCustomerId;
     }
 
-    // Set selected customer and vehicle
-    setSelectedCustomer(newCustomerObj);
+    // Set selected customer and vehicle with the real ID
+    setSelectedCustomer({ ...newCustomerObj, id: realCustomerId });
     if (vehicles.length > 0) {
       setSelectedVehicle(vehicles[0]);
     }
@@ -836,121 +1135,6 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
     setCustomerSearchTerm("");
   };
 
-  const handleSave = async () => {
-    // Prevent duplicate submissions
-    if (isSubmitting) return;
-
-    if (!selectedCustomer || !selectedVehicle) {
-      alert("Vui lòng chọn khách hàng và xe");
-      return;
-    }
-
-    // Set submitting state to disable buttons
-    setIsSubmitting(true);
-
-    // Calculate total paid and remaining based on showPaymentInput (similar to desktop logic)
-    const totalDeposit = isDeposit ? depositAmount : 0;
-    const additionalPayment = showPaymentInput ? partialAmount : 0;
-    const totalPaid = totalDeposit + additionalPayment;
-    const remainingAmount = total - totalPaid;
-
-    // Transform parts to use 'price' field (as expected by SQL/types)
-    const transformedParts = selectedParts.map((p) => ({
-      partId: p.partId,
-      partName: p.partName,
-      quantity: p.quantity,
-      price: p.sellingPrice, // Map sellingPrice to price for SQL
-      costPrice: p.costPrice || 0, // Cost price for profit calculation
-      sku: p.sku || "",
-      category: p.category || "",
-    }));
-
-    // Transform additional services to use 'price' field
-    const transformedServices = additionalServices.map((s) => ({
-      id: s.id,
-      description: s.name,
-      quantity: s.quantity,
-      price: s.sellingPrice, // Map sellingPrice to price
-      costPrice: s.costPrice,
-    }));
-
-    const workOrderData = {
-      status,
-      technicianId: selectedTechnicianId,
-      customer: selectedCustomer,
-      vehicle: selectedVehicle,
-      currentKm:
-        currentKm && parseInt(currentKm) > 0 ? parseInt(currentKm) : undefined,
-      issueDescription,
-      parts: transformedParts,
-      additionalServices: transformedServices,
-      laborCost,
-      discount: discountAmount,
-      total: total,
-      depositAmount: totalDeposit,
-      paymentMethod,
-      // ⚠️ FIX: Không gửi totalPaid/remainingAmount khi tạo mới
-      // Thanh toán khi trả xe phải dùng function riêng work_order_complete_payment
-      totalPaid: undefined,
-      remainingAmount: undefined,
-    };
-
-    console.log(
-      "[WorkOrderMobileModal] currentKm state:",
-      currentKm,
-      "parsed:",
-      parseInt(currentKm),
-      "final:",
-      workOrderData.currentKm
-    );
-
-    // Execute save callback with offline fallback
-    try {
-      await onSave(workOrderData);
-      // Note: Not resetting isSubmitting here because modal will close on success
-      // Parent component is responsible for closing the modal
-    } catch (error: any) {
-      console.error("Error saving work order:", error);
-      console.error("Error details:", {
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint,
-      });
-      setIsSubmitting(false); // Reset on error so user can retry
-
-      // Fallback: Save to Local Storage as draft
-      const drafts = JSON.parse(localStorage.getItem("offline_drafts") || "[]");
-      drafts.push({
-        ...workOrderData,
-        tempId: `draft-${Date.now()}`,
-        timestamp: new Date().toISOString()
-      });
-      localStorage.setItem("offline_drafts", JSON.stringify(drafts));
-
-      // Show detailed error message
-      let errorMessage = "Có lỗi khi lưu";
-      if (error?.message) {
-        const msg = error.message.toUpperCase();
-        if (msg.includes("UNAUTHORIZED")) {
-          errorMessage = "❌ Bạn không có quyền tạo phiếu sửa chữa. Vui lòng liên hệ quản lý để được cấp quyền.";
-        } else if (msg.includes("BRANCH_MISMATCH")) {
-          errorMessage = "❌ Chi nhánh không khớp. Bạn chỉ có thể tạo phiếu cho chi nhánh của mình.";
-        } else if (msg.includes("INSUFFICIENT_STOCK") || msg.includes("THIẾU TỒN KHO")) {
-          errorMessage = "❌ Tồn kho không đủ cho một hoặc nhiều phụ tùng.";
-        } else if (msg.includes("PART_NOT_FOUND")) {
-          errorMessage = "❌ Không tìm thấy phụ tùng trong kho.";
-        } else {
-          errorMessage = `❌ ${error.message}`;
-        }
-      } else {
-        errorMessage = "❌ Lỗi kết nối (Timeout/Mạng). Vui lòng kiểm tra kết nối mạng.";
-      }
-      
-      alert(errorMessage + "\n\nDữ liệu đã được lưu tạm. Bạn có thể thử lại hoặc chụp màn hình.");
-      // onClose(); // Don't close so user can retry
-    }
-  };
   const getStatusColor = (s: WorkOrderStatus) => {
     switch (s) {
       case WORK_ORDER_STATUS.RECEIVED:
@@ -1126,17 +1310,20 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                         </div>
                       </div>
                       {/* Hiển thị giá vốn để debug */}
-                      <div className="mt-1 text-[10px] text-slate-400 dark:text-slate-500 flex justify-between">
-                        <span>
-                          Giá vốn: {formatCurrency(part.costPrice || 0)}/cái
-                        </span>
-                        <span className="text-yellow-600 dark:text-yellow-400">
-                          Lãi:{" "}
-                          {formatCurrency(
-                            (part.price - (part.costPrice || 0)) * part.quantity
-                          )}
-                        </span>
-                      </div>
+                      {/* Hiển thị giá vốn và lãi - Chỉ chủ shop thấy */}
+                      {isOwner && (
+                        <div className="mt-1 text-[10px] text-slate-400 dark:text-slate-500 flex justify-between">
+                          <span>
+                            Giá vốn: {formatCurrency(part.costPrice || 0)}/cái
+                          </span>
+                          <span className="text-yellow-600 dark:text-yellow-400">
+                            Lãi:{" "}
+                            {formatCurrency(
+                              (part.price - (part.costPrice || 0)) * part.quantity
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1251,6 +1438,18 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                     )}
                   </span>
                 </div>
+
+                {/* Profit display - only for owner */}
+                {isOwner && (workOrder as any).profit != null && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700/30 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 dark:text-slate-400">Lợi nhuận</span>
+                    <span
+                      className={`font-bold ${(workOrder as any).profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}
+                    >
+                      {formatCurrency((workOrder as any).profit)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1307,7 +1506,10 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 z-[100] flex items-end md:items-center justify-center">
       {/* Mobile Full Screen */}
-      <div className="md:hidden w-full h-full bg-slate-50 dark:bg-[#151521] flex flex-col transition-colors">
+      <div
+        className="md:hidden w-full bg-slate-50 dark:bg-[#151521] flex flex-col transition-colors"
+        style={{ height: viewportHeight ? `${viewportHeight}px` : '100vh' }}
+      >
         {/* Header */}
         <div className="flex-shrink-0 bg-white dark:bg-[#1e1e2d] px-4 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-700/50">
           <div className="flex items-center gap-3">
@@ -1326,1015 +1528,282 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
           <div className="w-9"></div>
         </div>
 
+        {isOrderPaid && (
+          <div className="mx-4 mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <div className="text-xs text-amber-700 dark:text-amber-300">
+                Phiếu đã thanh toán: Không thể sửa giá và phụ tùng.
+                <br />
+                Bạn vẫn có thể cập nhật giá vốn dịch vụ.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Navigation Bar */}
+        <div className="flex-shrink-0 bg-white dark:bg-[#1e1e2d] border-b border-slate-200 dark:border-slate-700/50">
+          <div className="grid grid-cols-3 gap-0">
+            {[
+              { id: 'info' as const, label: 'THÔNG TIN', icon: User },
+              { id: 'parts' as const, label: 'PHỤ TÙNG', icon: Package },
+              { id: 'payment' as const, label: 'T.TOÁN', icon: Banknote },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative flex flex-col items-center justify-center py-2.5 transition-all ${isActive
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+                    }`}
+                >
+                  <Icon className={`w-4 h-4 mb-0.5 ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`} />
+                  <span className="text-[9px] font-bold tracking-tight">{tab.label}</span>
+                  {isActive && (
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto pb-32">
-          {/* KHỐI 1: TRẠNG THÁI & KỸ THUẬT VIÊN */}
-          <div className="p-4 space-y-4">
-            {/* Status Segmented Control */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-                Trạng thái sửa chữa
-              </label>
-              <div className="grid grid-cols-4 gap-1.5 p-1 bg-white dark:bg-[#1e1e2d] rounded-xl border border-slate-200 dark:border-slate-700/50">
-                {[
-                  { id: WORK_ORDER_STATUS.RECEIVED, label: "Nhận", icon: FileText },
-                  { id: WORK_ORDER_STATUS.IN_PROGRESS, label: "Sửa", icon: Wrench },
-                  { id: WORK_ORDER_STATUS.COMPLETED, label: "Xong", icon: CheckCircle },
-                  { id: WORK_ORDER_STATUS.DELIVERED, label: "Trả", icon: Bike },
-                ].map((item) => {
-                  const isActive = status === item.id;
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setStatus(item.id as WorkOrderStatus)}
-                      className={`flex flex-col items-center justify-center py-2.5 rounded-lg transition-all ${isActive
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-[1.02]"
-                        : "text-slate-500 hover:text-slate-300"
-                        }`}
-                    >
-                      <Icon className={`w-4 h-4 mb-1 ${isActive ? "text-white" : "text-slate-500"}`} />
-                      <span className="text-[10px] font-bold">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* Technician Selection - Premium Chips */}
-            <div className="space-y-2.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-                Kỹ thuật viên phụ trách
-              </label>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
-                {employees
-                  .filter(emp => !["Nguyễn Xuân Nhạn", "Võ Thanh Lâm"].includes(emp.name))
-                  .map((emp) => {
-                    const isActive = selectedTechnicianId === emp.id;
-                    return (
-                      <button
-                        key={emp.id}
-                        onClick={() => setSelectedTechnicianId(emp.id)}
-                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${isActive
-                          ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20 scale-[1.02]"
-                          : "bg-white dark:bg-[#1e1e2d] border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-600"
-                          }`}
-                      >
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                          }`}>
-                          {emp.name.split(" ").pop()?.charAt(0) || "T"}
-                        </div>
-                        <span className="text-xs font-bold whitespace-nowrap">{emp.name}</span>
-                        {isActive && <Check className="w-3 h-3" />}
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-          </div>
-
-          {/* KHỐI 2: KHÁCH HÀNG & XE */}
-          <div className="px-4 pb-4 space-y-3">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-              Thông tin khách hàng
-            </label>
-
-            {/* Customer Selection */}
-            {showCustomerSearch ? (
-              <div className="space-y-3">
-                <div className="relative group">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                  <input
-                    type="text"
-                    value={customerSearchTerm}
-                    onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                    placeholder="Tìm tên hoặc số điện thoại..."
-                    className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/50 rounded-2xl text-slate-900 dark:text-white text-sm placeholder-slate-400 dark:placeholder-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
-                    autoFocus
-                  />
-                </div>
-
-                {/* Customer List */}
-                <div className="max-h-60 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">
-                  {filteredCustomers.map((customer) => {
-                    const primaryVehicle =
-                      customer.vehicles?.find((v: any) => v.isPrimary) ||
-                      customer.vehicles?.[0];
-
-                    return (
-                      <div
-                        key={customer.id}
-                        onClick={() => handleSelectCustomer(customer)}
-                        className="p-4 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/30 rounded-2xl cursor-pointer hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-blue-500/5 transition-all active:scale-[0.98]"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold">
-                              {customer.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="text-slate-900 dark:text-white font-bold text-sm">
-                                {customer.name}
-                              </div>
-                              <div className="text-xs text-slate-500 flex items-center gap-1">
-                                <Smartphone className="w-3 h-3" />
-                                {customer.phone}
-                              </div>
-                            </div>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-slate-600" />
-                        </div>
-
-                        {(primaryVehicle?.model || customer.vehicleModel) && (
-                          <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-xl">
-                            <Bike className="w-3.5 h-3.5 text-blue-400" />
-                            <span className="text-xs text-slate-300 font-medium truncate">
-                              {primaryVehicle?.model || customer.vehicleModel}
-                            </span>
-                            {(primaryVehicle?.licensePlate || customer.licensePlate) && (
-                              <span className="text-[10px] font-mono font-bold text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20">
-                                {primaryVehicle?.licensePlate || customer.licensePlate}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* Load More Button */}
-                  {hasMoreCustomers && customerSearchTerm && (
-                    <button
-                      type="button"
-                      onClick={handleLoadMoreCustomers}
-                      className="w-full py-3 text-blue-500 font-medium text-xs bg-blue-500/10 rounded-xl active:scale-[0.98] transition-transform"
-                    >
-                      {isSearchingCustomer
-                        ? "Đang tải..."
-                        : "⬇️ Tải thêm khách hàng..."}
-                    </button>
-                  )}
-
-                  {/* Show add new customer when no results or always at bottom */}
-                  {customerSearchTerm && filteredCustomers.length === 0 && (
-                    <div className="text-center py-3 text-slate-400 text-xs">
-                      Không tìm thấy khách hàng
-                    </div>
-                  )}
-
-                  {/* Add new customer button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddCustomer(true);
-                      // Pre-fill phone if search term looks like a phone number
-                      if (/^[0-9]+$/.test(customerSearchTerm)) {
-                        setNewCustomerPhone(customerSearchTerm);
-                        setNewCustomerName("");
-                      } else {
-                        setNewCustomerName(customerSearchTerm);
-                        setNewCustomerPhone("");
-                      }
-                    }}
-                    className="w-full p-3 bg-green-500/20 border-2 border-dashed border-green-500/50 rounded-lg text-green-400 font-medium flex items-center justify-center gap-2 hover:bg-green-500/30 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Thêm khách hàng mới
-                  </button>
-                </div>
-              </div>
-            ) : selectedCustomer ? (
-              <div className="p-4 bg-white dark:bg-[#1e1e2d] border border-blue-200 dark:border-blue-500/30 rounded-2xl shadow-lg shadow-blue-500/5">
-                {isEditingCustomer ? (
-                  // Edit mode - show input fields
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-                        Tên khách hàng
-                      </label>
-                      <input
-                        type="text"
-                        value={editCustomerName}
-                        onChange={(e) => setEditCustomerName(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
-                        placeholder="Nhập tên khách hàng"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-                        Số điện thoại
-                      </label>
-                      <input
-                        type="tel"
-                        value={editCustomerPhone}
-                        onChange={(e) => setEditCustomerPhone(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
-                        placeholder="Nhập số điện thoại"
-                      />
-                    </div>
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={() => {
-                          setIsEditingCustomer(false);
-                          setEditCustomerName(selectedCustomer.name);
-                          setEditCustomerPhone(selectedCustomer.phone || "");
-                        }}
-                        className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 rounded-xl text-xs font-bold active:scale-95 transition-all"
-                      >
-                        Hủy
-                      </button>
-                      <button
-                        onClick={handleSaveEditedCustomer}
-                        className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
-                      >
-                        Lưu thay đổi
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  // View mode - show customer info with edit button
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-lg shadow-inner">
-                        {selectedCustomer.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-slate-900 dark:text-white font-bold text-base">
-                          {selectedCustomer.name}
-                        </div>
-                        <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                          <PhoneCall className="w-3 h-3 text-blue-400" />
-                          {selectedCustomer.phone}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setEditCustomerName(selectedCustomer.name);
-                          setEditCustomerPhone(selectedCustomer.phone || "");
-                          setIsEditingCustomer(true);
-                        }}
-                        className="w-9 h-9 flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl active:scale-95 transition-all"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedCustomer(null);
-                          setSelectedVehicle(null);
-                          setShowCustomerSearch(true);
-                          setIsEditingCustomer(false);
-                        }}
-                        className="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl active:scale-95 transition-all"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            {/* Vehicle Selection */}
-            {selectedCustomer && (
-              <div className="space-y-3 pt-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-                  Chọn xe sửa chữa
-                </label>
-
-                <div className="grid grid-cols-1 gap-2.5">
-                  {customerVehicles.map((vehicle) => {
-                    const isActive = selectedVehicle?.id === vehicle.id;
-                    return (
-                      <div
-                        key={vehicle.id}
-                        onClick={() => handleSelectVehicle(vehicle)}
-                        className={`p-4 rounded-2xl cursor-pointer transition-all border ${isActive
-                          ? "bg-blue-600 border-blue-500 shadow-lg shadow-blue-500/20"
-                          : "bg-white dark:bg-[#1e1e2d] border-slate-200 dark:border-slate-700/30 hover:border-slate-400 dark:hover:border-slate-600"
-                          }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                              }`}>
-                              <Bike className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className={`font-bold text-sm ${isActive ? "text-white" : "text-slate-900 dark:text-slate-200"}`}>
-                                {vehicle.model}
-                              </div>
-                              <div className={`text-xs font-mono ${isActive ? "text-blue-100" : "text-slate-500"}`}>
-                                {vehicle.licensePlate}
-                              </div>
-                            </div>
-                          </div>
-                          {isActive && <CheckCircle className="w-5 h-5 text-white" />}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Add New Vehicle Button */}
-                  <button
-                    onClick={() => setShowAddVehicle(true)}
-                    className="w-full py-3.5 border-2 border-dashed border-slate-700 hover:border-blue-500/50 hover:bg-blue-500/5 rounded-2xl text-slate-500 hover:text-blue-400 transition-all flex items-center justify-center gap-2 text-xs font-bold"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Thêm xe mới
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Vehicle Info Inputs */}
-            {selectedVehicle && (
-              <div className="space-y-4 mt-4">
+          {/* TAB 1: THÔNG TIN - Status, Technician, Customer, Vehicle */}
+          {activeTab === 'info' && (
+            <>
+              {/* KHỐI 1: TRẠNG THÁI & KỸ THUẬT VIÊN */}
+              <div className="p-4 space-y-4">
+                {/* Status Segmented Control */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-                    Số KM hiện tại
+                    Trạng thái sửa chữa
                   </label>
-                  <div className="relative">
-                    <TrendingUp className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input
-                      type="number"
-                      value={currentKm}
-                      onChange={(e) => setCurrentKm(e.target.value)}
-                      placeholder="Nhập số KM..."
-                      inputMode="numeric"
-                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/50 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Maintenance Warnings */}
-                {maintenanceWarnings.length > 0 && (
-                  <div className="p-4 bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-2xl space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-400">
-                        <AlertTriangle className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-bold text-orange-400 uppercase tracking-tight">
-                        Cần bảo dưỡng định kỳ
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      {maintenanceWarnings.map((warning) => (
-                        <div
-                          key={warning.type}
-                          className={`flex items-center justify-between p-3 rounded-xl border ${warning.isOverdue
-                            ? "bg-red-500/10 border-red-500/20 text-red-300"
-                            : "bg-orange-500/5 border-orange-500/10 text-orange-300"
+                  <div className="grid grid-cols-4 gap-1.5 p-1 bg-white dark:bg-[#1e1e2d] rounded-xl border border-slate-200 dark:border-slate-700/50">
+                    {[
+                      { id: WORK_ORDER_STATUS.RECEIVED, label: "Nhận", icon: FileText },
+                      { id: WORK_ORDER_STATUS.IN_PROGRESS, label: "Sửa", icon: Wrench },
+                      { id: WORK_ORDER_STATUS.COMPLETED, label: "Xong", icon: CheckCircle },
+                      { id: WORK_ORDER_STATUS.DELIVERED, label: "Trả", icon: Bike },
+                    ].map((item) => {
+                      const isActive = status === item.id;
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setStatus(item.id as WorkOrderStatus)}
+                          className={`flex flex-col items-center justify-center py-2.5 rounded-lg transition-all ${isActive
+                            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-[1.02]"
+                            : "text-slate-500 hover:text-slate-300"
                             }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">{warning.icon}</span>
-                            <span className="text-xs font-bold">{warning.name}</span>
-                          </div>
-                          <div className="text-[10px] font-mono font-bold bg-black/20 px-2 py-1 rounded">
-                            {warning.isOverdue
-                              ? `QUÁ ${formatKm(Math.abs(warning.kmUntilDue))}`
-                              : `CÒN ${formatKm(warning.kmUntilDue)}`}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          <Icon className={`w-4 h-4 mb-1 ${isActive ? "text-white" : "text-slate-500"}`} />
+                          <span className="text-[10px] font-bold">{item.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
 
-                <div className="space-y-2">
+                {/* Technician Selection - Premium Chips */}
+                <div className="space-y-2.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-                    Mô tả tình trạng xe
+                    Kỹ thuật viên phụ trách
                   </label>
-                  <div className="relative">
-                    <Wrench className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-500" />
-                    <textarea
-                      value={issueDescription}
-                      onChange={(e) => setIssueDescription(e.target.value)}
-                      placeholder="Mô tả các vấn đề cần sửa chữa..."
-                      rows={3}
-                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/50 rounded-xl text-slate-900 dark:text-white text-sm resize-none focus:border-blue-500 transition-all"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* KHỐI 3A: PHỤ TÙNG & 3B: DỊCH VỤ */}
-          {selectedCustomer && selectedVehicle && (
-            <>
-              <div className="px-4 pb-4 space-y-3">
-                <div className="flex items-center justify-between ml-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Phụ tùng sử dụng
-                  </label>
-                  {selectedParts.length > 0 && (
-                    <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">
-                      {selectedParts.length} món
-                    </span>
-                  )}
-                </div>
-
-                {/* Parts List */}
-                {selectedParts.length > 0 && (
-                  <div className="space-y-2.5">
-                    {selectedParts.map((part, index) => (
-                      <div
-                        key={part.partId}
-                        className="p-4 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/30 rounded-2xl shadow-sm"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                              {part.partName}
-                            </div>
-                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">
-                              {part.sku}
-                            </div>
-                            <div className="mt-2 flex items-center gap-2">
-                              <span className="text-[10px] text-slate-500">Giá:</span>
-                              <input
-                                type="text"
-                                value={formatNumberWithDots(part.sellingPrice)}
-                                onChange={(e) => {
-                                  const newPrice = parseFormattedNumber(e.target.value);
-                                  setSelectedParts(
-                                    selectedParts.map((p) =>
-                                      p.partId === part.partId
-                                        ? { ...p, sellingPrice: newPrice }
-                                        : p
-                                    )
-                                  );
-                                }}
-                                inputMode="numeric"
-                                className="w-24 px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-blue-600 dark:text-blue-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-3">
-                            <button
-                              onClick={() => handleRemovePart(part.partId)}
-                              className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-red-400 active:scale-95 transition-all"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700/50">
-                              <button
-                                onClick={() => handleUpdatePartQuantity(part.partId, -1)}
-                                className="w-9 h-9 flex items-center justify-center text-slate-400 active:bg-slate-200 dark:active:bg-slate-700 rounded-lg transition-all"
-                              >
-                                <Minus className="w-4 h-4" />
-                              </button>
-                              <span className="w-8 text-center text-sm font-bold text-slate-900 dark:text-white">
-                                {part.quantity}
-                              </span>
-                              <button
-                                onClick={() => handleUpdatePartQuantity(part.partId, 1)}
-                                className="w-9 h-9 flex items-center justify-center text-blue-400 active:bg-slate-700 rounded-lg transition-all"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-slate-700/30 flex justify-between items-center">
-                          <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Thành tiền</span>
-                          <span className="text-sm font-bold text-emerald-400">
-                            {formatCurrency(part.quantity * part.sellingPrice)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Add Part Button */}
-                <button
-                  onClick={() => setShowPartSearch(true)}
-                  className="w-full py-3.5 bg-blue-600/10 border border-blue-500/30 hover:bg-blue-600/20 rounded-2xl text-blue-400 transition-all flex items-center justify-center gap-2 text-xs font-bold active:scale-[0.98]"
-                >
-                  <Plus className="w-4 h-4" />
-                  Thêm phụ tùng
-                </button>
-              </div>
-
-              {/* 3B: DỊCH VỤ (GIA CÔNG) */}
-              <div className="px-4 pb-4 space-y-3">
-                <div className="flex items-center justify-between ml-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Dịch vụ & Gia công
-                  </label>
-                  {additionalServices.length > 0 && (
-                    <span className="text-[10px] font-bold text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full">
-                      {additionalServices.length} mục
-                    </span>
-                  )}
-                </div>
-
-                {/* Services List */}
-                {additionalServices.length > 0 && (
-                  <div className="space-y-2.5">
-                    {additionalServices.map((service) => (
-                      <div
-                        key={service.id}
-                        className="p-4 bg-white dark:bg-[#1e1e2d] border border-slate-200 dark:border-slate-700/30 rounded-2xl shadow-sm"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                              {service.name}
-                            </div>
-                            <div className="mt-2 flex flex-col gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-slate-500 w-8">Bán:</span>
-                                <input
-                                  type="text"
-                                  value={formatNumberWithDots(service.sellingPrice)}
-                                  onChange={(e) => {
-                                    const newPrice = parseFormattedNumber(e.target.value);
-                                    setAdditionalServices(
-                                      additionalServices.map((s) =>
-                                        s.id === service.id
-                                          ? { ...s, sellingPrice: newPrice }
-                                          : s
-                                      )
-                                    );
-                                  }}
-                                  inputMode="numeric"
-                                  className="w-24 px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-orange-600 dark:text-orange-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
-                                />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-slate-500 w-8">Vốn:</span>
-                                <input
-                                  type="text"
-                                  value={formatNumberWithDots(service.costPrice || 0)}
-                                  onChange={(e) => {
-                                    const newCost = parseFormattedNumber(e.target.value);
-                                    setAdditionalServices(
-                                      additionalServices.map((s) =>
-                                        s.id === service.id
-                                          ? { ...s, costPrice: newCost }
-                                          : s
-                                      )
-                                    );
-                                  }}
-                                  inputMode="numeric"
-                                  className="w-24 px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-xs font-bold focus:border-blue-500 focus:outline-none transition-all"
-                                />
-                              </div>
-                            </div>
-                          </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+                    {employees
+                      .filter(emp => !["Nguyễn Xuân Nhạn", "Võ Thanh Lâm"].includes(emp.name))
+                      .map((emp) => {
+                        const isActive = selectedTechnicianId === emp.id;
+                        return (
                           <button
-                            onClick={() => handleRemoveService(service.id)}
-                            className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-red-400 active:scale-95 transition-all"
+                            key={emp.id}
+                            onClick={() => setSelectedTechnicianId(emp.id)}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${isActive
+                              ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20 scale-[1.02]"
+                              : "bg-white dark:bg-[#1e1e2d] border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-600"
+                              }`}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                              }`}>
+                              {emp.name.split(" ").pop()?.charAt(0) || "T"}
+                            </div>
+                            <span className="text-xs font-bold whitespace-nowrap">{emp.name}</span>
+                            {isActive && <Check className="w-3 h-3" />}
                           </button>
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-slate-700/30 flex justify-between items-center">
-                          <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">
-                            SL: {service.quantity} x {formatCurrency(service.sellingPrice)}
-                          </span>
-                          <span className="text-sm font-bold text-orange-400">
-                            {formatCurrency(service.sellingPrice * service.quantity)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })}
                   </div>
-                )}
+                </div>
+              </div>
 
-                {/* Add Service Button */}
+              {/* KHỐI 2: KHÁCH HÀNG & XE */}
+              <CustomerInfoSection
+                selectedCustomer={selectedCustomer}
+                showCustomerSearch={showCustomerSearch}
+                customerSearchTerm={customerSearchTerm}
+                setCustomerSearchTerm={setCustomerSearchTerm}
+                filteredCustomers={filteredCustomers}
+                onSelectCustomer={handleSelectCustomer}
+                onLoadMoreCustomers={handleLoadMoreCustomers}
+                hasMoreCustomers={hasMoreCustomers}
+                isSearchingCustomer={isSearchingCustomer}
+                onShowAddCustomer={() => setShowAddCustomer(true)}
+                setNewCustomerName={setNewCustomerName}
+                setNewCustomerPhone={setNewCustomerPhone}
+                isEditingCustomer={isEditingCustomer}
+                setIsEditingCustomer={setIsEditingCustomer}
+                editCustomerName={editCustomerName}
+                setEditCustomerName={setEditCustomerName}
+                editCustomerPhone={editCustomerPhone}
+                setEditCustomerPhone={setEditCustomerPhone}
+                onSaveEditedCustomer={handleSaveEditedCustomer}
+                onClearCustomer={() => {
+                  setSelectedCustomer(null);
+                  setSelectedVehicle(null);
+                  setShowCustomerSearch(true);
+                  setIsEditingCustomer(false);
+                }}
+              />
+
+              <VehicleInfoSection
+                selectedCustomer={selectedCustomer}
+                selectedVehicle={selectedVehicle}
+                customerVehicles={customerVehicles}
+                onSelectVehicle={handleSelectVehicle}
+                onClearVehicle={() => {
+                  setSelectedVehicle(null);
+                  setCurrentKm("");
+                }}
+                showAddVehicle={showAddVehicle}
+                setShowAddVehicle={setShowAddVehicle}
+                newVehiclePlate={newVehiclePlate}
+                setNewVehiclePlate={setNewVehiclePlate}
+                newVehicleName={newVehicleName}
+                setNewVehicleName={setNewVehicleName}
+                showVehicleDropdown={showVehicleDropdown}
+                setShowVehicleDropdown={setShowVehicleDropdown}
+                onAddVehicle={handleAddVehicle}
+                currentKm={currentKm}
+                setCurrentKm={setCurrentKm}
+                maintenanceWarnings={maintenanceWarnings}
+                issueDescription={issueDescription}
+                setIssueDescription={setIssueDescription}
+              />
+
+              {/* Next Button */}
+              <div className="p-4 pt-2">
                 <button
-                  onClick={() => setShowAddService(true)}
-                  className="w-full py-3.5 bg-orange-600/10 border border-orange-500/30 hover:bg-orange-600/20 rounded-2xl text-orange-400 transition-all flex items-center justify-center gap-2 text-xs font-bold active:scale-[0.98]"
+                  onClick={() => setActiveTab('parts')}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                 >
-                  <Plus className="w-4 h-4" />
-                  Thêm dịch vụ ngoài
+                  Tiếp tục: Phụ tùng & Dịch vụ
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </>
           )}
 
-          {/* KHỐI 4: TÀI CHÍNH */}
-          <div className="px-3 pb-3 space-y-2.5">
-            <h3 className="text-xs font-semibold text-white uppercase tracking-wide">
-              THANH TOÁN
-            </h3>
-
-            <div className="p-4 bg-[#1e1e2d] rounded-lg space-y-2">
-              {/* Labor Cost */}
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
-                  Tiền công
-                </label>
-                <input
-                  type="text"
-                  value={formatNumberWithDots(laborCost)}
-                  onChange={(e) =>
-                    setLaborCost(parseFormattedNumber(e.target.value))
-                  }
-                  placeholder="0"
-                  inputMode="numeric"
-                  className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-[#2b2b40] rounded-lg text-slate-900 dark:text-white text-xs"
-                />
-              </div>
-
-              {/* Deposit Toggle */}
-              <div className="pt-2">
-                <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-[#2b2b40] rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                      <span className="text-lg">💳</span>
-                    </div>
-                    <span className="text-slate-900 dark:text-white font-medium text-sm">
-                      Đặt cọc trước
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setIsDeposit(!isDeposit)}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${isDeposit ? "bg-[#009ef7]" : "bg-slate-600"
-                      }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform ${isDeposit ? "right-0.5" : "left-0.5"
-                        }`}
-                    >
-                      {isDeposit && (
-                        <span className="absolute inset-0 flex items-center justify-center text-[#009ef7] text-[10px] font-bold">
-                          ON
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                </div>
-
-                {isDeposit && (
-                  <div className="mt-3 p-3 bg-slate-50 dark:bg-[#151521] border-2 border-[#009ef7] rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg">💵</span>
-                      <span className="text-slate-500 dark:text-slate-400 text-xs">
-                        Nhập số tiền cọc...
-                      </span>
-                    </div>
-                    <input
-                      type="text"
-                      value={formatNumberWithDots(depositAmount)}
-                      onChange={(e) =>
-                        setDepositAmount(
-                          parseFormattedNumber(e.target.value)
+          {/* TAB 2: PHỤ TÙNG - Parts & Services */}
+          {activeTab === 'parts' && (
+            <>
+              {selectedCustomer && selectedVehicle ? (
+                <>
+                  <PartsListSection
+                    selectedCustomer={selectedCustomer}
+                    selectedVehicle={selectedVehicle}
+                    selectedParts={selectedParts}
+                    onRemovePart={handleRemovePart}
+                    onUpdatePartQuantity={handleUpdatePartQuantity}
+                    onUpdatePartPrice={(partId, newPrice) => {
+                      setSelectedParts(
+                        selectedParts.map((p) =>
+                          p.partId === partId ? { ...p, sellingPrice: newPrice } : p
                         )
-                      }
-                      placeholder="0"
-                      inputMode="numeric"
-                      className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2b40] border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:border-[#009ef7] focus:outline-none transition-colors"
-                    />
+                      );
+                    }}
+                    onShowPartSearch={() => setShowPartSearch(true)}
+                    canEditPriceAndParts={canEditPriceAndParts}
+                  />
+
+                  <ServiceListSection
+                    selectedCustomer={selectedCustomer}
+                    selectedVehicle={selectedVehicle}
+                    additionalServices={additionalServices}
+                    onRemoveService={handleRemoveService}
+                    onUpdateService={(id, updates) => {
+                      setAdditionalServices(
+                        additionalServices.map((s) =>
+                          s.id === id ? { ...s, ...updates } : s
+                        )
+                      );
+                    }}
+                    onShowAddService={() => setShowAddService(true)}
+                    canEditPriceAndParts={canEditPriceAndParts}
+                  />
+
+                  {/* Next Button */}
+                  <div className="p-4 pt-2">
+                    <button
+                      onClick={() => setActiveTab('payment')}
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                    >
+                      Tiếp tục: Thanh toán
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
-              </div>
-
-              {/* Payment Method */}
-              <div className="pt-2">
-                <label className="block text-xs font-medium text-slate-400 mb-2">
-                  Phương thức thanh toán
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setPaymentMethod("cash")}
-                    className={`relative p-3 rounded-lg transition-all border-2 ${paymentMethod === "cash"
-                      ? "bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/20"
-                      : "bg-slate-100 dark:bg-[#2b2b40] border-transparent hover:border-slate-400 dark:hover:border-slate-600"
-                      }`}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <div
-                        className={`text-xl ${paymentMethod === "cash" ? "scale-110" : ""
-                          } transition-transform`}
-                      >
-                        💵
-                      </div>
-                      <span
-                        className={`text-xs font-medium ${paymentMethod === "cash"
-                          ? "text-emerald-400"
-                          : "text-slate-400"
-                          }`}
-                      >
-                        Tiền mặt
-                      </span>
-                    </div>
-                    {paymentMethod === "cash" && (
-                      <div className="absolute top-1 right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
-                        <svg
-                          className="w-2.5 h-2.5 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setPaymentMethod("bank")}
-                    className={`relative p-3 rounded-lg transition-all border-2 ${paymentMethod === "bank"
-                      ? "bg-blue-500/10 border-blue-500 shadow-lg shadow-blue-500/20"
-                      : "bg-slate-100 dark:bg-[#2b2b40] border-transparent hover:border-slate-400 dark:hover:border-slate-600"
-                      }`}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <div
-                        className={`text-xl ${paymentMethod === "bank" ? "scale-110" : ""
-                          } transition-transform`}
-                      >
-                        🏦
-                      </div>
-                      <span
-                        className={`text-xs font-medium ${paymentMethod === "bank"
-                          ? "text-blue-400"
-                          : "text-slate-400"
-                          }`}
-                      >
-                        Chuyển khoản
-                      </span>
-                    </div>
-                    {paymentMethod === "bank" && (
-                      <div className="absolute top-1 right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                        <svg
-                          className="w-2.5 h-2.5 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                </div>
-
-                {/* Payment at return - only show when EDITING existing order with status "Trả máy" */}
-                {status === "Trả máy" && workOrder && (
-                  <div className="mt-3">
-                    {/* Checkbox to enable payment */}
-                    <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-[#2b2b40] rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                          <span className="text-lg">✅</span>
-                        </div>
-                        <span className="text-slate-900 dark:text-white font-medium text-sm">
-                          Thanh toán khi trả xe
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const newValue = !showPaymentInput;
-                          setShowPaymentInput(newValue);
-                          if (!newValue) {
-                            setPartialAmount(0);
-                          }
-                        }}
-                        className={`relative w-12 h-6 rounded-full transition-colors ${showPaymentInput
-                          ? "bg-emerald-500"
-                          : "bg-slate-600"
-                          }`}
-                      >
-                        <div
-                          className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform ${showPaymentInput ? "right-0.5" : "left-0.5"
-                            }`}
-                        >
-                          {showPaymentInput && (
-                            <span className="absolute inset-0 flex items-center justify-center text-emerald-500 text-[10px] font-bold">
-                              ON
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    </div>
-
-                    {/* Payment Input - show when checkbox is enabled */}
-                    {showPaymentInput && (
-                      <div className="mt-3 p-3 bg-slate-50 dark:bg-[#151521] border-2 border-emerald-500 rounded-lg">
-                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
-                          Số tiền thanh toán thêm:
-                        </label>
-                        <input
-                          type="text"
-                          value={formatNumberWithDots(partialAmount)}
-                          onChange={(e) =>
-                            setPartialAmount(
-                              parseFormattedNumber(e.target.value)
-                            )
-                          }
-                          placeholder="0"
-                          inputMode="numeric"
-                          className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2b40] border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:border-emerald-500 focus:outline-none transition-colors mb-2"
-                        />
-                        {/* Quick amount buttons */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setPartialAmount(0)}
-                            className="flex-1 px-3 py-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-white rounded-lg text-xs font-medium transition-colors"
-                          >
-                            0%
-                          </button>
-                          <button
-                            onClick={() => {
-                              const remainingToPay =
-                                total - (isDeposit ? depositAmount : 0);
-                              setPartialAmount(
-                                Math.round(remainingToPay * 0.5)
-                              );
-                            }}
-                            className="flex-1 px-3 py-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-white rounded-lg text-xs font-medium transition-colors"
-                          >
-                            50%
-                          </button>
-                          <button
-                            onClick={() => {
-                              const remainingToPay =
-                                total - (isDeposit ? depositAmount : 0);
-                              setPartialAmount(remainingToPay);
-                            }}
-                            className="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-colors"
-                          >
-                            100%
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Info Note */}
-                {!workOrder && (
-                  <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-start gap-2">
-                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
-                      <span className="text-blue-400 text-xs">ℹ️</span>
-                    </div>
-                    <p className="text-blue-300 text-xs leading-relaxed">
-                      <span className="font-semibold">Lưu ý:</span> Khi tạo phiếu mới, chọn trạng thái "Tiếp nhận" hoặc "Đang sửa". 
-                      Thanh toán khi trả xe chỉ khả dụng khi chỉnh sửa phiếu đã có sẵn.
+                </>
+              ) : (
+                <div className="p-4">
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-center">
+                    <AlertTriangle className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                      Vui lòng chọn khách hàng và xe trước
                     </p>
+                    <button
+                      onClick={() => setActiveTab('info')}
+                      className="mt-3 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-bold transition-all"
+                    >
+                      Quay lại tab Thông tin
+                    </button>
                   </div>
-                )}
-              </div>
-
-              {/* Summary Section - Premium Redesign */}
-              <div className="mt-6 p-4 bg-white dark:bg-[#1e1e2d] rounded-2xl border border-slate-200 dark:border-slate-700/30 space-y-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="w-4 h-4 text-blue-400" />
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                    Tổng kết chi phí
-                  </h3>
                 </div>
+              )}
+            </>
+          )}
 
-                <div className="space-y-2.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Phí dịch vụ:</span>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(laborCost)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Tiền phụ tùng:</span>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(partsTotal)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Gia công/Đặt hàng:</span>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(servicesTotal)}
-                    </span>
-                  </div>
-
-                  {/* Discount Row */}
-                  <div className="pt-2.5 border-t border-slate-700/50 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-red-400 font-bold">Giảm giá:</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#2b2b40] p-1 rounded-xl border border-slate-200 dark:border-slate-700/50">
-                      <input
-                        type="text"
-                        value={formatNumberWithDots(discount)}
-                        onChange={(e) =>
-                          setDiscount(parseFormattedNumber(e.target.value))
-                        }
-                        placeholder="0"
-                        className="w-16 bg-transparent text-slate-900 dark:text-white text-xs font-bold text-right focus:outline-none px-1"
-                      />
-                      <div className="flex bg-white dark:bg-slate-800 rounded-lg p-0.5">
-                        <button
-                          onClick={() => setDiscountType("amount")}
-                          className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${discountType === "amount"
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "text-slate-400 dark:text-slate-500"
-                            }`}
-                        >
-                          ₫
-                        </button>
-                        <button
-                          onClick={() => setDiscountType("percent")}
-                          className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${discountType === "percent"
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "text-slate-400 dark:text-slate-500"
-                            }`}
-                        >
-                          %
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quick percent buttons - only show in percent mode */}
-                  {discountType === "percent" && (
-                    <div className="flex gap-1.5 justify-end">
-                      {[5, 10, 15, 20].map((percent) => (
-                        <button
-                          key={percent}
-                          onClick={() => setDiscount(percent)}
-                          className="px-2.5 py-1 text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors font-bold"
-                        >
-                          {percent}%
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Show discount amount if in percent mode */}
-                  {discountType === "percent" && discount > 0 && (
-                    <div className="text-[10px] text-slate-500 text-right font-mono">
-                      = -{formatCurrency(discountAmount)}
-                    </div>
-                  )}
-                </div>
-
-                {/* Total Section */}
-                <div className="pt-4 border-t-2 border-slate-700/50">
-                  <div className="flex justify-between items-end mb-4">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tổng thanh toán</span>
-                      <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                        {formatCurrency(total)}
-                      </span>
-                    </div>
-                    {total - (isDeposit ? depositAmount : 0) - (showPaymentInput ? partialAmount : 0) <= 0 && (
-                      <div className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full flex items-center gap-1.5 mb-1">
-                        <CheckCircle className="w-3 h-3 text-emerald-400" />
-                        <span className="text-[10px] font-bold text-emerald-400 uppercase">Đã trả đủ</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Payment breakdown */}
-                  {((isDeposit && depositAmount > 0) || (showPaymentInput && partialAmount > 0)) && (
-                    <div className="p-3 bg-slate-50 dark:bg-[#151521] rounded-xl border border-slate-200 dark:border-slate-700/50 space-y-2">
-                      {isDeposit && depositAmount > 0 && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-bold text-purple-400 uppercase">Đã đặt cọc</span>
-                          <span className="text-xs font-bold text-purple-400">
-                            -{formatCurrency(depositAmount)}
-                          </span>
-                        </div>
-                      )}
-                      {showPaymentInput && partialAmount > 0 && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-bold text-blue-400 uppercase">Thanh toán thêm</span>
-                          <span className="text-xs font-bold text-blue-400">
-                            -{formatCurrency(partialAmount)}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-900 dark:text-white">Còn lại:</span>
-                        <span className={`text-lg font-black ${total - (isDeposit ? depositAmount : 0) - (showPaymentInput ? partialAmount : 0) > 0
-                          ? "text-amber-400"
-                          : "text-green-400"
-                          }`}>
-                          {formatCurrency(Math.max(0, total - (isDeposit ? depositAmount : 0) - (showPaymentInput ? partialAmount : 0)))}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* TAB 4: T.TOÁN - Payment */}
+          {activeTab === 'payment' && (
+            <PaymentSection
+              laborCost={laborCost}
+              setLaborCost={setLaborCost}
+              partsTotal={partsTotal}
+              servicesTotal={servicesTotal}
+              discount={discount}
+              setDiscount={setDiscount}
+              discountType={discountType}
+              setDiscountType={setDiscountType}
+              discountAmount={discountAmount}
+              total={total}
+              isDeposit={isDeposit}
+              setIsDeposit={setIsDeposit}
+              depositAmount={depositAmount}
+              setDepositAmount={setDepositAmount}
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
+              status={status}
+              showPaymentInput={showPaymentInput}
+              setShowPaymentInput={setShowPaymentInput}
+              partialAmount={partialAmount}
+              setPartialAmount={setPartialAmount}
+              canEditPriceAndParts={canEditPriceAndParts}
+            />
+          )}
         </div>
 
         {/* STICKY FOOTER - Action Buttons */}
@@ -2344,9 +1813,11 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
             <div className="flex gap-2 mb-2">
               <button
                 onClick={() => {
-                  // Trigger print functionality
-                  window.print();
+                  if (workOrder && onPrintWorkOrder) {
+                    onPrintWorkOrder(workOrder);
+                  }
                 }}
+                disabled={!workOrder || !onPrintWorkOrder}
                 className="flex-1 py-2 bg-slate-100 dark:bg-[#2b2b40] text-slate-500 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xs flex items-center justify-center gap-1.5"
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -2366,7 +1837,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                       })
                       .catch(() => { });
                   } else {
-                    alert(
+                    showToast.warning(
                       "Chức năng chia sẻ không khả dụng trên trình duyệt này"
                     );
                   }
@@ -2381,14 +1852,19 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
           {/* Row 2: Main action buttons */}
           <div className="flex gap-2">
             <button
-              onClick={onClose}
+              onClick={() => {
+                // Confirm Close
+                if (window.confirm("Bạn có chắc muốn thoát? Các thay đổi sẽ được lưu nháp nhưng chưa được cập nhật lên hệ thống.")) {
+                  onClose();
+                }
+              }}
               className="px-3 py-2.5 bg-slate-100 dark:bg-[#2b2b40] text-slate-500 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xs"
             >
               Hủy
             </button>
             {/* Nút Lưu Phiếu - luôn hiển thị */}
             <button
-              onClick={handleSave}
+              onClick={handleSaveInternal}
               disabled={isSubmitting}
               className="flex-1 py-2.5 bg-slate-600 hover:bg-slate-500 rounded-lg font-medium text-white transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -2397,7 +1873,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
             {/* Nút Đặt cọc - chỉ hiển thị khi có đặt cọc và không phải trạng thái Trả máy */}
             {status !== "Trả máy" && isDeposit && depositAmount > 0 && (
               <button
-                onClick={handleSave}
+                onClick={handleSaveInternal}
                 disabled={isSubmitting}
                 className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium text-white transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -2407,7 +1883,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
             {/* Nút Thanh toán - chỉ hiển thị khi trạng thái Trả máy */}
             {status === "Trả máy" && (
               <button
-                onClick={handleSave}
+                onClick={handleSaveInternal}
                 disabled={isSubmitting}
                 className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 rounded-lg font-medium text-white transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -2497,7 +1973,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                   onScan={(barcode: string) => {
                     setPartSearchTerm(barcode);
                     // Auto-add first matching part if exact SKU found
-                    const exactMatch = filteredParts.find(
+                    const exactMatch = parts.find(
                       (p) => p.sku?.toLowerCase() === barcode.toLowerCase() ||
                         p.barcode?.toLowerCase() === barcode.toLowerCase()
                     );
@@ -2512,6 +1988,22 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
                   }}
                   title="Quét mã phụ tùng"
                 />
+
+                <div className="mt-2">
+                  <select
+                    value={partCategoryFilter}
+                    onChange={(e) => setPartCategoryFilter(e.target.value)}
+                    className="w-full px-4 py-3 bg-white dark:bg-[#2b2b40] border border-slate-200 dark:border-slate-700/50 rounded-xl text-slate-900 dark:text-white text-sm focus:border-blue-500 transition-all"
+                    aria-label="Danh mục phụ tùng"
+                  >
+                    <option value="">Tất cả danh mục</option>
+                    {availablePartCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Results Count & List - Scrollable */}
@@ -2591,149 +2083,138 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
         )
       }
 
-      {/* Add Service Modal - Bottom Sheet Design */}
-      {
-        showAddService && (
-          <div className="fixed inset-0 bg-black/70 z-[110] flex items-end md:items-center md:justify-center">
-            <div className="w-full md:max-w-md bg-white dark:bg-[#1e1e2d] rounded-t-2xl md:rounded-xl overflow-hidden transition-colors">
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="text-slate-900 dark:text-white font-semibold text-base">
-                  THÊM DỊCH VỤ GIA CÔNG
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowAddService(false);
-                    setNewServiceName("");
-                    setNewServiceCost(0);
-                    setNewServicePrice(0);
-                    setNewServiceQuantity(1);
-                  }}
-                  className="p-1.5 text-slate-400 hover:text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Form Content */}
-              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
-                {/* Service Name */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-500 dark:text-slate-300 mb-2">
-                    Tên công việc / Mô tả:
-                  </label>
-                  <input
-                    type="text"
-                    value={newServiceName}
-                    onChange={(e) => setNewServiceName(e.target.value)}
-                    placeholder="Nhập tên (VD: Hàn yếm, Sơn...)"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-[#009ef7] focus:outline-none transition-colors"
-                    autoFocus
-                  />
+      {/* Add Service Modal - Redesigned Compact Layout */}
+      {showAddService && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-end md:items-center md:justify-center modal-bottom-safe">
+          <div className="w-full md:max-w-md bg-white dark:bg-[#1e1e2d] rounded-t-3xl md:rounded-2xl overflow-hidden transition-colors shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                  <Wrench className="w-4.5 h-4.5 text-orange-500" />
                 </div>
+                <h3 className="text-slate-900 dark:text-white font-bold text-sm">
+                  Thêm dịch vụ gia công
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddService(false);
+                  setNewServiceName("");
+                  setNewServiceCost(0);
+                  setNewServicePrice(0);
+                  setNewServiceQuantity(1);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-                {/* Quantity Stepper */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Số lượng:
+            {/* Form Content - Compact */}
+            <div className="p-4 space-y-4">
+              {/* Service Name with inline Quantity */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Tên công việc
                   </label>
-                  <div className="flex items-center justify-center gap-4">
+                  {/* Mini Quantity Stepper */}
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
                     <button
-                      onClick={() =>
-                        setNewServiceQuantity(Math.max(1, newServiceQuantity - 1))
-                      }
-                      className="w-12 h-12 bg-slate-100 dark:bg-[#2b2b40] hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-900 dark:text-white text-2xl font-bold transition-colors"
+                      onClick={() => setNewServiceQuantity(Math.max(1, newServiceQuantity - 1))}
+                      className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-white text-sm font-bold rounded transition-colors"
                     >
                       −
                     </button>
-                    <div className="w-20 h-12 bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-center">
-                      <span className="text-slate-900 dark:text-white text-xl font-bold">
-                        {newServiceQuantity}
-                      </span>
-                    </div>
+                    <span className="w-5 text-center text-slate-900 dark:text-white text-xs font-bold">
+                      {newServiceQuantity}
+                    </span>
                     <button
-                      onClick={() =>
-                        setNewServiceQuantity(newServiceQuantity + 1)
-                      }
-                      className="w-12 h-12 bg-slate-100 dark:bg-[#2b2b40] hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-900 dark:text-white text-2xl font-bold transition-colors"
+                      onClick={() => setNewServiceQuantity(newServiceQuantity + 1)}
+                      className="w-6 h-6 flex items-center justify-center text-orange-500 hover:text-orange-600 text-sm font-bold rounded transition-colors"
                     >
                       +
                     </button>
                   </div>
                 </div>
+                <input
+                  type="text"
+                  value={newServiceName}
+                  onChange={(e) => setNewServiceName(e.target.value)}
+                  placeholder="VD: Hàn yếm, Sơn xe, Thay lọc gió..."
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                  autoFocus
+                />
+              </div>
 
-                {/* Cost & Price Section */}
+              {/* Price Section - Side by side */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Cost Price (smaller, less emphasis) */}
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-300 mb-3 uppercase tracking-wide">
-                    CHI PHÍ & GIÁ BÁN
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Cost Price */}
-                    <div>
-                      <label className="block text-xs text-slate-500 mb-1.5">
-                        Giá nhập (Vốn):
-                      </label>
-                      <div className="relative">
-                        <NumberInput
-                          value={newServiceCost}
-                          onChange={(val: number) => setNewServiceCost(val)}
-                          placeholder="0"
-                          className="w-full px-3 py-3 pr-8 bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 text-sm focus:border-slate-400 dark:focus:border-slate-600 focus:outline-none transition-colors"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
-                          đ
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Selling Price */}
-                    <div>
-                      <label className="block text-xs text-[#ffc700] mb-1.5 font-medium">
-                        Đơn giá (Báo khách):
-                      </label>
-                      <div className="relative">
-                        <NumberInput
-                          value={newServicePrice}
-                          onChange={(val: number) => setNewServicePrice(val)}
-                          allowNegative={true}
-                          placeholder="0"
-                          className="w-full px-3 py-3 pr-8 bg-slate-50 dark:bg-[#151521] border-2 border-[#009ef7] rounded-lg text-slate-900 dark:text-white text-sm font-semibold focus:border-[#0077c7] focus:outline-none transition-colors"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#009ef7] text-xs font-bold pointer-events-none">
-                          đ
-                        </span>
-                      </div>
-                    </div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">
+                    Giá vốn
+                  </label>
+                  <div className="relative">
+                    <NumberInput
+                      value={newServiceCost}
+                      onChange={(val: number) => setNewServiceCost(val)}
+                      placeholder="0"
+                      className="w-full px-3 py-2.5 pr-7 bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-400 text-sm focus:ring-1 focus:ring-slate-400 focus:border-transparent transition-all"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">đ</span>
                   </div>
                 </div>
 
-                {/* Total Amount - Auto Calculate */}
-                <div className="p-4 bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-slate-700 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-sm">
-                      Thành tiền (Tự tính):
-                    </span>
-                    <span className="text-[#50cd89] text-xl font-bold">
-                      {formatCurrency(newServicePrice * newServiceQuantity)}
-                    </span>
+                {/* Selling Price (highlighted) */}
+                <div>
+                  <label className="text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-1.5 block">
+                    Đơn giá bán ⭐
+                  </label>
+                  <div className="relative">
+                    <NumberInput
+                      value={newServicePrice}
+                      onChange={(val: number) => setNewServicePrice(val)}
+                      allowNegative={true}
+                      placeholder="0"
+                      className="w-full px-3 py-2.5 pr-7 bg-orange-500/5 dark:bg-orange-500/10 border-2 border-orange-500/50 rounded-xl text-slate-900 dark:text-white text-sm font-bold focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-500 text-xs font-bold">đ</span>
                   </div>
                 </div>
               </div>
 
-              {/* Footer Button */}
-              <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-                <button
-                  onClick={handleAddService}
-                  disabled={!newServiceName.trim()}
-                  className="w-full py-4 bg-gradient-to-r from-[#009ef7] to-purple-600 hover:from-[#0077c7] hover:to-purple-700 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-bold text-sm rounded-lg transition-all shadow-lg"
-                >
-                  LƯU VÀO PHIẾU
-                </button>
+              {/* Total - Summary Card */}
+              <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-xl p-3.5 border border-orange-500/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Thành tiền:</span>
+                    {newServiceQuantity > 1 && (
+                      <span className="text-[10px] text-slate-400 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                        ×{newServiceQuantity}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-lg font-bold text-orange-500">
+                    {formatCurrency(newServicePrice * newServiceQuantity)}
+                  </span>
+                </div>
               </div>
             </div>
+
+            {/* Footer Button */}
+            <div className="p-4 pt-0">
+              <button
+                onClick={handleAddService}
+                disabled={!newServiceName.trim()}
+                className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:from-slate-600 disabled:to-slate-600 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98]"
+              >
+                ✓ Thêm vào phiếu
+              </button>
+            </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* Add Vehicle Modal - Premium Redesign */}
       {showAddVehicle && (
