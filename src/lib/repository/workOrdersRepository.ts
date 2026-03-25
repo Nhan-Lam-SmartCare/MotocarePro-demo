@@ -15,25 +15,35 @@ function normalizeWorkOrder(row: any): WorkOrder {
     vehicleId: row.vehicleid || row.vehicleId,
     vehicleModel: row.vehiclemodel || row.vehicleModel,
     licensePlate: row.licenseplate || row.licensePlate,
-    currentKm: row.currentkm || row.currentKm,
+    currentKm: row.currentkm ?? row.currentKm ?? undefined,
     issueDescription: row.issuedescription || row.issueDescription,
     technicianName: row.technicianname || row.technicianName,
     status: row.status,
-    laborCost: row.laborcost || row.laborCost || 0,
-    discount: row.discount,
-    partsUsed: row.partsused || row.partsUsed,
+    laborCost: row.laborcost ?? row.laborCost ?? 0,
+    discount: row.discount ?? 0,
+    // BUG 14 fix: normalize each part inside partsUsed so consumers always get camelCase partId
+    partsUsed: (row.partsused || row.partsUsed || []).map((p: any) => ({
+      ...p,
+      partId: p.partId || p.partid || "",
+      partName: p.partName || p.partname || "",
+      sku: p.sku || "",
+      category: p.category || "",
+      quantity: typeof p.quantity === "number" ? p.quantity : 0,
+      price: p.price ?? p.sellingprice ?? p.sellingPrice ?? 0,
+      costPrice: p.costPrice ?? p.costprice ?? undefined,
+    })),
     additionalServices: row.additionalservices || row.additionalServices,
     notes: row.notes,
-    total: row.total,
+    total: row.total ?? 0,
     branchId: row.branchid || row.branchId,
-    depositAmount: row.depositamount || row.depositAmount,
+    depositAmount: row.depositamount ?? row.depositAmount ?? 0,
     depositDate: row.depositdate || row.depositDate,
     depositTransactionId: row.deposittransactionid || row.depositTransactionId,
     paymentStatus: row.paymentstatus || row.paymentStatus,
     paymentMethod: row.paymentmethod || row.paymentMethod,
-    additionalPayment: row.additionalpayment || row.additionalPayment,
-    totalPaid: row.totalpaid || row.totalPaid,
-    remainingAmount: row.remainingamount || row.remainingAmount,
+    additionalPayment: row.additionalpayment ?? row.additionalPayment ?? 0,
+    totalPaid: row.totalpaid ?? row.totalPaid ?? 0,
+    remainingAmount: row.remainingamount ?? row.remainingAmount ?? 0,
     paymentDate: row.paymentdate || row.paymentDate,
     cashTransactionId: row.cashtransactionid || row.cashTransactionId,
     refunded: row.refunded,
@@ -50,12 +60,6 @@ export async function fetchWorkOrders(): Promise<RepoResult<WorkOrder[]>> {
       .select("*")
       .order("creationdate", { ascending: false }); // Use lowercase to match DB column
 
-    console.log("[fetchWorkOrders] Raw data from DB:", data);
-    console.log(
-      "[fetchWorkOrders] Status values:",
-      data?.map((d) => ({ id: d.id, status: d.status }))
-    );
-
     if (error)
       return failure({
         code: "supabase",
@@ -63,6 +67,31 @@ export async function fetchWorkOrders(): Promise<RepoResult<WorkOrder[]>> {
         cause: error,
       });
     return success((data || []).map(normalizeWorkOrder));
+  } catch (e: any) {
+    return failure({
+      code: "network",
+      message: "Lỗi kết nối tới máy chủ",
+      cause: e,
+    });
+  }
+}
+
+// 🔹 NEW: Fetch single work order by ID - used when opening modal to get fresh data
+export async function fetchWorkOrderById(id: string): Promise<RepoResult<WorkOrder>> {
+  try {
+    const { data, error } = await supabase
+      .from(WORK_ORDERS_TABLE)
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error)
+      return failure({
+        code: error.code === "PGRST116" ? "not_found" : "supabase",
+        message: error.code === "PGRST116" ? "Không tìm thấy phiếu sửa chữa" : "Không thể tải phiếu sửa chữa",
+        cause: error,
+      });
+    return success(normalizeWorkOrder(data));
   } catch (e: any) {
     return failure({
       code: "network",
@@ -111,14 +140,6 @@ export async function fetchWorkOrdersFiltered(options?: {
     }
 
     const { data, error } = await query;
-
-    console.log(
-      `[fetchWorkOrdersFiltered] Loaded ${
-        data?.length || 0
-      } orders (limit: ${limit}, daysBack: ${
-        daysBack === 0 ? "ALL" : daysBack
-      })`
-    );
 
     if (error)
       return failure({
@@ -179,26 +200,17 @@ export async function createWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
       p_user_id: null, // For audit log only
     } as any;
 
-    console.log(
-      "[DEBUG] Creating work order with payload:",
-      JSON.stringify(payload, null, 2)
-    );
-
     const { data, error } = await supabase.rpc(
       "work_order_create_atomic",
       payload
     );
 
-    console.log("[DEBUG] RPC Response - data:", data, "error:", error);
-
     // 🔹 DETAILED ERROR LOGGING
     if (error) {
-      console.error("[DEBUG] RPC Error Details:", {
+      console.error("[createWorkOrderAtomic] RPC Error:", {
         code: error.code,
         message: error.message,
         details: error.details,
-        hint: error.hint,
-        fullError: JSON.stringify(error, null, 2),
       });
     }
 
@@ -215,7 +227,9 @@ export async function createWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
           const jsonStr = rawDetails.slice(colon + 1).trim();
           try {
             items = JSON.parse(jsonStr);
-          } catch {}
+          } catch (_e) {
+            void _e;
+          }
         }
         const list = Array.isArray(items)
           ? items
@@ -335,7 +349,9 @@ export async function createWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch (_e) {
+      void _e;
+    }
 
     await safeAudit(userId, {
       action: "work_order.create",
@@ -385,8 +401,6 @@ export async function updateWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
       p_customer_phone: input.customerPhone || "",
       p_vehicle_model: input.vehicleModel || "",
       p_license_plate: input.licensePlate || "",
-      p_vehicle_id: input.vehicleId || null, // 🔹 FIX: Thêm vehicleId
-      p_current_km: input.currentKm || null, // 🔹 FIX: Thêm currentKm
       p_issue_description: input.issueDescription || "",
       p_technician_name: input.technicianName || "",
       p_status: input.status || "Tiếp nhận",
@@ -400,6 +414,8 @@ export async function updateWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
       p_deposit_amount: input.depositAmount || 0,
       p_additional_payment: input.additionalPayment || 0,
       p_user_id: null, // For audit log only
+      p_vehicle_id: input.vehicleId || null, // 🔹 FIX: Thêm vehicleId
+      p_current_km: input.currentKm || null, // 🔹 FIX: Thêm currentKm
     } as any;
 
     const { data, error } = await supabase.rpc(
@@ -419,7 +435,9 @@ export async function updateWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
           const jsonStr = rawDetails.slice(colon + 1).trim();
           try {
             items = JSON.parse(jsonStr);
-          } catch {}
+          } catch (_e) {
+            void _e;
+          }
         }
         const list = Array.isArray(items)
           ? items
@@ -469,14 +487,16 @@ export async function updateWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
           message: "Chi nhánh không khớp với quyền hiện tại",
           cause: error,
         });
+      // 🔹 Log chi tiết lỗi để debug
+      console.error("[updateWorkOrderAtomic] Full error:", JSON.stringify(error, null, 2));
       return failure({
         code: "supabase",
-        message: "Cập nhật phiếu sửa chữa (atomic) thất bại",
+        message: `Cập nhật phiếu sửa chữa (atomic) thất bại: ${error?.message || error?.details || 'Lỗi không xác định'}`,
         cause: error,
       });
     }
 
-    const workOrderRow = (data as any).workOrder as WorkOrder | undefined;
+    const workOrderRow = (data as any).workOrder as any | undefined;
     const depositTransactionId = (data as any).depositTransactionId as
       | string
       | undefined;
@@ -491,22 +511,27 @@ export async function updateWorkOrderAtomic(input: Partial<WorkOrder>): Promise<
       return failure({ code: "unknown", message: "Kết quả RPC không hợp lệ" });
     }
 
+    // 🔹 FIX: Normalize data (RPC returns snake_case from row_to_json)
+    const normalized = normalizeWorkOrder(workOrderRow);
+
     // Audit (best-effort)
     let userId: string | null = null;
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch (_e) {
+      void _e;
+    }
     await safeAudit(userId, {
       action: "work_order.update",
       tableName: WORK_ORDERS_TABLE,
-      recordId: (workOrderRow as any).id,
+      recordId: normalized.id,
       oldData: null,
-      newData: workOrderRow,
+      newData: normalized,
     });
 
     return success({
-      ...(workOrderRow as any),
+      ...normalized,
       depositTransactionId,
       paymentTransactionId,
       stockWarnings,
@@ -544,7 +569,9 @@ export async function updateWorkOrder(
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch (_e) {
+      void _e;
+    }
     await safeAudit(userId, {
       action: "work_order.update",
       tableName: WORK_ORDERS_TABLE,
@@ -582,7 +609,9 @@ export async function deleteWorkOrder(id: string): Promise<RepoResult<void>> {
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch (_e) {
+      void _e;
+    }
     await safeAudit(userId, {
       action: "work_order.delete",
       tableName: WORK_ORDERS_TABLE,
@@ -618,7 +647,9 @@ export async function refundWorkOrder(
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch (_e) {
+      void _e;
+    }
 
     const { data, error } = await supabase.rpc("work_order_refund_atomic", {
       p_order_id: orderId,
@@ -722,7 +753,9 @@ export async function completeWorkOrderPayment(
     try {
       const { data: userData } = await supabase.auth.getUser();
       userId = userData?.user?.id || null;
-    } catch {}
+    } catch (_e) {
+      void _e;
+    }
 
     const { data, error } = await supabase.rpc("work_order_complete_payment", {
       p_order_id: orderId,
@@ -744,7 +777,9 @@ export async function completeWorkOrderPayment(
           const jsonStr = rawDetails.slice(colon + 1).trim();
           try {
             items = JSON.parse(jsonStr);
-          } catch {}
+          } catch (_e) {
+            void _e;
+          }
         }
         const list = Array.isArray(items)
           ? items
@@ -774,6 +809,18 @@ export async function completeWorkOrderPayment(
         return failure({
           code: "validation",
           message: "Phiếu này đã được hoàn tiền",
+          cause: error,
+        });
+      if (upper.includes("PAYMENT_EXCEEDS_REMAINING"))
+        return failure({
+          code: "validation",
+          message: "Số tiền thanh toán vượt quá số còn phải thu",
+          cause: error,
+        });
+      if (upper.includes("INVALID_PAYMENT_AMOUNT"))
+        return failure({
+          code: "validation",
+          message: "Số tiền thanh toán không hợp lệ",
           cause: error,
         });
       if (upper.includes("UNAUTHORIZED"))

@@ -16,7 +16,7 @@ import {
   useUpdateSupplierDebtRepo,
   useDeleteSupplierDebtRepo,
 } from "../../hooks/useDebtsRepository";
-import { useInstallments, useRecordInstallmentPayment, type SalesInstallment } from "../../hooks/useInstallments";
+import { useInstallments } from "../../hooks/useInstallments";
 import { createCashTransaction } from "../../lib/repository/cashTransactionsRepository";
 import { useQueryClient } from "@tanstack/react-query";
 import InstallmentList from "./components/InstallmentList";
@@ -32,14 +32,14 @@ const DebtReceiptModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-sm w-full border border-green-500 overflow-hidden relative">
-        <div className="bg-green-600 p-4 text-center">
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
-            <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-sm w-full border border-slate-200 dark:border-slate-700 overflow-hidden relative">
+        <div className="p-6 pb-2 text-center">
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-white text-xl font-bold">Thanh toán thành công!</h2>
+          <h2 className="text-slate-900 dark:text-white text-xl font-bold">Thanh toán thành công!</h2>
         </div>
 
         <div className="p-6 space-y-4">
@@ -77,7 +77,7 @@ const DebtReceiptModal: React.FC<{
                 onPrint();
                 showToast.info("Hệ thống sẽ mở hộp thoại in. Bạn có thể chọn 'Lưu dưới dạng PDF' hoặc chụp ảnh màn hình để chia sẻ.");
               }}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors shadow-sm"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
               Chia sẻ
@@ -100,10 +100,6 @@ const DebtManager: React.FC = () => {
     customers,
     suppliers,
     currentBranchId,
-    setCashTransactions,
-    cashTransactions,
-    setPaymentSources,
-    paymentSources,
   } = useAppContext();
 
   // Fetch debts from Supabase
@@ -128,7 +124,7 @@ const DebtManager: React.FC = () => {
 
   // 🔹 Fetch unpaid sales (remainingamount > 0)
   const [unpaidSales, setUnpaidSales] = useState<any[]>([]);
-  const [loadingSales, setLoadingSales] = useState(true);
+  const [, setLoadingSales] = useState(true);
 
   useEffect(() => {
     const fetchUnpaidWorkOrders = async () => {
@@ -192,8 +188,7 @@ const DebtManager: React.FC = () => {
           table: "work_orders",
           filter: `branchid=eq.${currentBranchId}`,
         },
-        (payload) => {
-          console.log("Work order changed:", payload);
+        () => {
           fetchUnpaidWorkOrders(); // Refetch when any change happens
         }
       )
@@ -210,8 +205,7 @@ const DebtManager: React.FC = () => {
           table: "sales",
           filter: `branchid=eq.${currentBranchId}`,
         },
-        (payload) => {
-          console.log("Sale changed:", payload);
+        () => {
           fetchUnpaidSales(); // Refetch when any change happens
         }
       )
@@ -509,21 +503,6 @@ const DebtManager: React.FC = () => {
     });
   }, [branchCustomerDebts, searchTerm]);
 
-  // Debug: log debts count by branch
-  useEffect(() => {
-    console.log(
-      "[DebtManager] branchCustomerDebts count:",
-      branchCustomerDebts.length,
-      "(DB:",
-      customerDebts.filter((d) => d.branchId === currentBranchId).length,
-      "+ WorkOrders:",
-      workOrderDebts.length,
-      ")",
-      "branchId:",
-      currentBranchId
-    );
-  }, [branchCustomerDebts, customerDebts, workOrderDebts, currentBranchId]);
-
   // Close dropdown menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -613,31 +592,31 @@ const DebtManager: React.FC = () => {
           {/* Stats Boxes */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
             {/* Total Debt */}
-            <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg p-3 text-white">
-              <div className="text-xs opacity-80 font-medium">Tổng công nợ</div>
+            <div className="bg-white dark:bg-slate-800/80 rounded-lg p-3 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 border-t-2 border-t-cyan-500 shadow-sm">
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Tổng công nợ</div>
               <div className="text-lg font-bold">{formatCurrency(customerTotal + supplierTotal)}</div>
-              <div className="text-[10px] opacity-70">~{branchCustomerDebts.length + branchSupplierDebts.length} khoản</div>
+              <div className="text-[10px] text-slate-400">~{branchCustomerDebts.length + branchSupplierDebts.length} khoản</div>
             </div>
 
             {/* Customer Debt */}
-            <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg p-3 text-white">
-              <div className="text-xs opacity-80 font-medium">Công nợ KH</div>
+            <div className="bg-white dark:bg-slate-800/80 rounded-lg p-3 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 border-t-2 border-t-amber-500 shadow-sm">
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Công nợ KH</div>
               <div className="text-lg font-bold">{formatCurrency(customerTotal)}</div>
-              <div className="text-[10px] opacity-70">~{branchCustomerDebts.length} khoản</div>
+              <div className="text-[10px] text-slate-400">~{branchCustomerDebts.length} khoản</div>
             </div>
 
             {/* Supplier Debt */}
-            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-3 text-white">
-              <div className="text-xs opacity-80 font-medium">Công nợ NCC</div>
+            <div className="bg-white dark:bg-slate-800/80 rounded-lg p-3 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 border-t-2 border-t-red-500 shadow-sm">
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Công nợ NCC</div>
               <div className="text-lg font-bold">{formatCurrency(supplierTotal)}</div>
-              <div className="text-[10px] opacity-70">~{branchSupplierDebts.length} khoản</div>
+              <div className="text-[10px] text-slate-400">~{branchSupplierDebts.length} khoản</div>
             </div>
 
             {/* Installment */}
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 text-white">
-              <div className="text-xs opacity-80 font-medium">Trả góp</div>
+            <div className="bg-white dark:bg-slate-800/80 rounded-lg p-3 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 border-t-2 border-t-purple-500 shadow-sm">
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Trả góp</div>
               <div className="text-lg font-bold">{formatCurrency(installments.filter((i: any) => i.status === 'active').reduce((sum: number, item: any) => sum + (item.remaining_amount || 0), 0))}</div>
-              <div className="text-[10px] opacity-70">~{installments.filter((i: any) => i.status === 'active').length} khoản</div>
+              <div className="text-[10px] text-slate-400">~{installments.filter((i: any) => i.status === 'active').length} khoản</div>
             </div>
           </div>
         </div>
@@ -649,12 +628,12 @@ const DebtManager: React.FC = () => {
           <button
             onClick={() => setActiveTab("customer")}
             className={`flex items-center gap-2 px-4 py-2.5 font-medium text-sm transition-all rounded-t-lg ${activeTab === "customer"
-              ? "bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400 border-b-2 border-cyan-600 dark:border-cyan-400"
-              : "text-secondary-text hover:text-primary-text hover:bg-slate-50 dark:hover:bg-slate-800"
+              ? "bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 border-b-2 border-cyan-600 dark:border-cyan-400 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-none"
+              : "text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50"
               }`}
           >
             <span>👤 Công nợKH</span>
-            <span className="px-1.5 py-0.5 text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full">
+            <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${activeTab === "customer" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}>
               {branchCustomerDebts.length}
             </span>
           </button>
@@ -662,12 +641,12 @@ const DebtManager: React.FC = () => {
           <button
             onClick={() => setActiveTab("supplier")}
             className={`flex items-center gap-2 px-4 py-2.5 font-medium text-sm transition-all rounded-t-lg ${activeTab === "supplier"
-              ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400"
-              : "text-secondary-text hover:text-primary-text hover:bg-slate-50 dark:hover:bg-slate-800"
+              ? "bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-none"
+              : "text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50"
               }`}
           >
             <span>🏭 Công nợNCC</span>
-            <span className="px-1.5 py-0.5 text-xs font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full">
+            <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${activeTab === "supplier" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}>
               {branchSupplierDebts.length}
             </span>
           </button>
@@ -675,8 +654,8 @@ const DebtManager: React.FC = () => {
           <button
             onClick={() => setActiveTab("installment")}
             className={`flex items-center gap-2 px-4 py-2.5 font-medium text-sm transition-all rounded-t-lg ${activeTab === "installment"
-              ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400"
-              : "text-secondary-text hover:text-primary-text hover:bg-slate-50 dark:hover:bg-slate-800"
+              ? "bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-none"
+              : "text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50"
               }`}
           >
             <CreditCard className="w-4 h-4" />
@@ -742,7 +721,7 @@ const DebtManager: React.FC = () => {
                 <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
                   <button
                     onClick={() => setShowAddDebtModal(true)}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap"
                   >
                     <PlusIcon className="w-5 h-5" />
                     <span>Thêm công nợ</span>
@@ -1000,7 +979,7 @@ const DebtManager: React.FC = () => {
                       <div className="col-span-1 md:col-span-3">
                         <div className="text-sm text-primary-text space-y-1">
                           {(() => {
-                            const lines = debt.description.split("\n");
+                            const lines: string[] = String(debt.description ?? "").split("\n");
                             // Lấy dòng đầu tiên (xe + số phiếu)
                             const firstLine = lines[0];
 
@@ -1013,13 +992,13 @@ const DebtManager: React.FC = () => {
                                 .slice(
                                   lines.indexOf(partsSection) + 1,
                                   lines.findIndex(
-                                    (l, i) =>
+                                    (l: string, i: number) =>
                                       i > lines.indexOf(partsSection) &&
                                       (l.includes("Dịch vụ:") ||
                                         l.includes("Công lao động:"))
                                   ) || lines.length
                                 )
-                                .filter((l) => l.trim().startsWith("•"))
+                                .filter((l: string) => l.trim().startsWith("•"))
                               : [];
 
                             // Lấy dịch vụ (nếu có)
@@ -1031,12 +1010,12 @@ const DebtManager: React.FC = () => {
                                 .slice(
                                   lines.indexOf(serviceSection) + 1,
                                   lines.findIndex(
-                                    (l, i) =>
+                                    (l: string, i: number) =>
                                       i > lines.indexOf(serviceSection) &&
                                       l.includes("Công lao động:")
                                   ) || lines.length
                                 )
-                                .filter((l) => l.trim().startsWith("•"))
+                                .filter((l: string) => l.trim().startsWith("•"))
                               : [];
 
                             // Lấy công lao động
@@ -1575,7 +1554,6 @@ const DebtManager: React.FC = () => {
                 // Check if debt is from work order or regular debt table
                 if ((debtToUpdate as any).isFromWorkOrder && (debtToUpdate as any).workOrderId) {
                   // 🔹 Work Order debt - update work_orders table directly
-                  console.log("📦 Updating Work Order debt:", (debtToUpdate as any).workOrderId);
                   await supabase
                     .from("work_orders")
                     .update({
@@ -1585,7 +1563,6 @@ const DebtManager: React.FC = () => {
                     .eq("id", (debtToUpdate as any).workOrderId);
                 } else {
                   // 🔹 Regular debt - update customer_debts table
-                  console.log("📋 Updating Customer Debt:", debtToUpdate.id);
                   await updateCustomerDebt.mutateAsync({
                     id: debtToUpdate.id,
                     updates: {
@@ -1630,9 +1607,7 @@ const DebtManager: React.FC = () => {
                 customerId: data.customerId,
               });
 
-              if (cashTxResult.ok) {
-                console.log("✅ Đã ghi sổ quỹ thu nợ KH:", cashTxResult.data);
-              } else {
+              if (!cashTxResult.ok) {
                 console.error("❌ Lỗi ghi sổ quỹ:", cashTxResult.error);
               }
 
@@ -1689,7 +1664,7 @@ const DebtManager: React.FC = () => {
               ? selectedCustomerTotal
               : selectedSupplierTotal
           }
-          debtType={activeTab}
+          debtType={activeTab === "installment" ? "customer" : activeTab}
           onConfirm={async (paymentMethod, paymentTime, shouldPrint) => {
             try {
               const totalAmount =
@@ -1738,6 +1713,35 @@ const DebtManager: React.FC = () => {
                     }
                   }
                 }
+
+                // 🔹 Determine notes text: if single debt with sale/work order link, show code
+                let notesText = `Thu nợ hàng loạt - ${selectedCustomerIds.length} khách hàng`;
+                let recipientText = `${selectedCustomerIds.length} khách hàng`;
+
+                if (selectedCustomerIds.length === 1) {
+                  const singleDebt = branchCustomerDebts.find(
+                    (d) => d.customerId === selectedCustomerIds[0]
+                  );
+
+                  if (singleDebt) {
+                    // Extract sale_code from description (format: BH-YYYYMMDD-XXX or similar)
+                    const saleCodeMatch = singleDebt.description?.match(/[A-Z]+-\d{8}-\d{3}/);
+                    const saleCode = saleCodeMatch ? saleCodeMatch[0] : null;
+
+                    // Check if debt has sale link
+                    if (saleCode) {
+                      notesText = `Thu nợ từ đơn hàng ${saleCode}`;
+                      recipientText = singleDebt.customerName;
+                    } else if ((singleDebt as any).workOrderId) {
+                      notesText = `Thu nợ từ phiếu ${(singleDebt as any).workOrderId}`;
+                      recipientText = singleDebt.customerName;
+                    } else {
+                      notesText = `Thu nợ khách hàng - ${singleDebt.customerName}`;
+                      recipientText = singleDebt.customerName;
+                    }
+                  }
+                }
+
                 setSelectedCustomerIds([]);
 
                 // 💰 Ghi sổ quỹ THU nợ khách hàng
@@ -1747,9 +1751,9 @@ const DebtManager: React.FC = () => {
                   branchId: currentBranchId,
                   paymentSourceId: paymentMethod,
                   date: paymentTime,
-                  notes: `Thu nợ hàng loạt - ${selectedCustomerIds.length} khách hàng`,
+                  notes: notesText,
                   category: "debt_collection",
-                  recipient: `${selectedCustomerIds.length} khách hàng`,
+                  recipient: recipientText,
                 });
 
                 if (!cashTxResult.ok) {
@@ -1873,7 +1877,6 @@ const DebtManager: React.FC = () => {
               });
 
               if (cashTxResult.ok) {
-                console.log("✅ Đã ghi sổ quỹ trả nợ NCC:", cashTxResult.data);
                 queryClient.invalidateQueries({ queryKey: ["cashTransactions"] });
                 queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
               } else {
@@ -1936,7 +1939,7 @@ const DebtManager: React.FC = () => {
       {/* Add Debt Modal */}
       {showAddDebtModal && (
         <AddDebtModal
-          activeTab={activeTab}
+          activeTab={activeTab === "installment" ? "customer" : activeTab}
           customers={customers}
           suppliers={suppliers}
           currentBranchId={currentBranchId}
@@ -1956,7 +1959,7 @@ const DebtManager: React.FC = () => {
       {showEditDebtModal && selectedDebt && (
         <EditDebtModal
           debt={selectedDebt}
-          activeTab={activeTab}
+          activeTab={activeTab === "installment" ? "customer" : activeTab}
           customers={customers}
           suppliers={suppliers}
           onClose={() => {
@@ -1985,7 +1988,7 @@ const DebtManager: React.FC = () => {
       {showDetailModal && selectedDebt && (
         <DetailDebtModal
           debt={selectedDebt}
-          activeTab={activeTab}
+          activeTab={activeTab === "installment" ? "customer" : activeTab}
           storeSettings={storeSettings}
           onClose={() => {
             setShowDetailModal(false);
@@ -1998,7 +2001,7 @@ const DebtManager: React.FC = () => {
       {showDeleteConfirm && selectedDebt && (
         <DeleteConfirmDialog
           debt={selectedDebt}
-          activeTab={activeTab}
+          activeTab={activeTab === "installment" ? "customer" : activeTab}
           onClose={() => {
             setShowDeleteConfirm(false);
             setSelectedDebt(null);
@@ -2926,7 +2929,10 @@ const AddDebtModal: React.FC<{
                     type="text"
                     value={formData.licensePlate}
                     onChange={(e) =>
-                      setFormData({ ...formData, licensePlate: e.target.value })
+                      setFormData({
+                        ...formData,
+                        licensePlate: e.target.value.toUpperCase(),
+                      })
                     }
                     className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
                   />
@@ -3002,7 +3008,7 @@ const EditDebtModal: React.FC<{
   suppliers: any[];
   onClose: () => void;
   onSave: (updates: any) => void;
-}> = ({ debt, activeTab, customers, suppliers, onClose, onSave }) => {
+}> = ({ debt, activeTab: _activeTab, customers: _customers, suppliers: _suppliers, onClose, onSave }) => {
   const isCustomerDebt = "customerName" in debt;
   const [formData, setFormData] = useState({
     description: debt.description,
@@ -3075,7 +3081,10 @@ const EditDebtModal: React.FC<{
                   type="text"
                   value={formData.licensePlate}
                   onChange={(e) =>
-                    setFormData({ ...formData, licensePlate: e.target.value })
+                    setFormData({
+                      ...formData,
+                      licensePlate: e.target.value.toUpperCase(),
+                    })
                   }
                   className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
                 />
@@ -3167,7 +3176,7 @@ const DetailDebtModal: React.FC<{
   activeTab: "customer" | "supplier";
   storeSettings: any;
   onClose: () => void;
-}> = ({ debt, activeTab, storeSettings, onClose }) => {
+}> = ({ debt, activeTab: _activeTab, storeSettings, onClose }) => {
   const isCustomerDebt = "customerName" in debt;
 
   // State for fetched receipt items
@@ -3571,7 +3580,7 @@ const DeleteConfirmDialog: React.FC<{
   activeTab: "customer" | "supplier";
   onClose: () => void;
   onConfirm: () => void;
-}> = ({ debt, activeTab, onClose, onConfirm }) => {
+}> = ({ debt, activeTab: _activeTab, onClose, onConfirm }) => {
   const isCustomerDebt = "customerName" in debt;
   const name = isCustomerDebt
     ? (debt as CustomerDebt).customerName

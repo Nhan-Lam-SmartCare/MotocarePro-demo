@@ -2,16 +2,10 @@ import React, { useState, useMemo } from "react";
 import {
     DollarSign,
     Plus,
-    Check,
-    X,
     Clock,
-    Calendar,
     TrendingDown,
     Search,
-    Trash2,
     User,
-    ChevronRight,
-    Wallet
 } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -24,7 +18,6 @@ import {
     useEmployeeAdvances,
     useCreateEmployeeAdvance,
     useUpdateEmployeeAdvance,
-    useDeleteEmployeeAdvance,
 } from "../../hooks/useEmployeeAdvanceRepository";
 
 export const EmployeeAdvanceManagerMobile: React.FC = () => {
@@ -33,10 +26,9 @@ export const EmployeeAdvanceManagerMobile: React.FC = () => {
     const queryClient = useQueryClient();
 
     // Fetch data
-    const { data: advances = [], isLoading } = useEmployeeAdvances(currentBranchId);
+    const { data: advances = [] } = useEmployeeAdvances(currentBranchId);
     const { mutateAsync: createAdvance } = useCreateEmployeeAdvance();
     const { mutateAsync: updateAdvance } = useUpdateEmployeeAdvance();
-    const { mutateAsync: deleteAdvance } = useDeleteEmployeeAdvance();
 
     // State
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -81,8 +73,9 @@ export const EmployeeAdvanceManagerMobile: React.FC = () => {
     }, [advances]);
 
     const totalRemaining = useMemo(() => {
+        // ✅ FIX: Chỉ tính đơn còn nợ (remaining_amount > 0)
         return advances
-            .filter((adv) => adv.status === "paid" || adv.status === "approved")
+            .filter((adv) => adv.remainingAmount > 0)
             .reduce((sum, adv) => sum + adv.remainingAmount, 0);
     }, [advances]);
 
@@ -135,24 +128,41 @@ export const EmployeeAdvanceManagerMobile: React.FC = () => {
                 installmentMonths: "3",
             });
             showToast.success("Đã tạo đơn ứng lương");
-        } catch (error) {
+        } catch {
             // Error handled by mutation
         }
     };
 
     const handleApprove = async (advanceId: string) => {
         if (!profile) return;
+
+        const advance = advances.find((a) => a.id === advanceId);
+        if (!advance) {
+            showToast.error("Không tìm thấy đơn ứng lương");
+            return;
+        }
+
         try {
+            // Chỉ duyệt đơn — KHÔNG chi tiền tự động.
+            // Tiền sẽ được chi khi nhấn "Trả tiền ứng" trong màn hình chi tiết.
             await updateAdvance({
                 id: advanceId,
                 updates: {
                     status: "approved",
                     approvedBy: profile.full_name || profile.email,
                     approvedDate: new Date().toISOString(),
+                    // Giữ nguyên remainingAmount = advanceAmount, paidAmount = 0
                 },
             });
-            showToast.success("Đã duyệt đơn ứng lương");
-        } catch (error) { }
+
+            queryClient.invalidateQueries({ queryKey: ["employee-advances"] });
+            showToast.success(
+                `Đã duyệt đơn ứng lương cho ${advance.employeeName}. Vui lòng chi tiền thực tế trong mục chi tiết.`
+            );
+        } catch (error) {
+            console.error("Error approving advance:", error);
+            showToast.error("Có lỗi khi duyệt ứng lương");
+        }
     };
 
     const handleReject = async (advanceId: string) => {
@@ -162,35 +172,37 @@ export const EmployeeAdvanceManagerMobile: React.FC = () => {
                 updates: { status: "rejected" },
             });
             showToast.info("Đã từ chối đơn ứng lương");
-        } catch (error) { }
+        } catch (error) {
+            console.error("Error rejecting advance:", error);
+            showToast.error("Có lỗi khi từ chối đơn ứng lương");
+        }
     };
 
-    const handlePay = async (advanceId: string) => {
-        const advance = advances.find((a) => a.id === advanceId);
-        if (!advance) return;
-
+    const handleDisburse = async (advance: EmployeeAdvance) => {
+        if (!confirm(`Chi ${formatCurrency(advance.advanceAmount)} ứng lương cho ${advance.employeeName}?\n\nTiền sẽ được ghi vào sổ quỹ. Nhân viên vẫn cần hoàn trả số tiền này.`)) return;
         try {
-            await updateAdvance({
-                id: advanceId,
-                updates: { status: "paid" },
-            });
+            const transactionId = `ADV-${advance.id}-${Date.now()}`;
+            const { error: txError } = await supabase
+                .from("cash_transactions")
+                .insert({
+                    id: transactionId,
+                    type: "expense",
+                    category: "employee_advance",
+                    amount: advance.advanceAmount,
+                    date: new Date().toISOString(),
+                    description: `Chi ứng lương - ${advance.employeeName} (${formatCurrency(advance.advanceAmount)})`,
+                    branchid: currentBranchId,
+                    paymentsource: advance.paymentMethod === "cash" ? "cash" : "bank",
+                });
 
-            const transactionId = `ADV-${advanceId}-${Date.now()}`;
-            await supabase.from("cash_transactions").insert({
-                id: transactionId,
-                type: "expense",
-                category: "employee_advance",
-                amount: advance.advanceAmount,
-                date: new Date().toISOString(),
-                description: `Ứng lương - ${advance.employeeName}`,
-                branchid: currentBranchId,
-                paymentsource: advance.paymentMethod === "cash" ? "cash" : "bank",
-            });
-
-            queryClient.invalidateQueries({ queryKey: ["cash_transactions"] });
-            showToast.success("Đã chi tiền ứng lương");
-        } catch (error) {
-            showToast.error("Có lỗi khi chi ứng lương");
+            if (txError) {
+                showToast.warning("Chưa ghi được sổ quỹ. Vui lòng kiểm tra lại.");
+            } else {
+                queryClient.invalidateQueries({ queryKey: ["cash_transactions"] });
+                showToast.success(`Đã ghi chi ${formatCurrency(advance.advanceAmount)} cho ${advance.employeeName}. Nhân viên sẽ hoàn trả dần.`);
+            }
+        } catch {
+            showToast.error("Có lỗi khi chi tiền ứng lương");
         }
     };
 
@@ -227,7 +239,7 @@ export const EmployeeAdvanceManagerMobile: React.FC = () => {
             setShowDetailModal(false);
             setSelectedAdvance(null);
             showToast.success("Đã ghi nhận thanh toán");
-        } catch (error) {
+        } catch {
             showToast.error("Đã xảy ra lỗi");
         }
     };
@@ -365,6 +377,20 @@ export const EmployeeAdvanceManagerMobile: React.FC = () => {
                                     </button>
                                 </div>
                             )}
+
+                            {advance.status === "approved" && advance.remainingAmount > 0 && (
+                                <div className="flex gap-2 mt-3 pt-3 border-t border-slate-700/50">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDisburse(advance);
+                                        }}
+                                        className="flex-1 py-2 bg-green-600/10 text-green-400 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-green-600/20"
+                                    >
+                                        Chi trả
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ))
                 )}
@@ -380,7 +406,7 @@ export const EmployeeAdvanceManagerMobile: React.FC = () => {
 
             {/* Create Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-50">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-50 modal-bottom-safe">
                     <div className="bg-[#1e1e2d] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md border-t sm:border border-slate-700 p-6 max-h-[90vh] overflow-y-auto">
                         <h3 className="text-lg font-bold text-white mb-6">Tạo đơn ứng lương</h3>
 
@@ -466,7 +492,7 @@ export const EmployeeAdvanceManagerMobile: React.FC = () => {
 
             {/* Detail Modal */}
             {showDetailModal && selectedAdvance && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-50">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-50 modal-bottom-safe">
                     <div className="bg-[#1e1e2d] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md border-t sm:border border-slate-700 p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-start mb-6">
                             <div>
@@ -487,16 +513,7 @@ export const EmployeeAdvanceManagerMobile: React.FC = () => {
                             </div>
                         </div>
 
-                        {selectedAdvance.status === "approved" && (
-                            <button
-                                onClick={() => handlePay(selectedAdvance.id)}
-                                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold mb-3"
-                            >
-                                Chi tiền ứng lương
-                            </button>
-                        )}
-
-                        {(selectedAdvance.status === "approved" || selectedAdvance.status === "paid") && selectedAdvance.remainingAmount > 0 && (
+                        {selectedAdvance.status === "paid" && selectedAdvance.remainingAmount > 0 && (
                             <div className="space-y-3">
                                 {!showPaymentForm ? (
                                     <button

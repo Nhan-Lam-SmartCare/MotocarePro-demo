@@ -142,17 +142,32 @@ export default function EmployeeAdvanceManager() {
   const handleApprove = async (advanceId: string) => {
     if (!profile) return;
 
+    const advance = advances.find((a) => a.id === advanceId);
+    if (!advance) {
+      showToast.error("Không tìm thấy đơn ứng lương");
+      return;
+    }
+
     try {
+      // Chỉ duyệt đơn — KHÔNG chi tiền tự động.
+      // Tiền sẽ được chi khi nhấn "Trả tiền ứng" trong màn hình chi tiết.
       await updateAdvance({
         id: advanceId,
         updates: {
           status: "approved",
           approvedBy: profile.full_name || profile.email,
           approvedDate: new Date().toISOString(),
+          // Giữ nguyên remainingAmount = advanceAmount, paidAmount = 0
         },
       });
+
+      queryClient.invalidateQueries({ queryKey: ["employee-advances"] });
+      showToast.success(
+        `Đã duyệt đơn ứng lương cho ${advance.employeeName}. Vui lòng chi tiền thực tế trong mục "Chi tiết đơn".`
+      );
     } catch (error) {
-      // Error handled by mutation
+      console.error("Error approving advance:", error);
+      showToast.error("Có lỗi khi duyệt ứng lương");
     }
   };
 
@@ -171,60 +186,6 @@ export default function EmployeeAdvanceManager() {
   };
 
   const queryClient = useQueryClient();
-
-  const handlePay = async (advanceId: string) => {
-    // Find the advance to get amount and payment method
-    const advance = advances.find((a) => a.id === advanceId);
-    if (!advance) {
-      showToast.error("Không tìm thấy đơn ứng lương");
-      return;
-    }
-
-    try {
-      // 1. Update advance status to paid
-      await updateAdvance({
-        id: advanceId,
-        updates: {
-          status: "paid",
-        },
-      });
-
-      // 2. Create cash transaction (expense) for the advance payment
-      const transactionId = `ADV-${advanceId}-${Date.now()}`;
-      const { error: txError } = await supabase
-        .from("cash_transactions")
-        .insert({
-          id: transactionId,
-          type: "expense",
-          category: "employee_advance",
-          amount: advance.advanceAmount,
-          date: new Date().toISOString(),
-          description: `Ứng lương - ${advance.employeeName}${
-            advance.reason ? ` (${advance.reason})` : ""
-          }`,
-          branchid: currentBranchId,
-          paymentsource: advance.paymentMethod === "cash" ? "cash" : "bank",
-        });
-
-      if (txError) {
-        console.error("Error creating cash transaction for advance:", txError);
-        showToast.warning(
-          "Đã chi tiền nhưng chưa ghi sổ quỹ. Vui lòng kiểm tra lại."
-        );
-      } else {
-        // Invalidate cash transactions to refresh the data
-        queryClient.invalidateQueries({ queryKey: ["cash_transactions"] });
-        showToast.success(
-          `Đã chi ${advance.advanceAmount.toLocaleString()}đ ứng lương cho ${
-            advance.employeeName
-          }`
-        );
-      }
-    } catch (error) {
-      console.error("Error paying advance:", error);
-      showToast.error("Có lỗi khi chi ứng lương");
-    }
-  };
 
   const handleDelete = async (advanceId: string) => {
     if (!confirm("Bạn có chắc muốn xóa đơn ứng lương này không?")) return;
@@ -297,6 +258,24 @@ export default function EmployeeAdvanceManager() {
         showToast.success(`Đã ghi nhận thanh toán ${formatCurrency(amount)}`);
       }
 
+      // 🔹 NOTE: remaining_amount và paid_amount được tự động cập nhật bởi database trigger
+      // Trigger: trigger_update_advance_on_payment (xem employee_advance_schema.sql)
+      
+      // ✅ FIX: Query lại remaining_amount MỚI từ database sau khi trigger chạy
+      const { data: updatedAdvance } = await supabase
+        .from("employee_advances")
+        .select("remaining_amount")
+        .eq("id", selectedAdvance.id)
+        .single();
+
+      // Kiểm tra nếu đã trả hết thì đổi status
+      if (updatedAdvance && updatedAdvance.remaining_amount <= 0) {
+        await supabase
+          .from("employee_advances")
+          .update({ status: "paid" })
+          .eq("id", selectedAdvance.id);
+      }
+
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ["employee-advances"] });
 
@@ -309,6 +288,36 @@ export default function EmployeeAdvanceManager() {
     } catch (error) {
       console.error("Error making payment:", error);
       showToast.error("Đã xảy ra lỗi");
+    }
+  };
+
+  const handleDisburse = async (advance: EmployeeAdvance) => {
+    if (!confirm(`Chi ${formatCurrency(advance.advanceAmount)} ứng lương cho ${advance.employeeName}?\n\nTiền sẽ được ghi vào sổ quỹ. Nhân viên vẫn cần hoàn trả số tiền này.`)) return;
+    try {
+      // Chỉ ghi sổ quỹ chi tiền — KHÔNG thay đổi remainingAmount
+      // vì nhân viên vẫn còn nợ, sẽ trả dần qua handleMakePayment
+      const transactionId = `ADV-${advance.id}-${Date.now()}`;
+      const { error: txError } = await supabase
+        .from("cash_transactions")
+        .insert({
+          id: transactionId,
+          type: "expense",
+          category: "employee_advance",
+          amount: advance.advanceAmount,
+          date: new Date().toISOString(),
+          description: `Chi ứng lương - ${advance.employeeName} (${formatCurrency(advance.advanceAmount)})`,
+          branchid: currentBranchId,
+          paymentsource: advance.paymentMethod === "cash" ? "cash" : "bank",
+        });
+
+      if (txError) {
+        showToast.warning("Chưa ghi được sổ quỹ. Vui lòng kiểm tra lại.");
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["cash_transactions"] });
+        showToast.success(`Đã ghi chi ${formatCurrency(advance.advanceAmount)} cho ${advance.employeeName}. Nhân viên sẽ hoàn trả dần.`);
+      }
+    } catch (error) {
+      showToast.error("Có lỗi khi chi tiền ứng lương");
     }
   };
 
@@ -347,8 +356,9 @@ export default function EmployeeAdvanceManager() {
   }, [advances]);
 
   const totalRemaining = useMemo(() => {
+    // ✅ FIX: Chỉ tính đơn còn nợ (remaining_amount > 0)
     return advances
-      .filter((adv) => adv.status === "paid" || adv.status === "approved")
+      .filter((adv) => adv.remainingAmount > 0)
       .reduce((sum, adv) => sum + adv.remainingAmount, 0);
   }, [advances]);
 
@@ -684,12 +694,14 @@ export default function EmployeeAdvanceManager() {
                               </button>
                             </>
                           )}
-                          {advance.status === "approved" && (
+                          {/* Nút Chi tiền ngay khi đơn đã được duyệt nhưng chưa chi */}
+                          {advance.status === "approved" && advance.remainingAmount > 0 && (
                             <button
-                              onClick={() => handlePay(advance.id)}
-                              className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded"
+                              onClick={() => handleDisburse(advance)}
+                              className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded font-medium"
+                              title="Chi tiền ngay"
                             >
-                              Chi trả
+                              Chi tiền
                             </button>
                           )}
                           {/* Nút xóa - hiển thị cho tất cả trạng thái */}
