@@ -55,7 +55,7 @@ const QUERY_KEY = "repair_templates";
  */
 export function useRepairTemplates() {
   const { profile } = useAuth();
-  const branchId = profile?.branch_id;
+  const branchId = (profile as any)?.branch_id || (profile as any)?.branchId;
 
   return useQuery({
     queryKey: [QUERY_KEY, branchId],
@@ -96,7 +96,7 @@ export function useRepairTemplates() {
  */
 export function useAllRepairTemplates() {
   const { profile } = useAuth();
-  const branchId = profile?.branch_id;
+  const branchId = (profile as any)?.branch_id || (profile as any)?.branchId;
 
   return useQuery({
     queryKey: [QUERY_KEY, "all", branchId],
@@ -141,7 +141,7 @@ export function useCreateRepairTemplate() {
       const { data, error } = await supabase
         .from("repair_templates")
         .insert({
-          branch_id: profile?.branch_id,
+          branch_id: (profile as any)?.branch_id || (profile as any)?.branchId,
           name: input.name,
           description: input.description || null,
           duration: input.duration || 30,
@@ -320,7 +320,7 @@ export function useDuplicateRepairTemplate() {
       const { data, error } = await supabase
         .from("repair_templates")
         .insert({
-          branch_id: profile?.branch_id,
+          branch_id: (profile as any)?.branch_id || (profile as any)?.branchId,
           name: `${template.name} (copy)`,
           description: template.description,
           duration: template.duration,

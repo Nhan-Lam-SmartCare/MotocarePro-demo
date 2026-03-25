@@ -22,8 +22,8 @@ const TaxReportExport: React.FC = () => {
   const { currentBranchId } = useAppContext();
 
   // Fetch data
-  const { data: salesData = [] } = useSalesRepo({ branchId: currentBranchId });
-  const { data: workOrdersData = [] } = useWorkOrders(currentBranchId);
+  const { data: salesData = [] } = useSalesRepo();
+  const { data: workOrdersData = [] } = useWorkOrders();
   const { data: cashTxData = [] } = useCashTxRepo({
     branchId: currentBranchId,
   });

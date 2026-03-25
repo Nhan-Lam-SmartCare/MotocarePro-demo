@@ -1,4 +1,5 @@
 ﻿import React, { useState, useMemo } from 'react';
+import { Trash2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -44,7 +45,7 @@ const InventoryHistorySection: React.FC<{
       "ðŸ“¦ [InventoryHistorySection] Tá»•ng sá»‘ giao dá»‹ch:",
       transactions.length
     );
-    let filtered = transactions.filter((t) => t.type === "Nháº­p kho");
+    let filtered = transactions.filter((t) => t.type === "Nhập kho");
     console.log(
       "ðŸ“¦ [InventoryHistorySection] Giao dá»‹ch 'Nháº­p kho':",
       filtered.length
@@ -1096,3 +1097,5 @@ const InventoryHistorySection: React.FC<{
     </div>
   );
 };
+
+export default InventoryHistorySection;

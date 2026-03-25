@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { Search, FileText, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, formatDate } from "../../../utils/format";
+import { showToast } from "../../../utils/toast";
+import { supabase } from "../../../supabaseClient";
 import type { InventoryTransaction } from "../../../types";
 const InventoryHistoryModal: React.FC<{
   isOpen: boolean;
@@ -19,7 +22,7 @@ const InventoryHistoryModal: React.FC<{
 
   const filteredTransactions = useMemo(() => {
     // CH�� L�Y GIAO D�`CH NH�P KHO
-    let filtered = transactions.filter((t) => t.type === "Nh�p kho");
+    let filtered = transactions.filter((t) => t.type === "Nhập kho");
     const now = new Date();
 
     // Apply time filter

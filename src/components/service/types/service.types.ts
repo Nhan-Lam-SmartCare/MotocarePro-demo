@@ -172,7 +172,7 @@ export function calculateOrderProfit(order: WorkOrder): number {
 /**
  * Get date filter label in Vietnamese
  */
-export function getDateFilterLabel(dateFilter: string): string {
+export function getDateFilterLabel(dateFilter: string = "all"): string {
     switch (dateFilter) {
         case "today":
             return "hôm nay";

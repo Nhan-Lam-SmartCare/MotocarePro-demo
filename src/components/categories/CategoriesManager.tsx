@@ -321,7 +321,7 @@ const CategoriesManager: React.FC = () => {
                         >
                           {React.cloneElement(
                             IconComponent as React.ReactElement,
-                            { className: "w-5 h-5" }
+                            { className: "w-5 h-5" } as any
                           )}
                         </div>
                         {editingCategory === category.name ? (

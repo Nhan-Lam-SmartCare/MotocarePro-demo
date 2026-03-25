@@ -708,7 +708,7 @@ export async function updateDeliveryStatus(
     }
 
     // Audit log
-    await safeAudit({
+    await safeAudit(null, {
       action: "update_delivery_status",
       tableName: SALES_TABLE,
       recordId: saleId,
@@ -789,7 +789,7 @@ export async function completeDelivery(
     }
 
     // Audit log
-    await safeAudit({
+    await safeAudit(null, {
       action: "complete_delivery",
       tableName: SALES_TABLE,
       recordId: saleId,
@@ -885,7 +885,7 @@ export async function cancelDeliveredOrder(
     }
 
     // Audit log
-    await safeAudit({
+    await safeAudit(null, {
       action: "cancel_delivered_order",
       tableName: SALES_TABLE,
       recordId: saleId,

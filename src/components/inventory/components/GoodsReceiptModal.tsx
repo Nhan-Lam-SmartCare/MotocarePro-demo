@@ -2,8 +2,11 @@
 import { Plus, Search, Trash2, X } from "lucide-react";
 import { useSuppliers, useCreateSupplier } from "../../../hooks/useSuppliers";
 import { useCreatePartRepo } from "../../../hooks/usePartsRepository";
+import { useAuth } from "../../../contexts/AuthContext";
+import { canDo } from "../../../utils/permissions";
 import { showToast } from "../../../utils/toast";
 import { formatCurrency } from "../../../utils/format";
+import { validatePriceAndQty } from "../../../utils/validation";
 import { getCategoryColor } from "../../../utils/categoryColors";
 import FormattedNumberInput from "../../common/FormattedNumberInput";
 import { fetchPartBySku } from "../../../lib/repository/partsRepository";

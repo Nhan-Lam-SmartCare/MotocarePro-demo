@@ -650,9 +650,9 @@ const InventoryManagerNew: React.FC = () => {
                 });
 
                 if (!result.ok || !result.data) {
-                  console.error("❌ Link lỗi khi tạo sản phẩm:", result.error);
+                  console.error("❌ Link lỗi khi tạo sản phẩm:", (result as any).error);
                   throw new Error(
-                    `Không thể tạo sản phẩm ${item._productData.name}: ${result.error?.message}`
+                    `Không thể tạo sản phẩm ${item._productData.name}: ${(result as any).error?.message}`
                   );
                 }
 
@@ -2418,11 +2418,9 @@ const InventoryManagerNew: React.FC = () => {
       {/* Edit Receipt Modal */}
       {editingReceipt && (
         <EditReceiptModal
-          isOpen={!!editingReceipt}
           onClose={() => setEditingReceipt(null)}
           receipt={editingReceipt}
-          onSave={handleSaveEditedReceipt}
-          parts={allPartsData || []}
+          onSave={(data) => handleSaveEditedReceipt(editingReceipt.receiptCode, data)}
           currentBranchId={currentBranchId}
         />
       )}
@@ -2432,7 +2430,7 @@ const InventoryManagerNew: React.FC = () => {
         <ImportInventoryModal
           onClose={() => setShowImportModal(false)}
           onDownloadTemplate={handleDownloadTemplate}
-          onImport={async (file) => {
+          onImport={async (file: File) => {
             try {
               const { items: importedData, errors: rowErrors } =
                 await importPartsFromExcelDetailed(file, currentBranchId);

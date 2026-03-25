@@ -159,6 +159,7 @@ export interface WorkOrder {
   currentKm?: number; // Số km hiện tại tại thời điểm tạo phiếu
   issueDescription?: string;
   technicianName?: string;
+  assignedTechnician?: string;
   estimatedCompletion?: string;
   status: "Tiếp nhận" | "Đang sửa" | "Đã sửa xong" | "Trả máy" | "Đã hủy";
   laborCost: number;

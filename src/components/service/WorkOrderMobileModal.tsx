@@ -1207,7 +1207,7 @@ export const WorkOrderMobileModal: React.FC<WorkOrderMobileModalProps> = ({
               <div className="flex items-center justify-between">
                 <span
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold ${getStatusColor(
-                    workOrder.status
+                    (workOrder.status as WorkOrderStatus)
                   )}`}
                 >
                   {workOrder.status}
