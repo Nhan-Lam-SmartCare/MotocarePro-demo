@@ -194,22 +194,51 @@ export async function fetchWorkOrdersFiltered(
       );
     }
 
-    const effectiveLimit =
-      paymentStatus === "unpaid" || searchQuery || daysBack === 0 || (startDate && endDate)
-        ? Math.max(limit, 10000)
-        : limit;
+    const shouldFetchAllChunks =
+      paymentStatus === "unpaid" || searchQuery || daysBack === 0 || (startDate && endDate) || limit > 1000;
 
-    query = query.limit(effectiveLimit);
+    let allRows: any[] = [];
 
-    const { data, error } = await query;
+    if (shouldFetchAllChunks) {
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-    if (error)
-      return failure({
-        code: "supabase",
-        message: "Không thể tải danh sách phiếu sửa chữa",
-        cause: error,
-      });
-    return success((data || []).map(normalizeWorkOrder));
+      while (hasMore) {
+        const pageQuery = query.range(from, from + pageSize - 1);
+        const { data, error } = await pageQuery;
+        if (error) {
+          return failure({
+            code: "supabase",
+            message: "Không thể tải danh sách phiếu sửa chữa",
+            cause: error,
+          });
+        }
+        if (data && data.length > 0) {
+          allRows = allRows.concat(data);
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            from += pageSize;
+          }
+        } else {
+          hasMore = false;
+        }
+        if (allRows.length >= 50000) break;
+      }
+    } else {
+      const { data, error } = await query.limit(limit);
+      if (error) {
+        return failure({
+          code: "supabase",
+          message: "Không thể tải danh sách phiếu sửa chữa",
+          cause: error,
+        });
+      }
+      allRows = data || [];
+    }
+
+    return success((allRows || []).map(normalizeWorkOrder));
   } catch (e: any) {
     return failure({
       code: "network",
