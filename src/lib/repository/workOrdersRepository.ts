@@ -101,43 +101,105 @@ export async function fetchWorkOrderById(id: string): Promise<RepoResult<WorkOrd
   }
 }
 
-// Optimized fetch with filtering and pagination
-export async function fetchWorkOrdersFiltered(options?: {
+export interface WorkOrderFilterOptions {
   limit?: number;
   daysBack?: number;
   status?: string;
   branchId?: string;
-}): Promise<RepoResult<WorkOrder[]>> {
+  paymentStatus?: string;
+  technicianName?: string;
+  searchQuery?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+// Optimized fetch with filtering and pagination
+export async function fetchWorkOrdersFiltered(
+  options?: WorkOrderFilterOptions
+): Promise<RepoResult<WorkOrder[]>> {
   try {
     const {
-      limit = 100, // Default load 100 recent orders
-      daysBack = 7, // Default 7 days back
+      limit = 100,
+      daysBack = 7,
       status,
       branchId,
+      paymentStatus,
+      technicianName,
+      searchQuery,
+      startDate,
+      endDate,
     } = options || {};
 
     let query = supabase
       .from(WORK_ORDERS_TABLE)
       .select("*")
-      .order("creationdate", { ascending: false })
-      .limit(limit);
+      .order("creationdate", { ascending: false });
 
-    // Filter by date (last N days) - if daysBack is 0, load all
-    if (daysBack > 0) {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - daysBack);
-      query = query.gte("creationdate", startDate.toISOString());
-    }
-
-    // Filter by status
-    if (status && status !== "all") {
-      query = query.eq("status", status);
-    }
-
-    // Filter by branch
+    // Branch filter
     if (branchId && branchId !== "all") {
       query = query.eq("branchid", branchId);
     }
+
+    // Status filter
+    if (status && status !== "all") {
+      if (status === "delivered") {
+        query = query.eq("status", "Trả máy");
+      } else if (status === "pending") {
+        query = query.eq("status", "Tiếp nhận");
+      } else if (status === "inProgress") {
+        query = query.eq("status", "Đang sửa");
+      } else if (status === "done") {
+        query = query.eq("status", "Đã sửa xong");
+      } else {
+        query = query.eq("status", status);
+      }
+    }
+
+    // Payment status filter
+    if (paymentStatus && paymentStatus !== "all") {
+      if (paymentStatus === "unpaid") {
+        query = query.gt("remainingamount", 0);
+      } else if (paymentStatus === "paid") {
+        query = query.lte("remainingamount", 0);
+      } else if (paymentStatus === "partial") {
+        query = query.eq("paymentstatus", "partial").gt("remainingamount", 0);
+      }
+    }
+
+    // Technician filter
+    if (technicianName && technicianName !== "all") {
+      query = query.eq("technicianname", technicianName);
+    }
+
+    // Date range filter
+    if (startDate && endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query = query
+        .gte("creationdate", startDate)
+        .lte("creationdate", end.toISOString());
+    } else if (daysBack > 0 && paymentStatus !== "unpaid" && !searchQuery) {
+      // Bỏ giới hạn số ngày khi đang tìm kiếm hoặc khi đang xem khoản nợ chưa thu
+      const start = new Date();
+      start.setDate(start.getDate() - daysBack);
+      query = query.gte("creationdate", start.toISOString());
+    }
+
+    // Search query filter (tìm theo mã phiếu, tên KH, SĐT, biển số, dòng xe)
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.trim();
+      const term = `%${q}%`;
+      query = query.or(
+        `id.ilike.${term},customername.ilike.${term},customerphone.ilike.${term},licenseplate.ilike.${term},vehiclemodel.ilike.${term}`
+      );
+    }
+
+    const effectiveLimit =
+      paymentStatus === "unpaid" || searchQuery || daysBack === 0
+        ? Math.max(limit, 500)
+        : limit;
+
+    query = query.limit(effectiveLimit);
 
     const { data, error } = await query;
 
@@ -156,6 +218,77 @@ export async function fetchWorkOrdersFiltered(options?: {
     });
   }
 }
+
+// Phiếu đã trả máy nhưng khách còn nợ lại - dùng cho màn hình Công nợ
+export async function fetchUnpaidWorkOrders(
+  branchId: string
+): Promise<RepoResult<WorkOrder[]>> {
+  try {
+    const { data, error } = await supabase
+      .from(WORK_ORDERS_TABLE)
+      .select("*")
+      .eq("status", "Trả máy")
+      .eq("branchid", branchId)
+      .gt("remainingamount", 0)
+      .order("creationdate", { ascending: false });
+
+    if (error)
+      return failure({
+        code: "supabase",
+        message: "Không thể tải danh sách phiếu còn nợ",
+        cause: error,
+      });
+    return success((data || []).map(normalizeWorkOrder));
+  } catch (e: any) {
+    return failure({
+      code: "network",
+      message: "Lỗi kết nối tới máy chủ",
+      cause: e,
+    });
+  }
+}
+
+// Cập nhật số tiền nợ còn lại của phiếu khi thu nợ từ màn hình Quản lý Công Nợ
+export async function updateWorkOrderDebtPayment(
+  orderId: string,
+  remainingAmount: number,
+  totalPaid?: number
+): Promise<RepoResult<WorkOrder>> {
+  try {
+    const updateData: any = {
+      remainingamount: remainingAmount,
+    };
+    if (totalPaid !== undefined) {
+      updateData.totalpaid = totalPaid;
+    }
+    if (remainingAmount <= 0) {
+      updateData.paymentstatus = "paid";
+    }
+
+    const { data, error } = await supabase
+      .from(WORK_ORDERS_TABLE)
+      .update(updateData)
+      .eq("id", orderId)
+      .select()
+      .single();
+
+    if (error)
+      return failure({
+        code: "supabase",
+        message: "Không thể cập nhật thông tin nợ của phiếu",
+        cause: error,
+      });
+
+    return success(normalizeWorkOrder(data));
+  } catch (e: any) {
+    return failure({
+      code: "network",
+      message: "Lỗi kết nối khi cập nhật thông tin nợ phiếu sửa chữa",
+      cause: e,
+    });
+  }
+}
+
 
 // Atomic variant: delegates to DB RPC to ensure stock decrement, inventory tx, cash tx, and work order insert happen in a single transaction.
 export async function createWorkOrderAtomic(input: Partial<WorkOrder>): Promise<

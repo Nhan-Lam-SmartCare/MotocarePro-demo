@@ -59,12 +59,17 @@ export async function fetchCustomerDebts(): Promise<
         customerName: row.customer_name,
         phone: row.phone,
         licensePlate: row.license_plate,
+        vehicleModel: row.vehicle_model,
         description: description,
         totalAmount: row.total_amount,
         paidAmount: row.paid_amount,
         remainingAmount: row.remaining_amount,
         createdDate: row.created_date,
+        dueDate: row.due_date || undefined,
         branchId: row.branch_id,
+        staffId: row.staff_id || undefined,
+        staffName: row.staff_name || undefined,
+        paymentHistory: row.payment_history || [],
         workOrderId: row.work_order_id, // 🔹 Add this to filter duplicates
         saleId: row.sale_id,
       };
@@ -97,12 +102,17 @@ export async function createCustomerDebt(
       customer_name: debt.customerName,
       phone: debt.phone,
       license_plate: debt.licensePlate,
+      vehicle_model: debt.vehicleModel || null,
       description: debt.description,
       total_amount: debt.totalAmount,
       paid_amount: debt.paidAmount || 0,
       remaining_amount: debt.totalAmount - (debt.paidAmount || 0),
       created_date: debt.createdDate,
+      due_date: debt.dueDate || null,
       branch_id: debt.branchId || "CN1",
+      staff_id: debt.staffId || null,
+      staff_name: debt.staffName || null,
+      payment_history: debt.paymentHistory || [],
       work_order_id: (debt as any).workOrderId || null,
       sale_id: (debt as any).saleId || null,
     };
@@ -196,12 +206,17 @@ export async function createCustomerDebt(
       customerName: data.customer_name,
       phone: data.phone,
       licensePlate: data.license_plate,
+      vehicleModel: data.vehicle_model,
       description: data.description,
       totalAmount: data.total_amount,
       paidAmount: data.paid_amount,
       remainingAmount: data.remaining_amount,
       createdDate: data.created_date,
+      dueDate: data.due_date || undefined,
       branchId: data.branch_id,
+      staffId: data.staff_id || undefined,
+      staffName: data.staff_name || undefined,
+      paymentHistory: data.payment_history || [],
     } as CustomerDebt);
   } catch (e: any) {
     return failure({
@@ -223,15 +238,38 @@ export async function updateCustomerDebt(
     if (updates.phone !== undefined) updateData.phone = updates.phone;
     if (updates.licensePlate !== undefined)
       updateData.license_plate = updates.licensePlate;
+    if (updates.vehicleModel !== undefined)
+      updateData.vehicle_model = updates.vehicleModel;
     if (updates.description !== undefined)
       updateData.description = updates.description;
     if (updates.totalAmount !== undefined)
       updateData.total_amount = updates.totalAmount;
-    if (updates.paidAmount !== undefined) {
+    if (updates.paidAmount !== undefined)
       updateData.paid_amount = updates.paidAmount;
-      updateData.remaining_amount =
-        (updates.totalAmount || 0) - updates.paidAmount;
+    if (updates.remainingAmount !== undefined) {
+      updateData.remaining_amount = updates.remainingAmount;
+    } else if (updates.paidAmount !== undefined) {
+      // Chỉ tự tính lại khi biết chắc tổng nợ, tránh ghi số âm
+      if (updates.totalAmount !== undefined) {
+        updateData.remaining_amount = updates.totalAmount - updates.paidAmount;
+      } else {
+        const { data: current } = await supabase
+          .from("customer_debts")
+          .select("total_amount")
+          .eq("id", id)
+          .maybeSingle();
+        if (current)
+          updateData.remaining_amount =
+            (current.total_amount || 0) - updates.paidAmount;
+      }
     }
+    if (updates.dueDate !== undefined)
+      updateData.due_date = updates.dueDate || null;
+    if (updates.staffId !== undefined) updateData.staff_id = updates.staffId;
+    if (updates.staffName !== undefined)
+      updateData.staff_name = updates.staffName;
+    if (updates.paymentHistory !== undefined)
+      updateData.payment_history = updates.paymentHistory;
 
     updateData.updated_at = new Date().toISOString();
 
@@ -255,12 +293,17 @@ export async function updateCustomerDebt(
       customerName: data.customer_name,
       phone: data.phone,
       licensePlate: data.license_plate,
+      vehicleModel: data.vehicle_model,
       description: data.description,
       totalAmount: data.total_amount,
       paidAmount: data.paid_amount,
       remainingAmount: data.remaining_amount,
       createdDate: data.created_date,
+      dueDate: data.due_date || undefined,
       branchId: data.branch_id,
+      staffId: data.staff_id || undefined,
+      staffName: data.staff_name || undefined,
+      paymentHistory: data.payment_history || [],
     } as CustomerDebt);
   } catch (e: any) {
     return failure({
@@ -319,12 +362,17 @@ export async function fetchSupplierDebts(): Promise<
       id: row.id,
       supplierId: row.supplier_id,
       supplierName: row.supplier_name,
+      phone: row.phone,
       description: row.description,
       totalAmount: row.total_amount,
       paidAmount: row.paid_amount,
       remainingAmount: row.remaining_amount,
       createdDate: row.created_date,
+      dueDate: row.due_date || undefined,
       branchId: row.branch_id,
+      staffId: row.staff_id || undefined,
+      staffName: row.staff_name || undefined,
+      paymentHistory: row.payment_history || [],
     }));
 
     return success(debts as SupplierDebt[]);
@@ -345,12 +393,17 @@ export async function createSupplierDebt(
       id: `SDEBT-${Date.now()}`,
       supplier_id: debt.supplierId,
       supplier_name: debt.supplierName,
+      phone: debt.phone || null,
       description: debt.description,
       total_amount: debt.totalAmount,
       paid_amount: debt.paidAmount || 0,
       remaining_amount: debt.totalAmount - (debt.paidAmount || 0),
       created_date: debt.createdDate,
+      due_date: debt.dueDate || null,
       branch_id: debt.branchId || "CN1",
+      staff_id: debt.staffId || null,
+      staff_name: debt.staffName || null,
+      payment_history: debt.paymentHistory || [],
     };
 
     const { data, error } = await supabase
@@ -370,12 +423,17 @@ export async function createSupplierDebt(
       id: data.id,
       supplierId: data.supplier_id,
       supplierName: data.supplier_name,
+      phone: data.phone,
       description: data.description,
       totalAmount: data.total_amount,
       paidAmount: data.paid_amount,
       remainingAmount: data.remaining_amount,
       createdDate: data.created_date,
+      dueDate: data.due_date || undefined,
       branchId: data.branch_id,
+      staffId: data.staff_id || undefined,
+      staffName: data.staff_name || undefined,
+      paymentHistory: data.payment_history || [],
     } as SupplierDebt);
   } catch (e: any) {
     return failure({
@@ -394,15 +452,37 @@ export async function updateSupplierDebt(
     const updateData: any = {};
     if (updates.supplierName !== undefined)
       updateData.supplier_name = updates.supplierName;
+    if (updates.phone !== undefined) updateData.phone = updates.phone;
     if (updates.description !== undefined)
       updateData.description = updates.description;
     if (updates.totalAmount !== undefined)
       updateData.total_amount = updates.totalAmount;
-    if (updates.paidAmount !== undefined) {
+    if (updates.paidAmount !== undefined)
       updateData.paid_amount = updates.paidAmount;
-      updateData.remaining_amount =
-        (updates.totalAmount || 0) - updates.paidAmount;
+    if (updates.remainingAmount !== undefined) {
+      updateData.remaining_amount = updates.remainingAmount;
+    } else if (updates.paidAmount !== undefined) {
+      // Chỉ tự tính lại khi biết chắc tổng nợ, tránh ghi số âm
+      if (updates.totalAmount !== undefined) {
+        updateData.remaining_amount = updates.totalAmount - updates.paidAmount;
+      } else {
+        const { data: current } = await supabase
+          .from("supplier_debts")
+          .select("total_amount")
+          .eq("id", id)
+          .maybeSingle();
+        if (current)
+          updateData.remaining_amount =
+            (current.total_amount || 0) - updates.paidAmount;
+      }
     }
+    if (updates.dueDate !== undefined)
+      updateData.due_date = updates.dueDate || null;
+    if (updates.staffId !== undefined) updateData.staff_id = updates.staffId;
+    if (updates.staffName !== undefined)
+      updateData.staff_name = updates.staffName;
+    if (updates.paymentHistory !== undefined)
+      updateData.payment_history = updates.paymentHistory;
 
     updateData.updated_at = new Date().toISOString();
 
@@ -424,12 +504,17 @@ export async function updateSupplierDebt(
       id: data.id,
       supplierId: data.supplier_id,
       supplierName: data.supplier_name,
+      phone: data.phone,
       description: data.description,
       totalAmount: data.total_amount,
       paidAmount: data.paid_amount,
       remainingAmount: data.remaining_amount,
       createdDate: data.created_date,
+      dueDate: data.due_date || undefined,
       branchId: data.branch_id,
+      staffId: data.staff_id || undefined,
+      staffName: data.staff_name || undefined,
+      paymentHistory: data.payment_history || [],
     } as SupplierDebt);
   } catch (e: any) {
     return failure({

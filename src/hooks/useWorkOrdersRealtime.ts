@@ -16,12 +16,14 @@ export const useWorkOrdersRealtime = () => {
           schema: "public",
           table: "work_orders",
         },
-        (payload) => {
+        (payload: any) => {
           console.warn("[Realtime] Work orders table changed, invalidating caches. Event:", payload.eventType);
           
           // Invalidate work orders queries to fetch fresh database state
           queryClient.invalidateQueries({ queryKey: ["workOrdersRepo"] });
           queryClient.invalidateQueries({ queryKey: ["workOrdersFiltered"] });
+          // Màn hình Công nợ dựa vào danh sách phiếu còn nợ
+          queryClient.invalidateQueries({ queryKey: ["unpaidWorkOrders"] });
           
           // Refresh parts repositories because parts might be consumed or returned
           queryClient.invalidateQueries({ queryKey: ["partsRepo"] });

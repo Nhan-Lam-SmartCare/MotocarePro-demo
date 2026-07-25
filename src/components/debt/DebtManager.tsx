@@ -11,9 +11,7 @@ import {
   AlertTriangle,
   Clock,
   Trash2,
-  Edit,
   History,
-  CheckCircle2,
   Building2,
   CreditCard,
   UserCheck,
@@ -21,20 +19,75 @@ import {
 import { formatCurrency } from "../../utils/format";
 import { showToast } from "../../utils/toast";
 import { useAppContext } from "../../contexts/AppContext";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   useCustomerDebtsRepo,
   useSupplierDebtsRepo,
+  useCreateCustomerDebtRepo,
+  useCreateSupplierDebtRepo,
   useDeleteCustomerDebtRepo,
   useDeleteSupplierDebtRepo,
 } from "../../hooks/useDebtsRepository";
+import { useUnpaidWorkOrdersRepo } from "../../hooks/useWorkOrdersRepository";
+import { useWorkOrdersRealtime } from "../../hooks/useWorkOrdersRealtime";
 import type { CustomerDebt, SupplierDebt } from "../../types";
 
+// Dòng nợ hiển thị: bản ghi công nợ trong DB, hoặc phiếu sửa chữa còn nợ chưa có bản ghi
+export type DebtRow = (CustomerDebt | SupplierDebt) & {
+  isFromWorkOrder?: boolean;
+  technicianName?: string;
+  workOrderId?: string;
+  saleId?: string;
+};
+
+// Tên nhân viên: ưu tiên cột staff_name, sau đó tới thông tin nhúng trong nội dung phiếu
+const resolveStaffName = (debt: DebtRow): string =>
+  debt.staffName ||
+  debt.technicianName ||
+  debt.description?.match(/NVKỹ thuật:([^\n]+)/)?.[1]?.trim() ||
+  debt.description?.match(/NV:([^\n]+)/)?.[1]?.trim() ||
+  "N/A";
+
+// Nội dung phiếu rất dài (danh sách phụ tùng, dịch vụ) -> rút gọn còn tiêu đề + số món
+const summarizeDescription = (description?: string) => {
+  const lines = String(description ?? "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const title = lines[0] || "--";
+  const isItem = (l: string) => /^[•\-*]\s/.test(l);
+
+  const sectionCount = (label: string) => {
+    const start = lines.findIndex((l) => l.includes(label));
+    if (start === -1) return 0;
+    let count = 0;
+    for (let i = start + 1; i < lines.length; i++) {
+      if (isItem(lines[i])) count++;
+      else if (count > 0) break;
+    }
+    return count;
+  };
+
+  return {
+    title,
+    partsCount: sectionCount("Phụ tùng đã thay:"),
+    serviceCount: sectionCount("Dịch vụ:"),
+    laborLine: lines.find((l) => l.includes("Công lao động:")),
+    discountLine: lines.find((l) => l.includes("Giảm giá:")),
+  };
+};
+
 import CollectDebtModal from "./modals/CollectDebtModal";
-import AddDebtModal from "./modals/AddDebtModal";
+import { AddDebtModal } from "./modals/AddDebtModal";
 import DebtHistoryModal from "./modals/DebtHistoryModal";
 
 export const DebtManager: React.FC = () => {
-  const { currentBranchId } = useAppContext();
+  const { currentBranchId, customers, suppliers } = useAppContext();
+  const { user } = useAuth();
+
+  // Phiếu sửa chữa đổi trạng thái/thanh toán -> làm mới danh sách công nợ
+  useWorkOrdersRealtime();
 
   // Data queries
   const { data: customerDebts = [], isLoading: isLoadingCustomer } =
@@ -42,6 +95,8 @@ export const DebtManager: React.FC = () => {
   const { data: supplierDebts = [], isLoading: isLoadingSupplier } =
     useSupplierDebtsRepo();
 
+  const { mutateAsync: createCustomerDebt } = useCreateCustomerDebtRepo();
+  const { mutateAsync: createSupplierDebt } = useCreateSupplierDebtRepo();
   const { mutateAsync: deleteCustomerDebt } = useDeleteCustomerDebtRepo();
   const { mutateAsync: deleteSupplierDebt } = useDeleteSupplierDebtRepo();
 
@@ -59,31 +114,108 @@ export const DebtManager: React.FC = () => {
 
   // Modals state
   const [collectingDebtItem, setCollectingDebtItem] = useState<{
-    debt: CustomerDebt | SupplierDebt;
+    debt: DebtRow;
     type: "customer" | "supplier";
   } | null>(null);
 
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [historyDebtItem, setHistoryDebtItem] = useState<{
-    debt: CustomerDebt | SupplierDebt;
+    debt: DebtRow;
     type: "customer" | "supplier";
   } | null>(null);
 
   const [openActionId, setOpenActionId] = useState<string | null>(null);
 
-  // Filter by branch
-  const branchCustomerDebts = useMemo(
-    () =>
-      customerDebts.filter(
-        (d) => !d.branchId || d.branchId === currentBranchId
-      ),
-    [customerDebts, currentBranchId]
-  );
+  // Phiếu "Trả máy" còn nợ của chi nhánh hiện tại
+  const { data: unpaidWorkOrders = [], isSuccess: workOrdersLoaded } =
+    useUnpaidWorkOrdersRepo(currentBranchId);
 
-  const branchSupplierDebts = useMemo(
+  // Phiếu còn nợ nhưng chưa có bản ghi công nợ -> dựng thành dòng nợ để không bỏ sót
+  const workOrderDebts = useMemo<DebtRow[]>(() => {
+    const existingWorkOrderIds = new Set(
+      customerDebts
+        .filter((d) => (d as DebtRow).workOrderId)
+        .map((d) => (d as DebtRow).workOrderId)
+    );
+
+    return unpaidWorkOrders
+      .filter((wo) => !existingWorkOrderIds.has(wo.id))
+      .map((wo) => {
+        const totalPaid = (wo.depositAmount || 0) + (wo.additionalPayment || 0);
+        const remainingAmount = Math.max(0, (wo.total || 0) - totalPaid);
+
+        const parts = wo.partsUsed || [];
+        let description = `${wo.vehicleModel || "Phiếu sửa chữa"} (Phiếu sửa chữa #${String(
+          wo.id
+        ).slice(-6)})`;
+        if (parts.length > 0) {
+          description +=
+            "\nPhụ tùng đã thay:\n" +
+            parts
+              .map((p: any) => `• ${p.quantity} x ${p.partName}`)
+              .join("\n");
+        }
+        if ((wo.laborCost || 0) > 0) {
+          description += `\nCông lao động: ${(
+            wo.laborCost || 0
+          ).toLocaleString("vi-VN")} đ`;
+        }
+
+        return {
+          id: `WO-${wo.id}`,
+          customerId: wo.customerPhone || wo.id,
+          customerName: wo.customerName || "Người tiêu dùng",
+          phone: wo.customerPhone,
+          licensePlate: wo.licensePlate,
+          vehicleModel: wo.vehicleModel,
+          description,
+          totalAmount: wo.total || 0,
+          paidAmount: totalPaid,
+          remainingAmount,
+          createdDate: wo.creationDate,
+          branchId: wo.branchId || currentBranchId,
+          workOrderId: wo.id,
+          isFromWorkOrder: true,
+          technicianName: wo.technicianName,
+        } as DebtRow;
+      });
+  }, [unpaidWorkOrders, customerDebts, currentBranchId]);
+
+  // Công nợ KH của chi nhánh: bản ghi trong DB (loại bỏ phiếu/đơn đã thanh toán xong)
+  // cộng thêm các phiếu còn nợ chưa có bản ghi
+  const branchCustomerDebts = useMemo<DebtRow[]>(() => {
+    const dbDebts = (customerDebts as DebtRow[]).filter(
+      (debt) => debt.branchId === currentBranchId
+    );
+
+    const activeDbDebts = dbDebts.filter((debt) => {
+      if ((debt.remainingAmount || 0) <= 0) return false;
+
+      // Phiếu sửa chữa đã thu đủ nhưng bản ghi công nợ chưa được cập nhật -> bỏ qua
+      // (chỉ đối chiếu khi đã tải xong danh sách phiếu, tránh ẩn nhầm lúc đang tải)
+      if (debt.workOrderId && workOrdersLoaded) {
+        const workOrderStillUnpaid = unpaidWorkOrders.some(
+          (wo) => wo.id === debt.workOrderId
+        );
+        if (!workOrderStillUnpaid) return false;
+      }
+
+      return true;
+    });
+
+    return [...activeDbDebts, ...workOrderDebts];
+  }, [
+    customerDebts,
+    currentBranchId,
+    unpaidWorkOrders,
+    workOrdersLoaded,
+    workOrderDebts,
+  ]);
+
+  const branchSupplierDebts = useMemo<DebtRow[]>(
     () =>
-      supplierDebts.filter(
-        (d) => !d.branchId || d.branchId === currentBranchId
+      (supplierDebts as DebtRow[]).filter(
+        (d) => d.branchId === currentBranchId && (d.remainingAmount || 0) > 0
       ),
     [supplierDebts, currentBranchId]
   );
@@ -121,7 +253,7 @@ export const DebtManager: React.FC = () => {
 
   // Filtered List based on active tab & search
   const currentTabItems = useMemo(() => {
-    let list: Array<{ debt: CustomerDebt | SupplierDebt; type: "customer" | "supplier" }> = [];
+    let list: Array<{ debt: DebtRow; type: "customer" | "supplier" }> = [];
 
     if (activeTab === "customer") {
       list = branchCustomerDebts.map((d) => ({ debt: d, type: "customer" as const }));
@@ -136,7 +268,7 @@ export const DebtManager: React.FC = () => {
 
     const todayStr = new Date().toISOString().slice(0, 10);
 
-    return list.filter(({ debt }) => {
+    const filtered = list.filter(({ debt }) => {
       // 1. Search term match
       if (search.trim()) {
         const keyword = search.trim().toLowerCase();
@@ -170,7 +302,18 @@ export const DebtManager: React.FC = () => {
         return debt.remainingAmount <= 0;
       }
 
-      return true;
+      // "all" - chỉ hiện những khoản còn nợ (remainingAmount > 0)
+      return debt.remainingAmount > 0;
+    });
+
+    // Còn nợ lên trước, sau đó mới nhất lên trên
+    return filtered.sort((a, b) => {
+      if (a.debt.remainingAmount > 0 && b.debt.remainingAmount === 0) return -1;
+      if (a.debt.remainingAmount === 0 && b.debt.remainingAmount > 0) return 1;
+      return (
+        new Date(b.debt.createdDate || 0).getTime() -
+        new Date(a.debt.createdDate || 0).getTime()
+      );
     });
   }, [activeTab, branchCustomerDebts, branchSupplierDebts, search, statusFilter]);
 
@@ -178,13 +321,48 @@ export const DebtManager: React.FC = () => {
     return currentTabItems.reduce((sum, item) => sum + item.debt.remainingAmount, 0);
   }, [currentTabItems]);
 
-  const handleDelete = async (id: string, type: "customer" | "supplier") => {
+  const addModalType: "customer" | "supplier" =
+    activeTab === "supplier" ? "supplier" : "customer";
+
+  const handleAddDebt = async (debt: any) => {
+    const staffName =
+      (user as any)?.user_metadata?.name ||
+      (user as any)?.name ||
+      user?.email ||
+      "Nhân viên";
+
+    try {
+      const payload = {
+        ...debt,
+        staffId: (user as any)?.id,
+        staffName,
+        paymentHistory: [],
+      };
+
+      if (addModalType === "supplier") {
+        await createSupplierDebt(payload);
+      } else {
+        await createCustomerDebt(payload);
+      }
+      setShowAddModal(false);
+    } catch {
+      // Hook đã hiển thị toast lỗi, giữ modal mở để người dùng sửa lại
+    }
+  };
+
+  const handleDelete = async (debt: DebtRow, type: "customer" | "supplier") => {
+    if (debt.isFromWorkOrder) {
+      showToast.warning(
+        "Khoản nợ này đến từ phiếu sửa chữa. Hãy xử lý trực tiếp trên phiếu."
+      );
+      return;
+    }
     if (!window.confirm("Bạn có chắc chắn muốn xóa khoản công nợ này?")) return;
     try {
       if (type === "customer") {
-        await deleteCustomerDebt(id);
+        await deleteCustomerDebt(debt.id);
       } else {
-        await deleteSupplierDebt(id);
+        await deleteSupplierDebt(debt.id);
       }
       showToast.success("Xóa khoản nợ thành công!");
     } catch (err: any) {
@@ -428,7 +606,8 @@ export const DebtManager: React.FC = () => {
                           (debt as CustomerDebt).licensePlate ||
                           "--"
                         : "--";
-                    const staff = debt.staffName || "N/A";
+                    const staff = resolveStaffName(debt);
+                    const content = summarizeDescription(debt.description);
                     const createdDateStr = debt.createdDate
                       ? new Date(debt.createdDate).toLocaleDateString("vi-VN")
                       : "--";
@@ -490,8 +669,32 @@ export const DebtManager: React.FC = () => {
 
                         {/* Nội dung nợ */}
                         <td className="py-3.5 px-4 align-top">
-                          <div className="text-xs text-slate-200 font-medium leading-relaxed">
-                            {debt.description}
+                          <div className="space-y-0.5">
+                            <div className="text-xs text-slate-200 font-medium leading-relaxed">
+                              {content.title}
+                            </div>
+                            {content.partsCount > 0 && (
+                              <div className="text-[11px] text-slate-400">
+                                <span className="font-semibold">Phụ tùng:</span>{" "}
+                                {content.partsCount} món
+                              </div>
+                            )}
+                            {content.serviceCount > 0 && (
+                              <div className="text-[11px] text-slate-400">
+                                <span className="font-semibold">Dịch vụ:</span>{" "}
+                                {content.serviceCount} món
+                              </div>
+                            )}
+                            {content.laborLine && (
+                              <div className="text-[11px] text-cyan-400">
+                                {content.laborLine}
+                              </div>
+                            )}
+                            {content.discountLine && (
+                              <div className="text-[11px] text-amber-400">
+                                {content.discountLine}
+                              </div>
+                            )}
                           </div>
                         </td>
 
@@ -548,7 +751,7 @@ export const DebtManager: React.FC = () => {
                               <button
                                 onClick={() => {
                                   setOpenActionId(null);
-                                  handleDelete(debt.id, type);
+                                  handleDelete(debt, type);
                                 }}
                                 className="w-full px-3 py-2 text-xs font-semibold text-red-400 hover:bg-slate-800 flex items-center gap-2 border-t border-slate-800/80 mt-1"
                               >
@@ -578,8 +781,12 @@ export const DebtManager: React.FC = () => {
 
       {showAddModal && (
         <AddDebtModal
-          initialType={activeTab === "supplier" ? "supplier" : "customer"}
+          activeTab={addModalType}
+          customers={customers}
+          suppliers={suppliers}
+          currentBranchId={currentBranchId}
           onClose={() => setShowAddModal(false)}
+          onSave={handleAddDebt}
         />
       )}
 

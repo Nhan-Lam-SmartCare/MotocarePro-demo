@@ -253,6 +253,13 @@ export const WorkOrdersTable: React.FC<WorkOrdersTableProps> = ({
                 const orderProfit =
                   totalAmount - partsCostPrice - servicesCostPrice;
 
+                const isFullyPaid =
+                  order.paymentStatus === "paid" ||
+                  ((order.remainingAmount ?? 0) <= 0 && totalAmount > 0);
+                const isPartialPaid =
+                  !isFullyPaid &&
+                  (order.paymentStatus === "partial" || paidAmount > 0);
+
                 const partsSummary = parts
                   .slice(0, 2)
                   .map(
@@ -446,16 +453,16 @@ export const WorkOrdersTable: React.FC<WorkOrdersTableProps> = ({
                         <div className="lg:hidden mt-3">
                           <span
                             className={`inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full font-black tracking-wider uppercase border ${
-                              order.paymentStatus === "paid"
+                              isFullyPaid
                                 ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20"
-                                : order.paymentStatus === "partial"
+                                : isPartialPaid
                                 ? "bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20"
                                 : "bg-rose-500/10 text-rose-600 dark:text-rose-450 border-rose-500/20"
                             }`}
                           >
-                            {order.paymentStatus === "paid"
+                            {isFullyPaid
                               ? "Đã Xong"
-                              : order.paymentStatus === "partial"
+                              : isPartialPaid
                               ? "Còn Nợ"
                               : "Chưa TT"}
                           </span>
@@ -469,16 +476,16 @@ export const WorkOrdersTable: React.FC<WorkOrdersTableProps> = ({
                         <div className="flex items-center justify-end gap-2.5">
                           <span
                             className={`inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full font-black tracking-wider uppercase border ${
-                              order.paymentStatus === "paid"
+                              isFullyPaid
                                 ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20"
-                                : order.paymentStatus === "partial"
+                                : isPartialPaid
                                 ? "bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20"
                                 : "bg-rose-500/10 text-rose-600 dark:text-rose-450 border-rose-500/20"
                             }`}
                           >
-                            {order.paymentStatus === "paid"
+                            {isFullyPaid
                               ? "Đã Xong"
-                              : order.paymentStatus === "partial"
+                              : isPartialPaid
                               ? "Còn Nợ"
                               : "Chưa TT"}
                           </span>
@@ -487,7 +494,7 @@ export const WorkOrdersTable: React.FC<WorkOrdersTableProps> = ({
                           </div>
                         </div>
 
-                        {totalAmount > 0 && order.paymentStatus !== "paid" && (
+                        {totalAmount > 0 && !isFullyPaid && (
                           <div className="space-y-1.5 text-right">
                             <div
                               className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden border border-slate-200/50 dark:border-slate-600/50"

@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchWorkOrders,
   fetchWorkOrdersFiltered,
+  WorkOrderFilterOptions,
+  fetchUnpaidWorkOrders,
+  updateWorkOrderDebtPayment,
   createWorkOrderAtomic,
   updateWorkOrderAtomic,
   updateWorkOrder,
@@ -24,12 +27,7 @@ export const useWorkOrdersRepo = () => {
 };
 
 // New hook with pagination and filtering
-export const useWorkOrdersFilteredRepo = (options?: {
-  limit?: number;
-  daysBack?: number;
-  status?: string;
-  branchId?: string;
-}) => {
+export const useWorkOrdersFilteredRepo = (options?: WorkOrderFilterOptions) => {
   return useQuery({
     queryKey: ["workOrdersFiltered", options],
     queryFn: async () => {
@@ -38,6 +36,46 @@ export const useWorkOrdersFilteredRepo = (options?: {
       return res.data;
     },
     staleTime: 30000, // Cache for 30 seconds
+  });
+};
+
+
+// Phiếu "Trả máy" còn nợ - nguồn dữ liệu cho màn hình Công nợ
+export const useUnpaidWorkOrdersRepo = (branchId?: string) => {
+  return useQuery({
+    queryKey: ["unpaidWorkOrders", branchId],
+    queryFn: async () => {
+      const res = await fetchUnpaidWorkOrders(branchId as string);
+      if (!res.ok) throw res.error;
+      return res.data;
+    },
+    enabled: !!branchId,
+    staleTime: 30000,
+  });
+};
+
+// Cập nhật số còn nợ của phiếu khi thu nợ từ màn hình Công nợ
+export const useUpdateWorkOrderDebtPaymentRepo = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      orderId: string;
+      remainingAmount: number;
+      totalPaid?: number;
+    }) => {
+      const res = await updateWorkOrderDebtPayment(
+        input.orderId,
+        input.remainingAmount,
+        input.totalPaid
+      );
+      if (!res.ok) throw new Error(mapRepoErrorForUser(res.error));
+      return res.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["unpaidWorkOrders"] });
+      qc.invalidateQueries({ queryKey: ["workOrdersRepo"] });
+      qc.invalidateQueries({ queryKey: ["workOrdersFiltered"] });
+    },
   });
 };
 

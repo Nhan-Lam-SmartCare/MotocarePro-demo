@@ -398,18 +398,32 @@ export interface FixedAssetDepreciation {
   created_at: string;
 }
 
+// Một đợt thu/trả nợ trong lịch sử thanh toán của khoản công nợ
+export interface DebtPaymentEntry {
+  date: string; // ISO
+  amount: number;
+  method: "cash" | "bank";
+  note?: string;
+  staffName?: string;
+}
+
 export interface CustomerDebt {
   id: string;
   customerId: string;
   customerName: string;
   phone?: string;
   licensePlate?: string;
+  vehicleModel?: string; // Dòng xe
   description: string; // Nội dung
   totalAmount: number; // Số tiền
   paidAmount: number; // Đã trả
   remainingAmount: number; // Còn nợ
   createdDate: string;
+  dueDate?: string; // Ngày hẹn trả phần còn lại
   branchId: string;
+  staffId?: string; // NV tạo/thu nợ
+  staffName?: string;
+  paymentHistory?: DebtPaymentEntry[]; // Lịch sử thu nợ
   workOrderId?: string;
   saleId?: string;
 }
@@ -418,12 +432,17 @@ export interface SupplierDebt {
   id: string;
   supplierId: string;
   supplierName: string;
+  phone?: string;
   description: string; // Nội dung
   totalAmount: number; // Số tiền
   paidAmount: number; // Đã trả
   remainingAmount: number; // Còn nợ
   createdDate: string;
+  dueDate?: string; // Ngày hẹn trả phần còn lại
   branchId: string;
+  staffId?: string;
+  staffName?: string;
+  paymentHistory?: DebtPaymentEntry[]; // Lịch sử trả nợ
 }
 
 // Employee Advance (Ứng lương)

@@ -10,10 +10,14 @@ import {
   useUpdateCustomerDebtRepo,
   useUpdateSupplierDebtRepo,
 } from "../../../hooks/useDebtsRepository";
+import { useUpdateWorkOrderDebtPaymentRepo } from "../../../hooks/useWorkOrdersRepository";
 import type { CustomerDebt, SupplierDebt } from "../../../types";
 
 interface Props {
-  debt: CustomerDebt | SupplierDebt;
+  debt: (CustomerDebt | SupplierDebt) & {
+    isFromWorkOrder?: boolean;
+    workOrderId?: string;
+  };
   type: "customer" | "supplier";
   onClose: () => void;
   onSuccess?: () => void;
@@ -33,8 +37,14 @@ export const CollectDebtModal: React.FC<Props> = ({
     useUpdateCustomerDebtRepo();
   const { mutateAsync: updateSupplierDebt, isPending: isUpdatingSupplier } =
     useUpdateSupplierDebtRepo();
+  const { mutateAsync: updateWorkOrderDebt, isPending: isUpdatingWorkOrder } =
+    useUpdateWorkOrderDebtPaymentRepo();
 
-  const isPending = isCreatingCash || isUpdatingCustomer || isUpdatingSupplier;
+  const isPending =
+    isCreatingCash ||
+    isUpdatingCustomer ||
+    isUpdatingSupplier ||
+    isUpdatingWorkOrder;
 
   const initialPayAmount = debt.remainingAmount || 0;
   const [payAmount, setPayAmount] = useState<number>(initialPayAmount);
@@ -90,7 +100,14 @@ export const CollectDebtModal: React.FC<Props> = ({
         historyEntry,
       ];
 
-      if (type === "customer") {
+      if (debt.isFromWorkOrder && debt.workOrderId) {
+        // Khoản nợ dựng từ phiếu sửa chữa: chưa có bản ghi công nợ, cập nhật thẳng vào phiếu
+        await updateWorkOrderDebt({
+          orderId: debt.workOrderId,
+          remainingAmount: newRemaining,
+          totalPaid: newPaid,
+        });
+      } else if (type === "customer") {
         await updateCustomerDebt({
           id: debt.id,
           updates: {
@@ -100,6 +117,15 @@ export const CollectDebtModal: React.FC<Props> = ({
             paymentHistory: updatedHistory,
           },
         });
+
+        // Đồng bộ số còn nợ về phiếu sửa chữa gốc (nếu có)
+        if (debt.workOrderId) {
+          await updateWorkOrderDebt({
+            orderId: debt.workOrderId,
+            remainingAmount: newRemaining,
+            totalPaid: newPaid,
+          });
+        }
       } else {
         await updateSupplierDebt({
           id: debt.id,

@@ -108,7 +108,23 @@ export default function ServiceManager() {
   const [dateRangeDays, setDateRangeDays] = useState<number>(7);
   const [fetchLimit, setFetchLimit] = useState<number>(100);
 
-  // Fetch work orders from Supabase with filtering (optimized)
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
+  const [activeTab, setActiveTab] = useState<ServiceTabKey>("all");
+
+  // Read initial filter values from URL params
+  const urlDateFilter = searchParams.get("date") || "week";
+  const urlPaymentFilter = searchParams.get("payment") || "all";
+  const urlSearch = searchParams.get("q") || "";
+
+  const [dateFilter, setDateFilterState] = useState(urlDateFilter);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [customDateStart, setCustomDateStart] = useState(todayStr);
+  const [customDateEnd, setCustomDateEnd] = useState(todayStr);
+  const [technicianFilter, setTechnicianFilter] = useState("all");
+  const [paymentFilter, setPaymentFilterState] = useState(urlPaymentFilter);
+
+  // Fetch work orders from Supabase with full server-side filtering & search
   const {
     data: fetchedWorkOrders,
     isLoading: workOrdersLoading,
@@ -120,6 +136,12 @@ export default function ServiceManager() {
     limit: fetchLimit,
     daysBack: dateRangeDays,
     branchId: currentBranchId,
+    status: activeTab,
+    paymentStatus: paymentFilter,
+    technicianName: technicianFilter,
+    searchQuery: debouncedSearchQuery,
+    startDate: dateFilter === "custom" ? customDateStart : undefined,
+    endDate: dateFilter === "custom" ? customDateEnd : undefined,
   });
 
   // Fetch customers from Supabase directly
@@ -163,21 +185,6 @@ export default function ServiceManager() {
   const [editingOrder, setEditingOrder] = useState<WorkOrder | undefined>(
     undefined
   );
-  const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
-  const [activeTab, setActiveTab] = useState<ServiceTabKey>("all");
-
-  // Read initial filter values from URL params
-  const urlDateFilter = searchParams.get("date") || "week";
-  const urlPaymentFilter = searchParams.get("payment") || "all";
-  const urlSearch = searchParams.get("q") || "";
-
-  const [dateFilter, setDateFilterState] = useState(urlDateFilter);
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const [customDateStart, setCustomDateStart] = useState(todayStr);
-  const [customDateEnd, setCustomDateEnd] = useState(todayStr);
-  const [technicianFilter, setTechnicianFilter] = useState("all");
-  const [paymentFilter, setPaymentFilterState] = useState(urlPaymentFilter);
 
   // Ref for search input (keyboard shortcut focus)
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -383,16 +390,16 @@ export default function ServiceManager() {
   const filteredOrders = useMemo(() => {
     let filtered = displayWorkOrders.filter((o) => !o.refunded);
 
-    if (activeTab === "delivered") {
-      filtered = filtered.filter((o) => o.status === "Trả máy");
-    } else {
-      filtered = filtered.filter((o) => o.status !== "Trả máy");
-      if (activeTab === "pending")
+    if (paymentFilter !== "unpaid") {
+      if (activeTab === "delivered") {
+        filtered = filtered.filter((o) => o.status === "Trả máy");
+      } else if (activeTab === "pending") {
         filtered = filtered.filter((o) => o.status === "Tiếp nhận");
-      else if (activeTab === "inProgress")
+      } else if (activeTab === "inProgress") {
         filtered = filtered.filter((o) => o.status === "Đang sửa");
-      else if (activeTab === "done")
+      } else if (activeTab === "done") {
         filtered = filtered.filter((o) => o.status === "Đã sửa xong");
+      }
     }
 
     if (debouncedSearchQuery) {
@@ -419,9 +426,21 @@ export default function ServiceManager() {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
       filtered = filtered.filter((o) => {
-        if (o.status === "Tiếp nhận" || o.status === "Đang sửa") {
+        // Đơn đang sửa/tiếp nhận HOẶC đơn chưa thu tiền/còn nợ -> Luôn hiển thị, không bị ẩn bởi bộ lọc 7 ngày
+        const isUnpaid =
+          o.paymentStatus === "unpaid" ||
+          o.paymentStatus === "partial" ||
+          (o.remainingAmount || 0) > 0;
+
+        if (
+          o.status === "Tiếp nhận" ||
+          o.status === "Đang sửa" ||
+          paymentFilter === "unpaid" ||
+          isUnpaid
+        ) {
           return true;
         }
+
         const orderDate = new Date(o.creationDate || (o as any).creationdate);
         if (dateFilter === "today") {
           return orderDate >= today;
@@ -449,10 +468,15 @@ export default function ServiceManager() {
 
     if (paymentFilter !== "all") {
       filtered = filtered.filter((o) => {
-        const status = o.paymentStatus || (o as any).paymentstatus;
-        if (paymentFilter === "paid") return status === "paid";
-        if (paymentFilter === "unpaid") return status === "unpaid";
-        if (paymentFilter === "partial") return status === "partial";
+        const total = o.total || 0;
+        const rem = o.remainingAmount ?? 0;
+        const isPaid = o.paymentStatus === "paid" || (rem <= 0 && total > 0);
+        const isPartial = !isPaid && (o.paymentStatus === "partial" || total - rem > 0);
+        const isUnpaid = !isPaid && rem > 0;
+
+        if (paymentFilter === "paid") return isPaid;
+        if (paymentFilter === "unpaid") return isUnpaid;
+        if (paymentFilter === "partial") return isPartial;
         return true;
       });
     }
