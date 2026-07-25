@@ -4,6 +4,8 @@ import { supabase } from "../../supabaseClient";
 import { showToast } from "../../utils/toast";
 import { formatCurrency } from "../../utils/format";
 
+import { classifyHondaCategory } from "../../utils/categoryClassifier";
+
 interface ExternalDataImportProps {
     onClose: () => void;
     onImported?: () => void;
@@ -36,34 +38,81 @@ export const ExternalDataImport: React.FC<ExternalDataImportProps> = ({
             if (file.name.endsWith(".json")) {
                 data = JSON.parse(text);
             } else if (file.name.endsWith(".csv")) {
-                // Simple CSV parser
-                const rows = text.split("\n");
-                const headers = rows[0].split(",").map((h) => h.trim().replace(/"/g, ""));
-                data = rows.slice(1).map((row) => {
-                    const values = row.split(",").map((v) => v.trim().replace(/"/g, ""));
-                    const obj: any = {};
-                    headers.forEach((h, i) => {
-                        obj[h] = values[i];
+                // Robust Quote-Aware CSV Parser (RFC 4180)
+                const parseCSVLine = (line: string): string[] => {
+                    const result: string[] = [];
+                    let current = '';
+                    let inQuotes = false;
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        if (char === '"') {
+                            if (inQuotes && line[i + 1] === '"') {
+                                current += '"';
+                                i++;
+                            } else {
+                                inQuotes = !inQuotes;
+                            }
+                        } else if (char === ',' && !inQuotes) {
+                            result.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    result.push(current.trim());
+                    return result.map((v) => v.replace(/^"|"$/g, "").trim());
+                };
+
+                const rows = text.split("\n").filter((r) => r.trim());
+                if (rows.length > 0) {
+                    const headers = parseCSVLine(rows[0]);
+                    data = rows.slice(1).map((row) => {
+                        const values = parseCSVLine(row);
+                        const obj: any = {};
+                        headers.forEach((h, i) => {
+                            obj[h] = values[i] || "";
+                        });
+                        return obj;
                     });
-                    return obj;
-                });
+                }
             } else {
                 showToast.error("Chỉ hỗ trợ file JSON hoặc CSV");
                 setLoading(false);
                 return;
             }
 
-            // Validate and map data
+            // Validate and map data (supports English & Vietnamese CSV headers)
             const mappedData = data
-                .filter((item: Record<string, any>) => item.name) // Must have name
-                .map((item: Record<string, any>) => ({
-                    name: item.name,
-                    sku: item.sku || "",
-                    price: Number(item.price) || 0,
-                    category: item.category || "Phụ tùng",
-                    image_url: item.image_url || "",
-                    source_url: item.source_url || "",
-                }));
+                .filter((item: Record<string, any>) => item.sku || item["Mã SKU"] || item.name || item["Tên Phụ Tùng"]) 
+                .map((item: Record<string, any>) => {
+                    let rawName = (item.name || item["Tên Phụ Tùng"] || item["Tên sản phẩm"] || "").trim();
+                    const sku = (item.sku || item["Mã SKU"] || "").trim();
+                    
+                    // Lọc bỏ nhãn trạng thái HÀNG ĐẶT / CÒN HÀNG / Phần trăm giảm giá (-41%, v4.1) dính vào cột tên
+                    if (!rawName || rawName.includes('%') || rawName.startsWith('-') || rawName.includes('v4.') || rawName === "HÀNG ĐẶT" || rawName === "CÒN HÀNG" || rawName === "BÁN CHẠY" || rawName.includes("DANH MỤC") || rawName.includes("Giỏ hàng")) {
+                        rawName = sku ? `Phụ tùng Honda ${sku}` : "Phụ tùng ngoài";
+                    }
+
+                    // Xử lý an toàn Giá bán, chống lỗi NaN
+                    let rawPrice = item.price ?? item["Giá Bán (VNĐ)"] ?? item["Giá Bán"] ?? item["Giá tham khảo"] ?? 0;
+                    if (typeof rawPrice === 'string') {
+                        rawPrice = parseInt(rawPrice.replace(/[^\d]/g, ''), 10);
+                    }
+                    const parsedPrice = isNaN(Number(rawPrice)) ? 0 : Number(rawPrice);
+
+                    const classified = classifyHondaCategory(rawName, sku);
+                    const category = (item.category && item.category !== "Phụ tùng Honda") ? item.category : classified.category;
+
+                    return {
+                        name: rawName,
+                        sku: sku,
+                        price: parsedPrice,
+                        category: category,
+                        image_url: item.image_url || item["Link Ảnh"] || item["Hình Ảnh"] || (sku ? `https://panel.dov.vn/storage/parts-images/u2/${sku}.webp` : ""),
+                        source_url: item.source_url || "",
+                    };
+                })
+                .filter((item: any) => item.price > 0);
 
             setPreviewData(mappedData);
             setStep("preview");
@@ -75,17 +124,31 @@ export const ExternalDataImport: React.FC<ExternalDataImportProps> = ({
         }
     };
 
+    const [clearExisting, setClearExisting] = useState(true);
+
     const handleImport = async () => {
         if (previewData.length === 0) return;
 
         setImporting(true);
         try {
-            // Insert into external_parts table
-            const { error } = await supabase.from("external_parts").insert(previewData);
+            // 1. Xóa dữ liệu cũ nếu người dùng chọn
+            if (clearExisting) {
+                const { error: deleteError } = await supabase
+                    .from("external_parts")
+                    .delete()
+                    .neq('id', '00000000-0000-0000-0000-000000000000');
+                if (deleteError) console.warn("Lỗi khi xóa dữ liệu cũ:", deleteError);
+            }
 
-            if (error) throw error;
+            // 2. Chèn dữ liệu theo từng đợt (Batch size 500) để không quá tải Server
+            const BATCH_SIZE = 500;
+            for (let i = 0; i < previewData.length; i += BATCH_SIZE) {
+                const chunk = previewData.slice(i, i + BATCH_SIZE);
+                const { error } = await supabase.from("external_parts").insert(chunk);
+                if (error) throw error;
+            }
 
-            showToast.success(`Đã nhập thành công ${previewData.length} sản phẩm!`);
+            showToast.success(`Đã nhập thành công ${previewData.length.toLocaleString('vi-VN')} sản phẩm!`);
             onImported?.();
             onClose();
         } catch (error) {
@@ -221,30 +284,41 @@ export const ExternalDataImport: React.FC<ExternalDataImportProps> = ({
                                 </table>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                <button
-                                    onClick={onClose}
-                                    className="px-6 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    onClick={handleImport}
-                                    disabled={importing}
-                                    className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                >
-                                    {importing ? (
-                                        <>
-                                            <RefreshCw className="w-5 h-5 animate-spin" />
-                                            Đang nhập...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Save className="w-5 h-5" />
-                                            Xác nhận nhập
-                                        </>
-                                    )}
-                                </button>
+                            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+                                <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300 font-medium">
+                                    <input
+                                        type="checkbox"
+                                        checked={clearExisting}
+                                        onChange={(e) => setClearExisting(e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-600 focus:ring-blue-500"
+                                    />
+                                    <span>Xóa toàn bộ dữ liệu phụ tùng ngoài cũ trước khi nhập mới</span>
+                                </label>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={onClose}
+                                        className="px-6 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium"
+                                    >
+                                        Hủy
+                                    </button>
+                                    <button
+                                        onClick={handleImport}
+                                        disabled={importing}
+                                        className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        {importing ? (
+                                            <>
+                                                <RefreshCw className="w-5 h-5 animate-spin" />
+                                                Đang nhập...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save className="w-5 h-5" />
+                                                Xác nhận nhập
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
