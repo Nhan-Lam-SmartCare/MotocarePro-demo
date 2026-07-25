@@ -195,8 +195,8 @@ export async function fetchWorkOrdersFiltered(
     }
 
     const effectiveLimit =
-      paymentStatus === "unpaid" || searchQuery || daysBack === 0
-        ? Math.max(limit, 500)
+      paymentStatus === "unpaid" || searchQuery || daysBack === 0 || (startDate && endDate)
+        ? Math.max(limit, 10000)
         : limit;
 
     query = query.limit(effectiveLimit);
