@@ -87,6 +87,7 @@ export const ExternalDataImport: React.FC<ExternalDataImportProps> = ({
                 .map((item: Record<string, any>) => {
                     let rawName = (item.name || item["Tên Phụ Tùng"] || item["Tên sản phẩm"] || "").trim();
                     const sku = (item.sku || item["Mã SKU"] || "").trim();
+                    const rawCategory = (item.category || item["Danh Mục"] || item["Danh mục"] || "").trim();
                     
                     // Lọc bỏ nhãn trạng thái HÀNG ĐẶT / CÒN HÀNG / Phần trăm giảm giá (-41%, v4.1) dính vào cột tên
                     if (!rawName || rawName.includes('%') || rawName.startsWith('-') || rawName.includes('v4.') || rawName === "HÀNG ĐẶT" || rawName === "CÒN HÀNG" || rawName === "BÁN CHẠY" || rawName.includes("DANH MỤC") || rawName.includes("Giỏ hàng")) {
@@ -100,8 +101,12 @@ export const ExternalDataImport: React.FC<ExternalDataImportProps> = ({
                     }
                     const parsedPrice = isNaN(Number(rawPrice)) ? 0 : Number(rawPrice);
 
-                    const classified = classifyHondaCategory(rawName, sku);
-                    const category = (item.category && item.category !== "Phụ tùng Honda") ? item.category : classified.category;
+                    // Xác định danh mục: Giữ nguyên danh mục từ CSV (ví dụ: "PHỤ TÙNG ADV 350")
+                    let category = rawCategory;
+                    if (!category || category === "Phụ tùng Honda" || category === "Phụ tùng ngoài") {
+                        const classified = classifyHondaCategory(rawName, sku);
+                        category = classified.category;
+                    }
 
                     return {
                         name: rawName,
