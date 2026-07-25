@@ -1,273 +1,350 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
+import { X, HandCoins, Calendar, CreditCard, Banknote } from "lucide-react";
+import FormattedNumberInput from "../../common/FormattedNumberInput";
 import { formatCurrency } from "../../../utils/format";
 import { showToast } from "../../../utils/toast";
-import type { CustomerDebt } from "../../../types";
+import { useAppContext } from "../../../contexts/AppContext";
+import { useAuth } from "../../../contexts/AuthContext";
+import { useCreateCashTxRepo } from "../../../hooks/useCashTransactionsRepository";
+import {
+  useUpdateCustomerDebtRepo,
+  useUpdateSupplierDebtRepo,
+} from "../../../hooks/useDebtsRepository";
+import type { CustomerDebt, SupplierDebt } from "../../../types";
 
-interface CollectDebtModalProps {
-  customers: any[];
-  customerDebts: CustomerDebt[];
-  initialDebt?: CustomerDebt | null;
+interface Props {
+  debt: CustomerDebt | SupplierDebt;
+  type: "customer" | "supplier";
   onClose: () => void;
-  onCollect?: (data: {
-    customerName: string;
-    customerId: string;
-    amount: number;
-    paymentMethod: "cash" | "bank";
-    timestamp: string;
-    shouldPrint?: boolean;
-  }) => void;
+  onSuccess?: () => void;
 }
 
-export const CollectDebtModal: React.FC<CollectDebtModalProps> = ({
-  customers,
-  customerDebts,
-  initialDebt,
+export const CollectDebtModal: React.FC<Props> = ({
+  debt,
+  type,
   onClose,
-  onCollect,
+  onSuccess,
 }) => {
-  const [selectedCustomerId, setSelectedCustomerId] = useState(
-    initialDebt?.customerId || ""
-  );
-  const [paymentAmount, setPaymentAmount] = useState(
-    initialDebt ? initialDebt.remainingAmount.toString() : "0"
-  );
+  const { currentBranchId } = useAppContext();
+  const { user } = useAuth();
+  const { mutateAsync: createCashTx, isPending: isCreatingCash } =
+    useCreateCashTxRepo();
+  const { mutateAsync: updateCustomerDebt, isPending: isUpdatingCustomer } =
+    useUpdateCustomerDebtRepo();
+  const { mutateAsync: updateSupplierDebt, isPending: isUpdatingSupplier } =
+    useUpdateSupplierDebtRepo();
+
+  const isPending = isCreatingCash || isUpdatingCustomer || isUpdatingSupplier;
+
+  const initialPayAmount = debt.remainingAmount || 0;
+  const [payAmount, setPayAmount] = useState<number>(initialPayAmount);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank">("cash");
-  const [createTime, setCreateTime] = useState(
-    new Date()
-      .toLocaleString("sv-SE", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-      .replace(" ", " ")
+  const [dueDate, setDueDate] = useState<string>(
+    debt.dueDate ? debt.dueDate.slice(0, 10) : ""
   );
+  const [notes, setNotes] = useState<string>("");
 
-  const selectedDebt = useMemo(() => {
-    return customerDebts.find((d) => d.customerId === selectedCustomerId);
-  }, [selectedCustomerId, customerDebts]);
+  const targetName =
+    type === "customer"
+      ? (debt as CustomerDebt).customerName
+      : (debt as SupplierDebt).supplierName;
 
-  const remainingAmount = selectedDebt?.remainingAmount ?? initialDebt?.remainingAmount ?? 0;
-  const [isPrintChecked, setIsPrintChecked] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const remainingAfterPay = Math.max(0, debt.remainingAmount - payAmount);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
-
-    const paymentAmountNum = parseFloat(paymentAmount);
-
-    // Validation
-    if (paymentAmountNum <= 0) {
-      showToast.error("Số tiền thanh toán phải lớn hơn 0");
+    if (payAmount <= 0) {
+      showToast.error("Vui lòng nhập số tiền thu/trả lớn hơn 0 đ!");
       return;
     }
-
-    if (paymentAmountNum > remainingAmount) {
+    if (payAmount > debt.remainingAmount) {
       showToast.error(
-        `Số tiền thanh toán không được vượt quá số nợ còn lại (${formatCurrency(
-          remainingAmount
+        `Số tiền không thể lớn hơn số tiền còn nợ (${formatCurrency(
+          debt.remainingAmount
         )})`
       );
       return;
     }
 
-    const customer = customers.find((c) => c.id === selectedCustomerId);
-    if (customer && onCollect) {
-      setIsSubmitting(true);
-      try {
-        await onCollect({
-          customerName: customer.name,
-          customerId: customer.id,
-          amount: paymentAmountNum,
-          paymentMethod,
-          timestamp: createTime,
-          shouldPrint: isPrintChecked,
+    try {
+      const now = new Date().toISOString();
+      const staffName =
+        (user as any)?.user_metadata?.name ||
+        (user as any)?.name ||
+        user?.email ||
+        "Nhân viên";
+
+      const newPaid = debt.paidAmount + payAmount;
+      const newRemaining = debt.totalAmount - newPaid;
+
+      const historyEntry = {
+        date: now,
+        amount: payAmount,
+        method: paymentMethod,
+        note: notes.trim() || undefined,
+        staffName,
+      };
+
+      const updatedHistory = [
+        ...(debt.paymentHistory || []),
+        historyEntry,
+      ];
+
+      if (type === "customer") {
+        await updateCustomerDebt({
+          id: debt.id,
+          updates: {
+            paidAmount: newPaid,
+            remainingAmount: newRemaining,
+            dueDate: newRemaining > 0 ? dueDate || debt.dueDate : undefined,
+            paymentHistory: updatedHistory,
+          },
         });
-      } catch (error) {
-        console.error(error);
-        setIsSubmitting(false);
+      } else {
+        await updateSupplierDebt({
+          id: debt.id,
+          updates: {
+            paidAmount: newPaid,
+            remainingAmount: newRemaining,
+            dueDate: newRemaining > 0 ? dueDate || debt.dueDate : undefined,
+            paymentHistory: updatedHistory,
+          },
+        });
       }
-    } else {
+
+      // Record in Cash Book (Sổ quỹ)
+      await createCashTx({
+        type: type === "customer" ? "income" : "expense",
+        amount: payAmount,
+        notes: `${type === "customer" ? "Thu nợ từ" : "Trả nợ cho"} ${targetName}: ${
+          debt.description
+        }`,
+        recipient: targetName,
+        paymentSourceId: paymentMethod,
+        branchId: currentBranchId,
+        category: type === "customer" ? "debt_collection" : "debt_payment",
+        date: now,
+      });
+
+      showToast.success(
+        `Đã ghi nhận ${
+          type === "customer" ? "thu" : "trả"
+        } ${formatCurrency(payAmount)} thành công!`
+      );
+      if (onSuccess) onSuccess();
       onClose();
+    } catch (err: any) {
+      console.error("Lỗi khi thu/trả nợ:", err);
+      showToast.error("Không thể ghi nhận thanh toán: " + (err.message || "Lỗi server"));
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-[100]">
-      <div className="bg-white dark:bg-slate-800 rounded-t-xl md:rounded-xl shadow-2xl max-w-lg w-full border-x border-t border-slate-200 dark:border-slate-700 max-h-[85vh] mb-20 md:mb-0 flex flex-col">
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-none">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Thu nợ khách hàng
-          </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl text-white">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-800/50">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <HandCoins className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-base text-white">
+                {type === "customer" ? "Thu nợ khách hàng" : "Trả nợ nhà cung cấp"}
+              </h3>
+              <p className="text-xs text-slate-400 font-medium">{targetName}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-          <form id="collect-debt-form" onSubmit={handleSubmit} className="space-y-4">
-            {/* Customer Selection */}
-            <div>
-              <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
-                Tìm kiếm và chọn một khách hàng đang nợ
-              </label>
-              {initialDebt ? (
-                <div className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-medium flex items-center justify-between">
-                  <span>{initialDebt.customerName}</span>
-                  <span className="text-sm text-slate-500 dark:text-slate-400 font-normal">
-                    (Nợ: {formatCurrency(initialDebt.remainingAmount)})
-                  </span>
-                </div>
-              ) : (
-                <select
-                  value={selectedCustomerId}
-                  onChange={(e) => setSelectedCustomerId(e.target.value)}
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                >
-                  <option value="">Chọn khách hàng...</option>
-                  {customerDebts.map((debt) => (
-                    <option key={debt.customerId} value={debt.customerId}>
-                      {debt.customerName} - {formatCurrency(debt.remainingAmount)}
-                    </option>
-                  ))}
-                </select>
-              )}
+        {/* Content Form */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* Card thông tin khoản nợ */}
+          <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/60 space-y-2 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Nội dung:</span>
+              <span className="font-semibold text-white text-right max-w-[200px] truncate">
+                {debt.description}
+              </span>
             </div>
-
-            {/* Payment Amount */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-slate-500 dark:text-slate-400">
-                  Nhập số tiền thanh toán
-                </label>
-                <span className="text-cyan-600 dark:text-cyan-400 text-sm">
-                  {formatCurrency(parseFloat(paymentAmount) || 0)}
-                </span>
-              </div>
-              <input
-                type="number"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              />
+            <div className="flex justify-between text-slate-400">
+              <span>Tổng số tiền nợ:</span>
+              <span className="font-bold text-slate-200">
+                {formatCurrency(debt.totalAmount)}
+              </span>
             </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Đã thanh toán:</span>
+              <span className="font-bold text-emerald-400">
+                {formatCurrency(debt.paidAmount)}
+              </span>
+            </div>
+            <div className="flex justify-between text-slate-400 border-t border-slate-700/60 pt-2 font-bold text-sm">
+              <span className="text-slate-300">Còn nợ hiện tại:</span>
+              <span className="text-red-400">
+                {formatCurrency(debt.remainingAmount)}
+              </span>
+            </div>
+          </div>
 
-            {/* Remaining Amount */}
-            <div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400">Còn nợ:</span>
-                <span className="text-red-600 dark:text-red-400 font-bold text-base">
-                  {formatCurrency(remainingAmount)}
-                </span>
-              </div>
+          {/* Ô nhập số tiền thu/trả đợt này */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Số tiền {type === "customer" ? "thu đợt này" : "trả đợt này"} (đ)
+            </label>
+            <FormattedNumberInput
+              value={payAmount}
+              onValue={(val) => setPayAmount(Math.max(0, Math.round(val)))}
+              className="w-full h-11 px-3 bg-slate-800 border border-slate-700 rounded-xl text-right font-bold text-emerald-400 text-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+            {/* Phím gõ nhanh số tiền */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
               <button
                 type="button"
-                onClick={() => setPaymentAmount(remainingAmount.toString())}
-                className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 text-sm mt-1"
+                onClick={() => setPayAmount(debt.remainingAmount)}
+                className="px-2 py-1 text-[11px] rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 font-bold transition-colors"
               >
-                Điền số còn nợ
+                Trả hết ({formatCurrency(debt.remainingAmount)})
+              </button>
+              {[
+                { label: "100k", val: 100000 },
+                { label: "200k", val: 200000 },
+                { label: "500k", val: 500000 },
+                { label: "1 triệu", val: 1000000 },
+                { label: "2 triệu", val: 2000000 },
+              ].map((btn) => (
+                <button
+                  key={btn.val}
+                  type="button"
+                  onClick={() => setPayAmount(Math.min(debt.remainingAmount, btn.val))}
+                  className="px-2 py-1 text-[11px] rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 font-semibold transition-colors"
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Hình thức thanh toán */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Hình thức thanh toán
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("cash")}
+                className={`h-10 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all ${
+                  paymentMethod === "cash"
+                    ? "bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-900/30"
+                    : "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600"
+                }`}
+              >
+                <Banknote className="w-4 h-4" /> Tiền mặt
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("bank")}
+                className={`h-10 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all ${
+                  paymentMethod === "bank"
+                    ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/30"
+                    : "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600"
+                }`}
+              >
+                <CreditCard className="w-4 h-4" /> Chuyển khoản
               </button>
             </div>
+          </div>
 
-            {/* Payment Method */}
-            <div>
-              <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">
-                Hình thức thanh toán:
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label
-                  className={`cursor-pointer border rounded-lg p-3 flex items-center justify-center gap-2 transition-all ${
-                    paymentMethod === "cash"
-                      ? "bg-cyan-50 dark:bg-cyan-900/20 border-cyan-500 text-cyan-700 dark:text-cyan-400"
-                      : "border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="cash"
-                    checked={paymentMethod === "cash"}
-                    onChange={(e) => setPaymentMethod(e.target.value as "cash")}
-                    className="hidden"
-                  />
-                  <span className="font-medium">Tiền mặt</span>
-                </label>
-                <label
-                  className={`cursor-pointer border rounded-lg p-3 flex items-center justify-center gap-2 transition-all ${
-                    paymentMethod === "bank"
-                      ? "bg-cyan-50 dark:bg-cyan-900/20 border-cyan-500 text-cyan-700 dark:text-cyan-400"
-                      : "border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="bank"
-                    checked={paymentMethod === "bank"}
-                    onChange={(e) => setPaymentMethod(e.target.value as "bank")}
-                    className="hidden"
-                  />
-                  <span className="font-medium">Chuyển khoản</span>
-                </label>
+          {/* Hiển thị số tiền còn nợ lại & Ngày hẹn trả cụ thể để nhắc nhở */}
+          {remainingAfterPay > 0 && (
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2.5">
+              <div className="flex justify-between text-xs font-bold text-amber-300">
+                <span>Còn nợ lại sau đợt này:</span>
+                <span className="text-sm font-black text-amber-400">
+                  {formatCurrency(remainingAfterPay)}
+                </span>
               </div>
-            </div>
 
-            {/* Create Time */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
+              <div>
+                <label className="block text-xs font-semibold text-amber-200 mb-1.5 flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-amber-400" /> Ngày hẹn trả phần còn lại (Để nhắc nhở)
+                </label>
                 <input
-                  type="checkbox"
-                  id="print-receipt-customer"
-                  checked={isPrintChecked}
-                  onChange={(e) => setIsPrintChecked(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-350 text-cyan-600 focus:ring-cyan-500"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full h-10 px-3 bg-slate-900 border border-amber-500/40 rounded-xl text-xs font-bold text-amber-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                 />
-                <label
-                  htmlFor="print-receipt-customer"
-                  className="text-sm font-medium text-slate-800 dark:text-slate-200 select-none cursor-pointer"
-                >
-                  In phiếu thu ngay sau khi tạo
-                </label>
+
+                {/* Phím chọn nhanh ngày hẹn */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[11px] text-amber-300/70">Hẹn nhanh:</span>
+                  {[
+                    { label: "+3 ngày", days: 3 },
+                    { label: "+7 ngày", days: 7 },
+                    { label: "+15 ngày", days: 15 },
+                    { label: "+30 ngày", days: 30 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.days}
+                      type="button"
+                      onClick={() => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + preset.days);
+                        setDueDate(d.toISOString().slice(0, 10));
+                      }}
+                      className="px-2 py-1 text-[11px] rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 font-semibold transition-colors"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-
-              <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
-                Thời gian tạo phiếu thu
-              </label>
-              <input
-                type="text"
-                value={createTime}
-                onChange={(e) => setCreateTime(e.target.value)}
-                className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              />
             </div>
-          </form>
-        </div>
+          )}
 
-        {/* Fixed Footer */}
-        <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center gap-3 justify-end flex-none rounded-b-xl">
-          <button onClick={onClose} className="px-4 py-2 text-slate-500 hover:text-slate-700 font-medium">
-            Đóng
-          </button>
-          <button
-            type="submit"
-            form="collect-debt-form"
-            disabled={!selectedCustomerId || parseFloat(paymentAmount) <= 0 || isSubmitting}
-            className="flex-1 md:flex-none px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Đang xử lý..." : "Tạo phiếu thu"}
-          </button>
-        </div>
+          {/* Ghi chú */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
+              Ghi chú
+            </label>
+            <input
+              type="text"
+              placeholder="VD: Trả trước một phần, hẹn tuần sau trả hết..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full h-9 px-3 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:border-emerald-500"
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="pt-2 flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="px-5 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-lg shadow-emerald-900/40 disabled:opacity-50"
+            >
+              {isPending ? "Đang xử lý..." : "Xác nhận thu nợ"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 };
+
+export default CollectDebtModal;
