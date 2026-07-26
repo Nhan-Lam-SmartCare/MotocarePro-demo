@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, ExternalLink, Plus, RefreshCw, Upload, LayoutGrid, List, Copy, Check, Tag, Folder, Layers, X, TrendingUp, Filter, ChevronRight } from 'lucide-react';
+import { Search, ExternalLink, Plus, RefreshCw, Upload, LayoutGrid, List, Copy, Check, Tag, Folder, Layers, X, TrendingUp, Filter, ChevronRight, ChevronDown } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { ExternalPart } from '../../types';
 import { formatCurrency } from '../../utils/format';
@@ -44,6 +44,11 @@ export default function ExternalPartsLookup() {
     const [categories, setCategories] = useState<string[]>([]);
     const [categorySearch, setCategorySearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
+        model_honda: true,
+        system_parts: true,
+        other: true,
+    });
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
@@ -127,6 +132,72 @@ export default function ExternalPartsLookup() {
             cat.toLowerCase().includes(categorySearch.toLowerCase().trim())
         );
     }, [categories, categorySearch]);
+
+    // Phân nhóm danh mục thành Thư Mục Cha & Thư Mục Con
+    const groupedCategories = useMemo(() => {
+        const list = filteredCategories;
+        const modelHonda: string[] = [];
+        const systemParts: string[] = [];
+        const other: string[] = [];
+
+        list.forEach((cat) => {
+            const upper = cat.toUpperCase();
+            if (
+                upper.startsWith('PHỤ TÙNG ') ||
+                upper.includes('WAVE') ||
+                upper.includes('AIR BLADE') ||
+                upper.includes('SH ') ||
+                upper.includes('VISION') ||
+                upper.includes('LEAD') ||
+                upper.includes('FUTURE') ||
+                upper.includes('WINNER') ||
+                upper.includes('DREAM') ||
+                upper.includes('VARIO') ||
+                upper.includes('PCX') ||
+                upper.includes('CUB') ||
+                upper.includes('EXCITER') ||
+                upper.includes('SIRIUS') ||
+                upper.includes('JANUS') ||
+                upper.includes('NVX') ||
+                upper.includes('RAIDER') ||
+                upper.includes('SATRIA')
+            ) {
+                modelHonda.push(cat);
+            } else if (
+                upper.includes('HỆ THỐNG') ||
+                upper.includes('BỘ KHOÁ') ||
+                upper.includes('CHẾ HOÀ KHÍ') ||
+                upper.includes('DẦU NHỚT') ||
+                upper.includes('ĐỒNG HỒ') ||
+                upper.includes('GIẢM XÓC') ||
+                upper.includes('GƯƠNG') ||
+                upper.includes('PHANH') ||
+                upper.includes('NHÔNG XÍCH') ||
+                upper.includes('LÓC MÁY') ||
+                upper.includes('NHỰA XE') ||
+                upper.includes('KHUNG XE') ||
+                upper.includes('PHỚT') ||
+                upper.includes('LY HỢP') ||
+                upper.includes('CÔN') ||
+                upper.includes('BƠM DẦU') ||
+                upper.includes('BƠM XĂNG') ||
+                upper.includes('LỌC GIÓ') ||
+                upper.includes('ĐÈN') ||
+                upper.includes('PÔ') ||
+                upper.includes('PHÁT ĐIỆN')
+            ) {
+                systemParts.push(cat);
+            } else {
+                other.push(cat);
+            }
+        });
+
+        return {
+            modelHonda,
+            systemParts,
+            other,
+        };
+    }, [filteredCategories]);
 
     const handleCopySku = (sku: string) => {
         if (!sku) return;
@@ -249,17 +320,17 @@ export default function ExternalPartsLookup() {
                         </div>
                     </div>
 
-                    {/* Category List */}
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                    {/* Category List - Parent & Child Groups */}
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
                         {/* All categories option */}
                         <button
                             onClick={() => {
                                 setSelectedCategory('');
                                 setPage(1);
                             }}
-                            className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-between ${
+                            className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${
                                 selectedCategory === ''
-                                    ? 'bg-blue-600 text-white shadow-sm font-bold'
+                                    ? 'bg-blue-600 text-white shadow-md'
                                     : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60'
                             }`}
                         >
@@ -267,45 +338,136 @@ export default function ExternalPartsLookup() {
                                 <Folder className={`w-4 h-4 ${selectedCategory === '' ? 'text-white' : 'text-blue-500'}`} />
                                 <span>Tất cả phụ tùng ngoài</span>
                             </div>
-                            {selectedCategory === '' && <ChevronRight className="w-3.5 h-3.5" />}
+                            {selectedCategory === '' && <ChevronRight className="w-3.5 h-3.5 text-white" />}
                         </button>
 
-                        {/* Master Category Section Header */}
-                        <div className="pt-3 pb-1 px-3 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
-                                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse"></span>
-                                <span>MODEL XE HONDA</span>
-                            </div>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300">
-                                {categories.length} danh mục
-                            </span>
-                        </div>
+                        {/* Thư Mục Cha 1: MODEL XE HONDA */}
+                        {groupedCategories.modelHonda.length > 0 && (
+                            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-800/40 overflow-hidden">
+                                <button
+                                    onClick={() => setExpandedGroups(prev => ({ ...prev, model_honda: !prev.model_honda }))}
+                                    className="w-full px-3 py-2.5 flex items-center justify-between bg-slate-100/80 dark:bg-slate-700/60 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition-colors border-b border-slate-200/60 dark:border-slate-700/50 text-xs font-extrabold text-slate-800 dark:text-slate-100"
+                                >
+                                    <div className="flex items-center gap-2 truncate">
+                                        <ChevronDown className={`w-4 h-4 text-blue-600 dark:text-blue-400 transition-transform duration-200 ${expandedGroups.model_honda ? '' : '-rotate-90'}`} />
+                                        <span className="text-blue-600 dark:text-blue-400 uppercase tracking-wider">MODEL XE HONDA</span>
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                                        {groupedCategories.modelHonda.length} dòng xe
+                                    </span>
+                                </button>
 
-                        {filteredCategories.length === 0 ? (
-                            <div className="p-4 text-center text-xs text-slate-400">
-                                Không tìm thấy danh mục
+                                {expandedGroups.model_honda && (
+                                    <div className="p-1.5 space-y-0.5 max-h-72 overflow-y-auto">
+                                        {groupedCategories.modelHonda.map((cat) => {
+                                            const isSelected = selectedCategory === cat;
+                                            return (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => {
+                                                        setSelectedCategory(cat);
+                                                        setPage(1);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-between ${
+                                                        isSelected
+                                                            ? 'bg-blue-600 text-white font-bold shadow-sm'
+                                                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                                                    }`}
+                                                >
+                                                    <span className="truncate pl-1">{cat}</span>
+                                                    {isSelected && <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
-                        ) : (
-                            filteredCategories.map((cat) => {
-                                const isSelected = selectedCategory === cat;
-                                return (
-                                    <button
-                                        key={cat}
-                                        onClick={() => {
-                                            setSelectedCategory(cat);
-                                            setPage(1);
-                                        }}
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-between ${
-                                            isSelected
-                                                ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border-l-4 border-blue-600 dark:border-blue-400'
-                                                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60'
-                                        }`}
-                                    >
-                                        <span className="truncate pl-1">{cat}</span>
-                                        {isSelected && <ChevronRight className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
-                                    </button>
-                                );
-                            })
+                        )}
+
+                        {/* Thư Mục Cha 2: HỆ THỐNG & LINH KIỆN */}
+                        {groupedCategories.systemParts.length > 0 && (
+                            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-800/40 overflow-hidden">
+                                <button
+                                    onClick={() => setExpandedGroups(prev => ({ ...prev, system_parts: !prev.system_parts }))}
+                                    className="w-full px-3 py-2.5 flex items-center justify-between bg-slate-100/80 dark:bg-slate-700/60 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition-colors border-b border-slate-200/60 dark:border-slate-700/50 text-xs font-extrabold text-slate-800 dark:text-slate-100"
+                                >
+                                    <div className="flex items-center gap-2 truncate">
+                                        <ChevronDown className={`w-4 h-4 text-emerald-600 dark:text-emerald-400 transition-transform duration-200 ${expandedGroups.system_parts ? '' : '-rotate-90'}`} />
+                                        <span className="text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">HỆ THỐNG & LINH KIỆN</span>
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                        {groupedCategories.systemParts.length} nhóm
+                                    </span>
+                                </button>
+
+                                {expandedGroups.system_parts && (
+                                    <div className="p-1.5 space-y-0.5 max-h-72 overflow-y-auto">
+                                        {groupedCategories.systemParts.map((cat) => {
+                                            const isSelected = selectedCategory === cat;
+                                            return (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => {
+                                                        setSelectedCategory(cat);
+                                                        setPage(1);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-between ${
+                                                        isSelected
+                                                            ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                                                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                                                    }`}
+                                                >
+                                                    <span className="truncate pl-1">{cat}</span>
+                                                    {isSelected && <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Thư Mục Cha 3: DANH MỤC KHÁC */}
+                        {groupedCategories.other.length > 0 && (
+                            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-800/40 overflow-hidden">
+                                <button
+                                    onClick={() => setExpandedGroups(prev => ({ ...prev, other: !prev.other }))}
+                                    className="w-full px-3 py-2.5 flex items-center justify-between bg-slate-100/80 dark:bg-slate-700/60 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition-colors border-b border-slate-200/60 dark:border-slate-700/50 text-xs font-extrabold text-slate-800 dark:text-slate-100"
+                                >
+                                    <div className="flex items-center gap-2 truncate">
+                                        <ChevronDown className={`w-4 h-4 text-purple-600 dark:text-purple-400 transition-transform duration-200 ${expandedGroups.other ? '' : '-rotate-90'}`} />
+                                        <span className="text-purple-600 dark:text-purple-400 uppercase tracking-wider">DANH MỤC KHÁC</span>
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
+                                        {groupedCategories.other.length}
+                                    </span>
+                                </button>
+
+                                {expandedGroups.other && (
+                                    <div className="p-1.5 space-y-0.5 max-h-60 overflow-y-auto">
+                                        {groupedCategories.other.map((cat) => {
+                                            const isSelected = selectedCategory === cat;
+                                            return (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => {
+                                                        setSelectedCategory(cat);
+                                                        setPage(1);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-between ${
+                                                        isSelected
+                                                            ? 'bg-purple-600 text-white font-bold shadow-sm'
+                                                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                                                    }`}
+                                                >
+                                                    <span className="truncate pl-1">{cat}</span>
+                                                    {isSelected && <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </aside>
