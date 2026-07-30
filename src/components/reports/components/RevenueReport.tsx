@@ -415,15 +415,29 @@ export const RevenueReport: React.FC<RevenueReportProps> = ({
                                   ) : (
                                     <>
                                       {/* Tổng sửa chữa */}
-                                      <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-200 dark:border-slate-800/60">
-                                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Tổng doanh thu</div>
-                                        <div className="text-right">
-                                          <span className="font-black text-slate-800 dark:text-slate-200 text-xs font-mono">{formatCurrency(woRevenue)}</span>
-                                          <span className="px-2 py-0.5 ml-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 text-[9px] font-black uppercase rounded-full">
-                                            Lãi: {formatCurrency(woRevenue - woParts)}
-                                          </span>
-                                        </div>
-                                      </div>
+                                      {(() => {
+                                        const dayWoServicesCost = day.workOrders.reduce((sum: number, wo: any) => {
+                                          const svcs = wo.additionalServices || wo.additionalservices || wo.additional_services || [];
+                                          return sum + (Array.isArray(svcs) ? svcs : []).reduce((c: number, s: any) => {
+                                            const cost = Number(s.costPrice ?? s.costprice ?? s.cost_price) || 0;
+                                            const qty = Number(s.quantity ?? s.qty) || 1;
+                                            return c + cost * qty;
+                                          }, 0);
+                                        }, 0);
+                                        const dayWoProfit = woRevenue - woParts - dayWoServicesCost;
+
+                                        return (
+                                          <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-200 dark:border-slate-800/60">
+                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Tổng doanh thu</div>
+                                            <div className="text-right">
+                                              <span className="font-black text-slate-800 dark:text-slate-200 text-xs font-mono">{formatCurrency(woRevenue)}</span>
+                                              <span className="px-2 py-0.5 ml-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 text-[9px] font-black uppercase rounded-full">
+                                                Lãi: {formatCurrency(dayWoProfit)}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })()}
                                       <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
                                         {day.workOrders.map((wo: any) => {
                                           const woTotal = wo.totalPaid || wo.totalpaid || wo.total || 0;
@@ -432,7 +446,13 @@ export const RevenueReport: React.FC<RevenueReportProps> = ({
                                             const cost = p.costPrice || p.costprice || partsCostMap.get(partId) || partsCostMap.get(p.sku) || 0;
                                             return c + cost * (p.quantity || 0);
                                           }, 0);
-                                          const woProfit = woTotal - woPartsCost;
+                                          const woServices = wo.additionalServices || wo.additionalservices || wo.additional_services || [];
+                                          const woServicesCost = (Array.isArray(woServices) ? woServices : []).reduce((c: number, s: any) => {
+                                            const cost = Number(s.costPrice ?? s.costprice ?? s.cost_price) || 0;
+                                            const qty = Number(s.quantity ?? s.qty) || 1;
+                                            return c + cost * qty;
+                                          }, 0);
+                                          const woProfit = woTotal - woPartsCost - woServicesCost;
                                           return (
                                             <div key={wo.id} className="bg-slate-50 hover:bg-slate-100/80 dark:bg-[#131926]/40 dark:hover:bg-[#1E293B]/60 border border-slate-200 dark:border-slate-800/60 rounded-xl p-3 transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_15px_rgba(0,0,0,0.3)]">
                                               <div className="flex justify-between items-start">
