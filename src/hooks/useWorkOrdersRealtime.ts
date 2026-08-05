@@ -6,7 +6,8 @@ export const useWorkOrdersRealtime = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Channel name must be unique
+    let debounceTimer: NodeJS.Timeout | null = null;
+
     const channel = supabase
       .channel("work-orders-realtime-channel")
       .on(
@@ -17,27 +18,25 @@ export const useWorkOrdersRealtime = () => {
           table: "work_orders",
         },
         (payload: any) => {
-          console.warn("[Realtime] Work orders table changed, invalidating caches. Event:", payload.eventType);
-          
-          // Invalidate work orders queries to fetch fresh database state
-          queryClient.invalidateQueries({ queryKey: ["workOrdersRepo"] });
-          queryClient.invalidateQueries({ queryKey: ["workOrdersFiltered"] });
-          // Màn hình Công nợ dựa vào danh sách phiếu còn nợ
-          queryClient.invalidateQueries({ queryKey: ["unpaidWorkOrders"] });
-          
-          // Refresh parts repositories because parts might be consumed or returned
-          queryClient.invalidateQueries({ queryKey: ["partsRepo"] });
-          queryClient.invalidateQueries({ queryKey: ["partsRepoPaged"] });
-          
-          // Refresh transactional repositories
-          queryClient.invalidateQueries({ queryKey: ["inventoryTxRepo"] });
-          queryClient.invalidateQueries({ queryKey: ["cashTransactions"] });
-          queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
+          console.warn("[Realtime] Work orders changed:", payload.eventType);
+
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["workOrdersRepo"] });
+            queryClient.invalidateQueries({ queryKey: ["workOrdersFiltered"] });
+            queryClient.invalidateQueries({ queryKey: ["unpaidWorkOrders"] });
+            queryClient.invalidateQueries({ queryKey: ["partsRepo"] });
+            queryClient.invalidateQueries({ queryKey: ["partsRepoPaged"] });
+            queryClient.invalidateQueries({ queryKey: ["inventoryTxRepo"] });
+            queryClient.invalidateQueries({ queryKey: ["cashTransactions"] });
+            queryClient.invalidateQueries({ queryKey: ["paymentSources"] });
+          }, 1000);
         }
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

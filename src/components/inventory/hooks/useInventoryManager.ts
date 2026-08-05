@@ -246,8 +246,7 @@ export const useInventoryManager = () => {
       if (error) throw error;
       return data || [];
     },
-    staleTime: 0, // No cache - always refetch for accurate stock
-    refetchInterval: 5000, // Auto-refetch every 5s for realtime stock updates
+    staleTime: 60_000, // 1-minute cache for stock totals
   });
 
   const stockHealth = useMemo(() => {

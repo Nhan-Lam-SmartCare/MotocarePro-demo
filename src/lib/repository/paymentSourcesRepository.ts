@@ -7,11 +7,44 @@ const supabase = supabaseV1;
 import { safeAudit } from "./auditLogsRepository";
 
 const TABLE = "payment_sources";
+const CACHE_KEY = "motocare_cached_payment_sources";
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 phút
 
-export async function fetchPaymentSources(): Promise<
+let memoryPaymentSourcesCache: { timestamp: number; data: PaymentSource[] } | null = null;
+
+export function clearPaymentSourcesCache() {
+  memoryPaymentSourcesCache = null;
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch (_e) {
+    void _e;
+  }
+}
+
+export async function fetchPaymentSources(forceRefresh = false): Promise<
   RepoResult<PaymentSource[]>
 > {
   try {
+    const now = Date.now();
+    if (!forceRefresh && memoryPaymentSourcesCache && now - memoryPaymentSourcesCache.timestamp < CACHE_TTL_MS) {
+      return success(memoryPaymentSourcesCache.data);
+    }
+
+    if (!forceRefresh) {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && now - parsed.timestamp < CACHE_TTL_MS && Array.isArray(parsed.data)) {
+            memoryPaymentSourcesCache = parsed;
+            return success(parsed.data);
+          }
+        }
+      } catch (_e) {
+        void _e;
+      }
+    }
+
     const { data, error } = await supabase.from(TABLE).select("*");
     if (error)
       return failure({
@@ -19,7 +52,16 @@ export async function fetchPaymentSources(): Promise<
         message: "Không thể tải nguồn tiền",
         cause: error,
       });
-    return success((data || []) as PaymentSource[]);
+
+    const result = (data || []) as PaymentSource[];
+    memoryPaymentSourcesCache = { timestamp: now, data: result };
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(memoryPaymentSourcesCache));
+    } catch (_e) {
+      void _e;
+    }
+
+    return success(result);
   } catch (e: any) {
     return failure({
       code: "network",
@@ -28,6 +70,7 @@ export async function fetchPaymentSources(): Promise<
     });
   }
 }
+
 
 // Atomic balance update (fetch current -> merge -> update). Expect balance JSON shape.
 export async function updatePaymentSourceBalance(
@@ -82,6 +125,7 @@ export async function updatePaymentSourceBalance(
       oldData: { balance },
       newData: { balance: newBalance, delta, branchId },
     });
+    clearPaymentSourcesCache();
     return success(data as PaymentSource);
   } catch (e: any) {
     return failure({

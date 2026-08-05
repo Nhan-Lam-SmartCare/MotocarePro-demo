@@ -86,6 +86,7 @@ export async function fetchAuditLogs(params?: {
   page?: number; // 1-based page number
   pageSize?: number; // overrides limit if provided
   includeUser?: boolean; // when true, attempt to select from a view with user email/name
+  includeDetails?: boolean; // when true, fetch heavy old_data and new_data columns
 }): Promise<RepoResult<AuditLogRecord[]>> {
   try {
     const pageSize = params?.pageSize || params?.limit || 50;
@@ -93,11 +94,15 @@ export async function fetchAuditLogs(params?: {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     const source = params?.includeUser ? "audit_logs_with_user" : TABLE;
+    const columns = params?.includeDetails
+      ? "*"
+      : "id, user_id, action, table_name, record_id, created_at, ip_address, user_agent";
     let query = supabase
       .from(source)
-      .select("*", { count: "exact" })
+      .select(columns, { count: "exact" })
       .order("created_at", { ascending: false })
       .range(from, to);
+
     if (params?.action) query = query.eq("action", params.action);
     if (params?.startDate) query = query.gte("created_at", params.startDate);
     if (params?.endDate) query = query.lte("created_at", params.endDate);

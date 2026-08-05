@@ -4,9 +4,42 @@ import { RepoResult, success, failure } from "./types";
 import { safeAudit } from "./auditLogsRepository";
 
 const CATEGORIES_TABLE = "categories";
+const CACHE_KEY = "motocare_cached_categories";
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 phút
 
-export async function fetchCategories(): Promise<RepoResult<Category[]>> {
+let memoryCategoryCache: { timestamp: number; data: Category[] } | null = null;
+
+export function clearCategoryCache() {
+  memoryCategoryCache = null;
   try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch (_e) {
+    void _e;
+  }
+}
+
+export async function fetchCategories(forceRefresh = false): Promise<RepoResult<Category[]>> {
+  try {
+    const now = Date.now();
+    if (!forceRefresh && memoryCategoryCache && now - memoryCategoryCache.timestamp < CACHE_TTL_MS) {
+      return success(memoryCategoryCache.data);
+    }
+
+    if (!forceRefresh) {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && now - parsed.timestamp < CACHE_TTL_MS && Array.isArray(parsed.data)) {
+            memoryCategoryCache = parsed;
+            return success(parsed.data);
+          }
+        }
+      } catch (_e) {
+        void _e;
+      }
+    }
+
     const { data, error } = await supabase
       .from(CATEGORIES_TABLE)
       .select("*")
@@ -17,7 +50,16 @@ export async function fetchCategories(): Promise<RepoResult<Category[]>> {
         message: "Không thể tải danh mục",
         cause: error,
       });
-    return success(data || []);
+
+    const result = data || [];
+    memoryCategoryCache = { timestamp: now, data: result };
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(memoryCategoryCache));
+    } catch (_e) {
+      void _e;
+    }
+
+    return success(result);
   } catch (e: any) {
     return failure({
       code: "network",
@@ -26,6 +68,7 @@ export async function fetchCategories(): Promise<RepoResult<Category[]>> {
     });
   }
 }
+
 
 export async function createCategory(
   input: Partial<Category>
@@ -71,6 +114,7 @@ export async function createCategory(
       oldData: null,
       newData: data,
     });
+    clearCategoryCache();
     return success(data as Category);
   } catch (e: any) {
     return failure({
@@ -130,6 +174,7 @@ export async function updateCategory(
       oldData: oldRow,
       newData: data,
     });
+    clearCategoryCache();
     return success(resultRow as Category);
   } catch (e: any) {
     return failure({
@@ -181,6 +226,7 @@ export async function deleteCategoryRecord(
       oldData: oldRow,
       newData: null,
     });
+    clearCategoryCache();
     return success({ id });
   } catch (e: any) {
     return failure({

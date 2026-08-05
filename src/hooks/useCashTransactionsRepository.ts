@@ -24,9 +24,8 @@ export const useCashTxRepo = (params?: {
       if (!res.ok) throw res.error;
       return res.data;
     },
-    staleTime: 0,
-    gcTime: 0, // TanStack Query v5 uses gcTime instead of cacheTime
-    refetchOnMount: 'always',
+    staleTime: 2 * 60 * 1000, // 2-minute cache
+    gcTime: 5 * 60 * 1000, // 5-minute garbage collection time
     refetchOnWindowFocus: false, // Prevent refetch on focus
   });
 };
