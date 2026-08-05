@@ -587,13 +587,20 @@ const ReportsManager: React.FC = () => {
 
   // Báo cáo tồn kho
   const inventoryReport = useMemo(() => {
-    const currentStock = partsData.map((p: Part) => ({
-      ...p,
-      stock: p.stock[currentBranchId] || 0,
-      price: p.retailPrice[currentBranchId] || 0,
-      value:
-        (p.stock[currentBranchId] || 0) * (p.retailPrice[currentBranchId] || 0),
-    }));
+    const currentStock = partsData.map((p: Part) => {
+      const stock = (p.stock?.[currentBranchId] ?? (p as any).stock) || 0;
+      const retailPriceObj = p.retailPrice || (p as any).retailprice;
+      const price = typeof retailPriceObj === "object" && retailPriceObj !== null
+        ? (retailPriceObj[currentBranchId] ?? 0)
+        : (typeof retailPriceObj === "number" ? retailPriceObj : 0);
+
+      return {
+        ...p,
+        stock,
+        price,
+        value: stock * price,
+      };
+    });
 
     const totalValue = currentStock.reduce(
       (sum: number, p: any) => sum + p.value,

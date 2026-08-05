@@ -278,12 +278,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     const currentUserId = user?.id || null;
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    setError(null);
-    setCurrentPermissionOverrides(null);
-    // Audit logout (best-effort)
-    void safeAudit(currentUserId, { action: "auth.logout" });
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn("Sign out network error, forcing local session clear:", err);
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setError(null);
+      setCurrentPermissionOverrides(null);
+      void safeAudit(currentUserId, { action: "auth.logout" });
+    }
   };
 
   const hasRole = (roles: UserRole[]): boolean => {
