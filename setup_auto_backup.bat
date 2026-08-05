@@ -1,29 +1,28 @@
 @echo off
 :: ============================================================================
-:: THIẾT LẬP SAO LƯU TỰ ĐỘNG HÀNG NGÀY CHO MOTOCARE
-:: Chạy tập lệnh này để lập lịch sao lưu vào lúc 23:00 hàng ngày
+:: THIẾT LẬP SAO LƯU TỰ ĐỘNG HÀNG NGÀY CHO MOTOCARE (12:00 & 17:00)
+:: Tập lệnh này thiết lập 2 khung giờ sao lưu tự động hàng ngày
 :: ============================================================================
 
 echo Dang thiet lap lich sao luu tu dong (Windows Task Scheduler)...
 
-:: Ten Task
-set TASK_NAME=Motocare_Auto_Backup
-
-:: Path toi file mjs. Luu y: dung duong dan tuyet doi cua o dia hien tai
 set SCRIPT_PATH=%~dp0scripts\maintenance\export-all-tables.mjs
 
-:: Tao Task Scheduler chay luc 23:00 (11:00 PM) hang ngay
-schtasks /create /tn "%TASK_NAME%" /tr "node \"%SCRIPT_PATH%\"" /sc daily /st 23:00 /f
+:: Task 1: 12:00 TRƯA
+schtasks /create /tn "Motocare_Auto_Backup_12h" /tr "node \"%SCRIPT_PATH%\"" /sc daily /st 12:00 /f
+
+:: Task 2: 17:00 CHIỀU
+schtasks /create /tn "Motocare_Auto_Backup_17h" /tr "node \"%SCRIPT_PATH%\"" /sc daily /st 17:00 /f
 
 if %errorlevel% equ 0 (
     echo.
     echo ============================================================================
-    echo [OK] Da thiet lap lich sao luu tu dong thanh cong!
-    echo He thong se tu dong tai sao luu va luu vao thu muc "backups" luc 23:00 hang ngay.
+    echo [OK] Da thiet lap 2 khung gio sao luu tu dong thanh cong!
+    echo - KHUNG 1: 12:00 Trưa hang ngay
+    echo - KHUNG 2: 17:00 Chieu hang ngay
+    echo File sao luu se duoc luu tu dong vao thu muc "backups".
     echo ============================================================================
 ) else (
     echo.
-    echo [LOI] Khong the thiet lap Task Scheduler. Vui long chay bat bang quyen Administrator (Run as Administrator).
+    echo [LOI] Khong the thiet lap Task Scheduler. Vui long chay bat bang quyen Administrator.
 )
-
-pause
